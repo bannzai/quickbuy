@@ -16,3 +16,15 @@ func purchaseURL(favorite: Favorite) -> URL? {
         nil
     }
 }
+
+/// ウィジェットのタップでアプリに渡された URL から、タップされたお気に入りの購入画面の URL を返す。
+///
+/// 渡された URL から読むのはお気に入りの識別子だけで、購入画面の URL は保存先にあるそのお気に入りから組み立てる (documents/adr/0003)。
+/// `favoriteTapURL(favoriteID:)` の形でない URL、保存先に無い識別子、購入画面の URL を組み立てられないお気に入りでは nil を返す。
+/// 保存先のファイルを読めない時はエラーを投げる。
+func tappedFavoritePurchaseURL(tapURL: URL, fileURL: URL) throws -> URL? {
+    guard let favoriteID = tappedFavoriteID(tapURL: tapURL) else {
+        return nil
+    }
+    return try loadFavorites(fileURL: fileURL).first { $0.id == favoriteID }.flatMap { purchaseURL(favorite: $0) }
+}

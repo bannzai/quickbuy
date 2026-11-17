@@ -65,6 +65,12 @@ struct FavoritesListView: View {
         }
         .tint(quickBuyAccentColor)
         .onAppear(perform: reload)
+        .onOpenURL { tapURL in
+            // 購入画面を開けない時 (お気に入りが消されている・保存先を読めない等) は、この一覧をそのまま見せる。保存先を読めないことは reload が表示する。
+            if let tappedPurchaseURL = try? tappedFavoritePurchaseURL(tapURL: tapURL, fileURL: favoritesFileURL) {
+                openURL(tappedPurchaseURL)
+            }
+        }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
                 reload()
