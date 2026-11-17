@@ -112,6 +112,36 @@ func purchaseURLForNotificationResponse(
     return openingURL
 }
 
+/// リマインドを設定しているのに、通知の予約が無いお気に入りの識別子を返す。
+///
+/// `pendingNotificationIdentifiers` は、端末に残っている未配信の予約の識別子 (お気に入りの識別子の文字列)。
+func favoriteIDsMissingReminderNotification(favorites: [Favorite], pendingNotificationIdentifiers: Set<String>) -> [UUID] {
+    favorites
+        .filter { $0.reminder != nil && !pendingNotificationIdentifiers.contains($0.id.uuidString) }
+        .map(\.id)
+}
+
+/// 通知が許可されているのに予約の無いリマインドを、`now` から数え直して予約する。
+///
+/// 通知を拒否している間に保存したリマインドは予約されない (拒否された状態の予約は失敗する。
+/// https://developer.apple.com/documentation/usernotifications/unerror/notificationsnotallowed )。
+/// 後から設定アプリで許可した時に届くよう、アプリが前面に来た時に呼ぶ。予約は予約した時刻から日数ごとに届くため、日数を数え始めた日時も `now` に合わせる。
+/// 通知が許可されていない時、予約の無いリマインドが無い時、保存先を読めない・書けない時は何も変えない。
+func restoreMissingReminderNotifications(fileURL: URL, center: UNUserNotificationCenter, now: Date) async {
+    guard await center.notificationSettings().authorizationStatus == .authorized else {
+        return
+    }
+    let pendingNotificationIdentifiers = await Set(center.pendingNotificationRequests().map(\.identifier))
+    try? performSavingWithReminderNotifications(fileURL: fileURL, center: center) {
+        for favoriteID in try favoriteIDsMissingReminderNotification(
+            favorites: loadFavorites(fileURL: fileURL),
+            pendingNotificationIdentifiers: pendingNotificationIdentifiers
+        ) {
+            try recountFavoriteReminder(id: favoriteID, now: now, fileURL: fileURL)
+        }
+    }
+}
+
 /// リマインドの通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
 ///
 /// 通知の仕組み (`UNUserNotificationCenterDelegate`) がクラスのオブジェクトを求めるため、クラスにしている。

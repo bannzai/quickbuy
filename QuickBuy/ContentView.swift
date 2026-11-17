@@ -71,6 +71,14 @@ struct FavoritesListView: View {
                 reload()
             }
         }
+        // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
+        .task(id: scenePhase) {
+            guard scenePhase == .active else {
+                return
+            }
+            await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+            reload()
+        }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
                 editingFavorite = nil
@@ -148,14 +156,18 @@ struct FavoritesListView: View {
                         Text(shopDomainText(favorite: favorite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: .now) {
-                            Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: .now))")
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(reminderDueColor)
-                        } else {
-                            Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: .now))")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                        // 一覧を開いたまま日数が過ぎた時にも文言が切り替わるよう、1 分ごとに描き直す。
+                        // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
+                        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                            if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: timeline.date) {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: timeline.date))")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(reminderDueColor)
+                            } else {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: timeline.date))")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     Spacer(minLength: 0)

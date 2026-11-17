@@ -548,6 +548,31 @@ struct ReminderTests {
         #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil)) == nil)
     }
 
+    /// リマインドがあって予約の識別子が無いお気に入りだけを返す。予約のあるお気に入りと、リマインドの無いお気に入りは返さない。
+    @Test func 予約の無いリマインドのお気に入りだけを返す() {
+        #expect(
+            favoriteIDsMissingReminderNotification(
+                favorites: [
+                    favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)),
+                    favorite(idSuffix: "2", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)),
+                    favorite(idSuffix: "3", reminder: nil),
+                ],
+                pendingNotificationIdentifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2", "developerMenuReminderPreview"]
+            ) == [UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!]
+        )
+    }
+
+    /// すべてのリマインドに予約がある時と、お気に入りが無い時は、何も返さない。
+    @Test func 予約がそろっている時は何も返さない() {
+        #expect(
+            favoriteIDsMissingReminderNotification(
+                favorites: [favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))],
+                pendingNotificationIdentifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]
+            ) == []
+        )
+        #expect(favoriteIDsMissingReminderNotification(favorites: [], pendingNotificationIdentifiers: []) == [])
+    }
+
     // MARK: - 開発者メニュー
 
     /// 数え始めた日時を、今から設定した日数だけ前にずらす。リマインドの無いお気に入りは変えない。
