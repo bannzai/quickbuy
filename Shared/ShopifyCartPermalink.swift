@@ -36,6 +36,7 @@ func isHostName(text: String) -> Bool {
                 && label.utf8.count <= 63
                 && !label.hasPrefix("-")
                 && !label.hasSuffix("-")
-                && label.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+                // 【一時ブランチ: わざと壊した版。マージしない】使える文字を ASCII の全部に広げる (空白・改行・タブのテストが落ちることを確かめる)。
+                && label.allSatisfy(\.isASCII)
         }
 }
