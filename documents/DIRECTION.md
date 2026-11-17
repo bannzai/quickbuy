@@ -29,13 +29,13 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 最初の版 (iOS。お気に入り → ウィジェットのタップ → 購入画面):
 
-- [ ] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
+- [x] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
 - [ ] お気に入りの追加: 商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡す。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)
 - [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon を最初の版でどう扱うか (入れない / 商品ページを開くだけ / 対象から外す) は https://github.com/bannzai/quickbuy/issues/2 の返答で決める。返答までは、どの案でも要る Shopify の店の部分から作る
 - [ ] ホーム画面のウィジェット: お気に入りを並べ、タップで購入画面を開く
 - [ ] リマインド: お気に入りごとに「何日ごとに知らせるか」を設定し、端末の通知で知らせる。通知をタップすると、その商品の購入画面が開く。日数は購入画面を開いた時刻から数え直す (数え方と通知をタップした時の動きは agent の案)
 - [ ] 設定画面: お問い合わせ・利用規約・プライバシーポリシー・アフィリエイトのリンクを含むことの表示
-- [ ] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
+- [x] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
 - [ ] 計測とクラッシュ収集: 購入画面を開いた・ウィジェットを置いた、を数える (案は Firebase Analytics・Crashlytics・bannzai/dashboard への収集。Firebase を使うかは https://github.com/bannzai/quickbuy/issues/2 の返答で決める)
 - [ ] 多言語化 (日本語・英語) とストアの素材
 
@@ -67,6 +67,9 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 | 2026-11-17 | 作るかの判断 (リマインドの型) | リマインドは「何日ごと」と「日数を数え始めた日時」を持ち、購入画面を開いた時刻から数え直す。通知をタップすると購入画面を直接開く。通知は端末の中だけで予約する | agent (変えにくい面) |
 | 2026-11-17 | 作るかの判断 | 作る (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6947809876 ) | bannzai |
 | 2026-11-17 | お気に入りの保存の実装 (https://github.com/bannzai/quickbuy/issues/9 ) | お気に入りは App Group `group.com.bannzai.QuickBuy` の領域の `favorites.json` に、`[Favorite]` を Swift の `Codable` の自動合成の形の JSON で保存する (`Product` は `{"shopify":{"_0":{…}}}` の入れ子、日時は 2001-01-01 00:00:00 UTC からの秒数)。形は `QuickBuyTests/FavoriteStoreTests.swift` の「保存済みのJSONの形を読める」で固定する。公開前なので、形を変える時は移行を書かずに変えられる | agent (変えにくい面) |
+| 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 商品の名前・画像・商品バリアントの ID は、商品ページの URL の店から Shopify の Ajax Product API (`/products/{商品のハンドル}.js`) で取る。取れない店 (Shopify でない・パスワードで保護されている) の商品は登録できないと表示する。`?variant=` の無い URL は、店の商品ページが最初に選ぶのと同じ「最初の今買える商品バリアント」を登録し、商品バリアントを選ぶ画面は作らない (どれを登録するかは名前に商品バリアントの名前を付けて確認の画面で見せる) | agent |
+| 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 共有メニューから渡された URL は、アプリ本体を開かず、共有メニューの拡張 (`QuickBuyShare`) の中でアプリと同じ確認の画面を出して保存する | agent |
+| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 「買う」は店の購入画面を端末の既定のブラウザで開く。Amazon の商品のお気に入りは、扱いが決まるまで一覧に「買う」を出さない | agent |
 ## agent に任せること
 
 文書に無い問いはすべて。画面構成・文言・ライブラリの選定・テストの方針を含む。次は任せず、bannzai が決める・行う。
