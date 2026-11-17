@@ -7,6 +7,11 @@ let contactMailAddress = "bannzai.app@gmail.com"
 let publicPagesURL = URL(string: "https://bannzai.github.io/quickbuy/")!
 
 /// 利用規約のページ (`docs/Terms-ja.md`) の URL。
+///
+/// 拡張子なしの形にしている根拠は実測: 同じ構成 (`main` ブランチの `/docs` を Jekyll でビルドし、`docs/_config.yml` を置き
+/// `.nojekyll` を置かない) の公開済みのサイトで、`https://bannzai.github.io/mementomorning/Terms-ja` と
+/// `https://bannzai.github.io/mementomorning/PrivacyPolicy-ja` が HTTP 200 (`text/html`) を返した (2026-11-18 に `curl` で確認)。
+/// このリポジトリの GitHub Pages は 2026-11-18 時点で未公開のため、この URL 自体が開けることは未確認。
 let termsURL = publicPagesURL.appending(path: "Terms-ja")
 
 /// プライバシーポリシーのページ (`docs/PrivacyPolicy-ja.md`) の URL。
