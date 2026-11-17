@@ -112,9 +112,7 @@ struct AddFavoriteView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.tint, lineWidth: 2))
-                .listRowInsets(EdgeInsets())
+                .padding(.vertical, 8)
             }
             Section {
                 HStack(spacing: 12) {
