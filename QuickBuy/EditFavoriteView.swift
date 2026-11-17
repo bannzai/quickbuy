@@ -2,8 +2,8 @@ import SwiftUI
 
 /// お気に入りの編集の画面。名前と個数を変えて保存する、またはお気に入りから外す。
 struct EditFavoriteView: View {
-    /// 編集中のお気に入り。「保存」を押すまで保存先には書かない。
-    @Binding var favorite: Favorite
+    /// 編集中のお気に入り。開く時に保存済みの値を渡す。「保存」を押すまで保存先には書かない。
+    @State var favorite: Favorite
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
     /// この画面を閉じる処理。保存・削除の後と、戻る時に呼ぶ。

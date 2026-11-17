@@ -27,7 +27,7 @@ struct FavoritesListView: View {
     @State private var isLoadFailed = false
     /// 保存に失敗したことを知らせる表示を出している間は true。
     @State private var isSaveFailed = false
-    /// 編集の画面で開いているお気に入り (保存する前の編集中の値)。開いていない時は nil。
+    /// 編集の画面で開いているお気に入り (開いた時点の保存済みの値)。開いていない時は nil。
     @State private var editingFavorite: Favorite?
     /// お気に入りの追加の画面を出している間は true。
     @State private var isAddingFavorite = false
@@ -69,11 +69,9 @@ struct FavoritesListView: View {
                 reload()
             }
         }
-        .sheet(item: $editingFavorite, onDismiss: reload) { _ in
-            if let editingFavoriteBinding = Binding($editingFavorite) {
-                EditFavoriteView(favorite: editingFavoriteBinding, favoritesFileURL: favoritesFileURL) {
-                    editingFavorite = nil
-                }
+        .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
+            EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
+                editingFavorite = nil
             }
         }
         .sheet(isPresented: $isAddingFavorite, onDismiss: reload) {
