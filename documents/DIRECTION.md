@@ -69,6 +69,7 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 | 2026-11-17 | お気に入りの保存の実装 (https://github.com/bannzai/quickbuy/issues/9 ) | お気に入りは App Group `group.com.bannzai.QuickBuy` の領域の `favorites.json` に、`[Favorite]` を Swift の `Codable` の自動合成の形の JSON で保存する (`Product` は `{"shopify":{"_0":{…}}}` の入れ子、日時は 2001-01-01 00:00:00 UTC からの秒数)。形は `QuickBuyTests/FavoriteStoreTests.swift` の「保存済みのJSONの形を読める」で固定する。公開前なので、形を変える時は移行を書かずに変えられる | agent (変えにくい面) |
 | 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 商品の名前・画像・商品バリアントの ID は、商品ページの URL の店から Shopify の Ajax Product API (`/products/{商品のハンドル}.js`) で取る。取れない店 (Shopify でない・パスワードで保護されている) の商品は登録できないと表示する。`?variant=` の無い URL は、店の商品ページが最初に選ぶのと同じ「最初の今買える商品バリアント」を登録し、商品バリアントを選ぶ画面は作らない (どれを登録するかは名前に商品バリアントの名前を付けて確認の画面で見せる) | agent |
 | 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 共有メニューから渡された URL は、アプリ本体を開かず、共有メニューの拡張 (`QuickBuyShare`) の中でアプリと同じ確認の画面を出して保存する | agent |
+| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 一覧の行を押すと編集の画面を開く。並べ替えは一覧の「編集」、削除は行のスワイプ・一覧の「編集」・編集の画面の「お気に入りから外す」で行う (iOS の標準の一覧の操作)。名前が空 (空白だけを含む) の間は保存できない。ボタンと強調の色は、デザインの方向が決まるまで主要画面のモックの色 (`#0F5E6B`) を `quickBuyAccentColor` の 1 か所に置く | agent |
 | 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 「買う」は店の購入画面を端末の既定のブラウザで開く。Amazon の商品のお気に入りは、扱いが決まるまで一覧に「買う」を出さない | agent |
 ## agent に任せること
 
