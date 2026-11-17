@@ -71,7 +71,7 @@ struct AddFavoriteTests {
 
     /// 商品バリアントが 1 つの商品「コーヒー豆 200g」(商品バリアントの ID は 70881412) の JSON。
     private let productJSON = Data(
-        #"{"title":"コーヒー豆 200g","featured_image":"//cdn.example/beans.png","variants":[{"id":70881412,"title":"Default Title","available":true}]}"#.utf8
+        #"{"title":"コーヒー豆 200g","featured_image":"//cdn.shopify.com/beans.png","variants":[{"id":70881412,"title":"Default Title","available":true}]}"#.utf8
     )
 
     /// テストごとに別の、まだ存在しない保存先のファイルの URL を返す。
@@ -90,7 +90,7 @@ struct AddFavoriteTests {
                 == Favorite(
                     id: draftID,
                     name: "コーヒー豆 200g",
-                    imageURL: URL(string: "https://cdn.example/beans.png"),
+                    imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
                     quantity: 1,
                     product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: "70881412")),
                     reminder: nil

@@ -160,11 +160,11 @@ struct ShopifyProductPageTests {
     /// 商品バリアントの指定が無い時は、最初の今買える商品バリアントを選び、個数 1・リマインドなしで作る。名前には商品バリアントの名前が付く。
     @Test func 指定が無い時は最初の買える商品バリアントで作る() {
         #expect(
-            favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: "//cdn.example/beans.png"))
+            favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: "//cdn.shopify.com/beans.png"))
                 == Favorite(
                     id: draftID,
                     name: "コーヒー豆 200g",
-                    imageURL: URL(string: "https://cdn.example/beans.png"),
+                    imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
                     quantity: 1,
                     product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "102")),
                     reminder: nil
@@ -203,15 +203,24 @@ struct ShopifyProductPageTests {
         #expect(favorite?.product == .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "201")))
     }
 
-    /// 画像の URL は `https` のものとスキームを省いた形だけを入れ、`http`・ほかのスキーム・画像なしでは入れない。
+    /// 画像の URL は、`https` (スキームを省いた形を含む) で、ホストが Shopify の CDN か店のドメイン (`mori-coffee.example`) のものだけを入れる。
+    /// 無関係なホスト・CDN の名前で始まるだけのホスト・認証情報の位置に CDN の名前を書いた URL・店のドメインのサブドメイン・`http`・ほかのスキーム・空文字・画像なしでは入れない。
     @Test(arguments: [
-        ("https://cdn.example/beans.png", "https://cdn.example/beans.png"),
-        ("//cdn.example/beans.png", "https://cdn.example/beans.png"),
-        ("http://cdn.example/beans.png", nil),
+        ("https://cdn.shopify.com/s/files/beans.png", "https://cdn.shopify.com/s/files/beans.png"),
+        ("//cdn.shopify.com/s/files/beans.png", "https://cdn.shopify.com/s/files/beans.png"),
+        ("https://CDN.Shopify.com/s/files/beans.png", "https://CDN.Shopify.com/s/files/beans.png"),
+        ("https://mori-coffee.example/cdn/shop/beans.png", "https://mori-coffee.example/cdn/shop/beans.png"),
+        ("//mori-coffee.example/cdn/shop/beans.png", "https://mori-coffee.example/cdn/shop/beans.png"),
+        ("https://tracker.example/beans.png", nil),
+        ("https://cdn.shopify.com.tracker.example/beans.png", nil),
+        ("https://cdn.shopify.com@tracker.example/beans.png", nil),
+        ("https://sub.mori-coffee.example/beans.png", nil),
+        ("http://cdn.shopify.com/s/files/beans.png", nil),
+        ("", nil),
         ("file:///etc/hosts", nil),
         (nil, nil),
     ] as [(String?, String?)])
-    func 画像のURLはhttpsだけを入れる(featuredImage: String?, expectedImageURLText: String?) {
+    func 画像のURLはhttpsで店のドメインかShopifyのCDNのものだけを入れる(featuredImage: String?, expectedImageURLText: String?) {
         #expect(
             favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: featuredImage))?.imageURL?.absoluteString
                 == expectedImageURLText
