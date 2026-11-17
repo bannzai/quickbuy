@@ -36,9 +36,13 @@ struct SettingsTests {
     }
 
     /// リンク先のページの元になる Markdown が `docs/` にある (ファイルの名前を変えるとリンクが切れるため)。
-    @Test(arguments: ["docs/Terms-ja.md", "docs/PrivacyPolicy-ja.md"])
-    func リンク先のページの元のファイルがある(relativePath: String) {
-        #expect(FileManager.default.fileExists(atPath: repositoryFileURL(relativePath: relativePath).path(percentEncoded: false)))
+    @Test(arguments: [termsURL, privacyPolicyURL])
+    func リンク先のページの元のファイルがある(pageURL: URL) {
+        #expect(
+            FileManager.default.fileExists(
+                atPath: repositoryFileURL(relativePath: "docs/\(pageURL.lastPathComponent).md").path(percentEncoded: false)
+            )
+        )
     }
 
     // MARK: - バージョン
