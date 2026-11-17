@@ -101,9 +101,10 @@
                         }
                         Button("お気に入りをすべて消す", role: .destructive) {
                             finish {
-                                try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current()) {
-                                    try deleteAllFavorites(fileURL: favoritesFileURL)
-                                }
+                                // 保存先の中身が壊れていて読めない時も消せるよう、保存の前後を比べる処理を通さず、通知の予約と届いた通知をすべて消す。
+                                try deleteAllFavorites(fileURL: favoritesFileURL)
+                                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                                UNUserNotificationCenter.current().removeAllDeliveredNotifications()
                             }
                         }
                     } header: {

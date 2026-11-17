@@ -38,18 +38,25 @@ func applyReminderNotificationChanges(changes: [ReminderNotificationChange], cen
             center.removePendingNotificationRequests(withIdentifiers: [favoriteID.uuidString])
             center.removeDeliveredNotifications(withIdentifiers: [favoriteID.uuidString])
         case let .schedule(favorite):
-            guard let reminder = favorite.reminder else {
+            guard let request = reminderNotificationRequest(favorite: favorite) else {
                 continue
             }
-            center.removeDeliveredNotifications(withIdentifiers: [favorite.id.uuidString])
-            center.add(
-                UNNotificationRequest(
-                    identifier: favorite.id.uuidString,
-                    content: reminderNotificationContent(favorite: favorite),
-                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: reminderTimeInterval(reminder: reminder), repeats: true)
-                )
-            )
+            center.removeDeliveredNotifications(withIdentifiers: [request.identifier])
+            center.add(request)
         }
+    }
+}
+
+/// お気に入りのリマインドの通知の予約を返す。リマインドを設定していないお気に入りでは nil を返す。
+///
+/// 通知の識別子はお気に入りの識別子 (1 件につき予約を 1 つにするため)。予約した時刻から、設定した日数ごとに繰り返し知らせる。
+func reminderNotificationRequest(favorite: Favorite) -> UNNotificationRequest? {
+    favorite.reminder.map { reminder in
+        UNNotificationRequest(
+            identifier: favorite.id.uuidString,
+            content: reminderNotificationContent(favorite: favorite),
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: reminderTimeInterval(reminder: reminder), repeats: true)
+        )
     }
 }
 

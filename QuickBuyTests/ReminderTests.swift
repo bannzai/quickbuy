@@ -532,6 +532,22 @@ struct ReminderTests {
         #expect(reminderNotificationFavoriteID(userInfo: ["favoriteID": 1]) == nil)
     }
 
+    /// 予約は、お気に入りの識別子を通知の識別子にし、設定した日数 (7 日 = 604800 秒) ごとに繰り返す。
+    @Test func 通知の予約はお気に入りの識別子で設定した日数ごとに繰り返す() throws {
+        let request = try #require(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom))))
+        let trigger = try #require(request.trigger as? UNTimeIntervalNotificationTrigger)
+
+        #expect(request.identifier == "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
+        #expect(trigger.timeInterval == 604_800)
+        #expect(trigger.repeats)
+        #expect(request.content.body == "コーヒー豆 1\nタップすると購入画面が開きます")
+    }
+
+    /// リマインドを設定していないお気に入りからは、予約を作らない。
+    @Test func リマインドの無いお気に入りの通知の予約は作らない() {
+        #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil)) == nil)
+    }
+
     // MARK: - 開発者メニュー
 
     /// 数え始めた日時を、今から設定した日数だけ前にずらす。リマインドの無いお気に入りは変えない。
