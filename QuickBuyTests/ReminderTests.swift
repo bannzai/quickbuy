@@ -237,6 +237,22 @@ struct ReminderTests {
         #expect(try loadFavorites(fileURL: fileURL) == [favorite(idSuffix: "1", reminder: nil)])
     }
 
+    /// 編集の画面で選べる範囲の両端 (1 日と 365 日) は保存でき、読み直すと同じ日数になる。
+    @Test(arguments: [1, 365])
+    func 選べる範囲の両端の日数のリマインドは保存できる(intervalDays: Int) throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try saveFavorites(favorites: [favorite(idSuffix: "1", reminder: nil)], fileURL: fileURL)
+
+        try setFavoriteReminder(
+            id: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!,
+            reminder: Reminder(intervalDays: intervalDays, countedFrom: countedFrom),
+            now: countedFrom,
+            fileURL: fileURL
+        )
+
+        #expect(try loadFavorites(fileURL: fileURL) == [favorite(idSuffix: "1", reminder: Reminder(intervalDays: intervalDays, countedFrom: countedFrom))])
+    }
+
     @Test(arguments: [0, -1])
     func 日数が1未満のリマインドは保存しない(intervalDays: Int) throws {
         let fileURL = temporaryFavoritesFileURL()
