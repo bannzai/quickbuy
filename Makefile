@@ -21,7 +21,8 @@ device:
 # 実機ビルドを実機にインストールして起動する。インストール先の解決順: DEVICE 変数 (名前 / UDID) > 環境変数 IOS_DEVICE_UDID > devicectl の JSON から実機を自動解決
 # devicectl は起動中の simulator も一覧に載せるため、先に実機 (reality == physical) に絞る。実機が 1 台ならそれ、複数台なら接続中の 1 台。決められなければ指定を求める
 install-device: device
-	@mkdir -p tmp; \
+	@set -e; \
+	mkdir -p tmp; \
 	device="$(DEVICE)"; \
 	[ -n "$$device" ] || device="$(IOS_DEVICE_UDID)"; \
 	if [ -z "$$device" ]; then \
