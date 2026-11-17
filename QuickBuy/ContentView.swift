@@ -148,9 +148,15 @@ struct FavoritesListView: View {
                         Text(shopDomainText(favorite: favorite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: .now))")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: .now) {
+                            Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: .now))")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(reminderDueColor)
+                        } else {
+                            Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: .now))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Spacer(minLength: 0)
                 }
@@ -191,6 +197,11 @@ struct FavoritesListView: View {
         reload()
     }
 }
+
+/// 一覧の行で、リマインドの日数が過ぎたこと (「そろそろ買う頃」) を示す文字の色。
+///
+/// 画面の見本 (documents/design/mock-2026-11-17/project/Main.dc.html) の「そろそろ買う頃」の色 `#9A3412`。
+let reminderDueColor = Color(red: 0x9A / 255, green: 0x34 / 255, blue: 0x12 / 255)
 
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。
 ///
