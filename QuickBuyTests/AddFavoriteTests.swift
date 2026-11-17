@@ -185,6 +185,55 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == [])
     }
 
+    // MARK: - 名前と個数の入力
+
+    /// 1 文字でも字があれば保存でき、空文字・空白だけ・改行だけの名前は保存できない。
+    @Test(arguments: [
+        ("豆", true),
+        (" 豆 ", true),
+        ("", false),
+        (" ", false),
+        ("　", false),
+        ("\n", false),
+    ])
+    func 名前が空か空白だけの間は保存できない(name: String, expectedSavable: Bool) {
+        #expect(isFavoriteNameSavable(name: name) == expectedSavable)
+    }
+
+    /// 個数は 1 つずつ減り、1 からは減らない。
+    @Test(arguments: [(3, 2), (2, 1), (1, 1)])
+    func 個数は1より小さくならない(quantity: Int, expectedQuantity: Int) {
+        #expect(decrementedQuantity(quantity: quantity) == expectedQuantity)
+    }
+
+    // MARK: - 共有メニューから渡された項目
+
+    /// 文字列の項目が先、URL の項目が後に渡されても、URL を返す。
+    @Test func 共有された項目はURLを文字列より優先する() async {
+        #expect(
+            await sharedText(itemProviders: [
+                NSItemProvider(object: "コーヒー豆 200g" as NSString),
+                NSItemProvider(object: URL(string: "https://mori-coffee.example/products/coffee-beans")! as NSURL),
+            ]) == "https://mori-coffee.example/products/coffee-beans"
+        )
+    }
+
+    /// URL の項目が無ければ、最初の文字列の項目を返す。
+    @Test func URLの項目が無ければ文字列を返す() async {
+        #expect(
+            await sharedText(itemProviders: [
+                NSItemProvider(object: "https://mori-coffee.example/products/coffee-beans" as NSString),
+                NSItemProvider(object: "2 つ目の文字列" as NSString),
+            ]) == "https://mori-coffee.example/products/coffee-beans"
+        )
+    }
+
+    /// 項目が 1 つも無い時と、URL でも文字列でもない項目 (画像) だけの時は nil を返す。
+    @Test func URLも文字列も無ければnilを返す() async {
+        #expect(await sharedText(itemProviders: []) == nil)
+        #expect(await sharedText(itemProviders: [NSItemProvider(item: Data([0x89, 0x50]) as NSData, typeIdentifier: "public.png")]) == nil)
+    }
+
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
         #expect(favoriteDraftLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))

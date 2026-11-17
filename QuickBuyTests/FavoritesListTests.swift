@@ -47,6 +47,24 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == expectedNames)
     }
 
+    // MARK: - 削除
+
+    /// 「洗剤」「電池」「水」「米」の並びで、一覧の削除が渡す位置 (1 つ・離れた 2 つ・隣り合う 2 つ・なし) のお気に入りだけが消え、残りの並びは変わらない。
+    @Test(arguments: [
+        ([1], ["洗剤", "水", "米"]),
+        ([0, 2], ["電池", "米"]),
+        ([2, 3], ["洗剤", "電池"]),
+        ([0, 1, 2, 3], []),
+        ([], ["洗剤", "電池", "水", "米"]),
+    ] as [([Int], [String])])
+    func 渡された位置のお気に入りだけを消す(deletedIndexes: [Int], expectedNames: [String]) throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let favorites = [favorite(name: "洗剤"), favorite(name: "電池"), favorite(name: "水"), favorite(name: "米")]
+        try saveFavorites(favorites: favorites, fileURL: fileURL)
+        try deleteFavorites(indexes: IndexSet(deletedIndexes), favorites: favorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == expectedNames)
+    }
+
     // MARK: - 店のドメインの表示
 
     /// Shopify の商品は保存した店のドメイン、Amazon の商品は `amazon.co.jp` を表示する。

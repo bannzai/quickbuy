@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// お気に入りの追加の画面。商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面を経て、利用者が「お気に入りに入れる」を押した時だけ保存する。
 ///
@@ -139,7 +140,7 @@ struct AddFavoriteView: View {
                 .controlSize(.large)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                .disabled(favorite.wrappedValue.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!isFavoriteNameSavable(name: favorite.wrappedValue.name))
             } footer: {
                 Text("入れただけでは購入されません")
             }
@@ -181,6 +182,35 @@ let quickBuyAccentColor = Color(red: 0x0F / 255, green: 0x5E / 255, blue: 0x6B /
 ///
 /// 角の丸みは、一覧の行のまとまりの角の丸み (iOS 26 の simulator で、丸み 10 の枠の四隅が切れた) より大きくして、枠の四隅が切れないようにしている。
 private let shopDomainBoxShape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+
+/// お気に入りの名前として保存できるかを返す。空文字と、空白・改行だけの名前は保存できない (一覧で見分けられないため)。
+func isFavoriteNameSavable(name: String) -> Bool {
+    !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+}
+
+/// 個数を 1 つ減らした値を返す。1 より小さくはならない (`Favorite.quantity` は 1 以上)。
+func decrementedQuantity(quantity: Int) -> Int {
+    max(quantity - 1, 1)
+}
+
+/// 共有メニューから渡された項目のうち、最初に読めた URL (絶対 URL の文字列) を返す。URL の項目が 1 つも無ければ、最初に読めた文字列を返す。どちらも無い・読めない時は nil を返す。
+///
+/// URL を文字列より優先するのは、受け取りたいのが商品ページの URL で、URL と文字列 (説明文など) の両方の項目が渡された時に文字列の側を登録の入力にしないため。
+func sharedText(itemProviders: [NSItemProvider]) async -> String? {
+    for typeIdentifier in [UTType.url.identifier, UTType.plainText.identifier] {
+        for itemProvider in itemProviders where itemProvider.hasItemConformingToTypeIdentifier(typeIdentifier) {
+            switch try? await itemProvider.loadItem(forTypeIdentifier: typeIdentifier) {
+            case let url as URL:
+                return url.absoluteString
+            case let text as String:
+                return text
+            default:
+                continue
+            }
+        }
+    }
+    return nil
+}
 
 /// 登録できなかった理由を、入力欄の下に出す文言にして返す。
 func favoriteDraftLoadErrorMessage(error: FavoriteDraftLoadError) -> String {
@@ -243,9 +273,7 @@ struct QuantityStepperRow: View {
         } onIncrement: {
             quantity += 1
         } onDecrement: {
-            if quantity > 1 {
-                quantity -= 1
-            }
+            quantity = decrementedQuantity(quantity: quantity)
         }
     }
 }
