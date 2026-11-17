@@ -47,6 +47,24 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == expectedNames)
     }
 
+    // MARK: - 削除
+
+    /// 「洗剤」「電池」「水」「米」の並びで、一覧の削除が渡す位置 (1 つ・離れた 2 つ・隣り合う 2 つ・なし) のお気に入りだけが消え、残りの並びは変わらない。
+    @Test(arguments: [
+        ([1], ["洗剤", "水", "米"]),
+        ([0, 2], ["電池", "米"]),
+        ([2, 3], ["洗剤", "電池"]),
+        ([0, 1, 2, 3], []),
+        ([], ["洗剤", "電池", "水", "米"]),
+    ] as [([Int], [String])])
+    func 渡された位置のお気に入りだけを消す(deletedIndexes: [Int], expectedNames: [String]) throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let favorites = [favorite(name: "洗剤"), favorite(name: "電池"), favorite(name: "水"), favorite(name: "米")]
+        try saveFavorites(favorites: favorites, fileURL: fileURL)
+        try deleteFavorites(indexes: IndexSet(deletedIndexes), favorites: favorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == expectedNames)
+    }
+
     // MARK: - 店のドメインの表示
 
     /// Shopify の商品は保存した店のドメイン、Amazon の商品は `amazon.co.jp` を表示する。
@@ -85,14 +103,28 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["自分で入れた商品", "名前を変えた見本", "洗濯用せっけん", "プロテイン 1kg"])
     }
 
-    /// すべて消すと、見本も自分で入れたお気に入りも無くなる。空の状態でもう一度消しても空のまま。
-    @Test func すべて消すとお気に入りが0件になる() throws {
+    /// 見本を消すと、名前を変えた見本を含む見本の 3 件だけが無くなり、自分で入れたお気に入りは並びも値もそのまま残る。もう一度消しても変わらない。
+    @Test func 見本を消すと自分で入れたお気に入りだけが残る() throws {
         let fileURL = temporaryFavoritesFileURL()
-        try saveFavorites(favorites: [favorite(name: "自分で入れた商品")], fileURL: fileURL)
+        let firstOwnFavorite = favorite(name: "自分で入れた商品")
+        let secondOwnFavorite = favorite(name: "後から入れた商品")
+        try saveFavorites(favorites: [firstOwnFavorite], fileURL: fileURL)
         try insertSampleFavorites(fileURL: fileURL)
-        try deleteAllFavorites(fileURL: fileURL)
+        try addFavorite(favorite: secondOwnFavorite, fileURL: fileURL)
+        try updateFavorite(id: sampleFavorites()[1].id, name: "名前を変えた見本", quantity: 4, fileURL: fileURL)
+        try deleteSampleFavorites(fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [firstOwnFavorite, secondOwnFavorite])
+        try deleteSampleFavorites(fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [firstOwnFavorite, secondOwnFavorite])
+    }
+
+    /// 見本だけが入っている時に消すと 0 件になり、保存先のファイルが無い時に消しても 0 件のまま。
+    @Test func 見本だけの時に消すと0件になる() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try deleteSampleFavorites(fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL) == [])
-        try deleteAllFavorites(fileURL: fileURL)
+        try insertSampleFavorites(fileURL: fileURL)
+        try deleteSampleFavorites(fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL) == [])
     }
 }

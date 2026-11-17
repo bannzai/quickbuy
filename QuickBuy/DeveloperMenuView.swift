@@ -42,9 +42,12 @@
         }
     }
 
-    /// 保存済みのお気に入りを、見本かどうかを問わずすべて消す (お気に入りが無い状態の確認に使う)。
-    func deleteAllFavorites(fileURL: URL) throws {
-        try saveFavorites(favorites: [], fileURL: fileURL)
+    /// 保存済みのお気に入りから、見本のお気に入り (名前や個数を変えたものを含む) だけを消す。利用者が自分で入れたお気に入りと、その並びは変えない。
+    func deleteSampleFavorites(fileURL: URL) throws {
+        try saveFavorites(
+            favorites: loadFavorites(fileURL: fileURL).filter { favorite in !sampleFavorites().contains { $0.id == favorite.id } },
+            fileURL: fileURL
+        )
     }
 
     /// リマインドを設定しているお気に入りすべてを、日数がちょうど過ぎた状態にする (日数を数え始めた日時を、`now` から設定した日数だけ前へずらす)。
@@ -89,7 +92,7 @@
         /// 操作に失敗したことを知らせる表示を出している間は true。
         @State private var isOperationFailed = false
 
-        /// 見本のお気に入りを入れる・すべて消すのボタンと、リマインドの状態と通知を作るボタン。
+        /// 見本のお気に入りを入れる・消すのボタンと、リマインドの状態と通知を作るボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -99,12 +102,11 @@
                                 try insertSampleFavorites(fileURL: favoritesFileURL)
                             }
                         }
-                        Button("お気に入りをすべて消す", role: .destructive) {
+                        Button("見本のお気に入りを消す", role: .destructive) {
                             finish {
-                                // 保存先の中身が壊れていて読めない時も消せるよう、保存の前後を比べる処理を通さず、通知の予約と届いた通知をすべて消す。
-                                try deleteAllFavorites(fileURL: favoritesFileURL)
-                                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-                                UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+                                try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current()) {
+                                    try deleteSampleFavorites(fileURL: favoritesFileURL)
+                                }
                             }
                         }
                     } header: {
