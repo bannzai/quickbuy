@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// お気に入りの追加の画面。商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面を経て、利用者が「お気に入りに入れる」を押した時だけ保存する。
 ///
@@ -197,16 +196,18 @@ func decrementedQuantity(quantity: Int) -> Int {
 ///
 /// URL を文字列より優先するのは、受け取りたいのが商品ページの URL で、URL と文字列 (説明文など) の両方の項目が渡された時に文字列の側を登録の入力にしないため。
 func sharedText(itemProviders: [NSItemProvider]) async -> String? {
-    for typeIdentifier in [UTType.url.identifier, UTType.plainText.identifier] {
-        for itemProvider in itemProviders where itemProvider.hasItemConformingToTypeIdentifier(typeIdentifier) {
-            switch try? await itemProvider.loadItem(forTypeIdentifier: typeIdentifier) {
-            case let url as URL:
-                return url.absoluteString
-            case let text as String:
-                return text
-            default:
-                continue
-            }
+    for itemProvider in itemProviders where itemProvider.canLoadObject(ofClass: URL.self) {
+        if let url = await withCheckedContinuation({ continuation in
+            _ = itemProvider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
+        }) {
+            return url.absoluteString
+        }
+    }
+    for itemProvider in itemProviders where itemProvider.canLoadObject(ofClass: String.self) {
+        if let text = await withCheckedContinuation({ continuation in
+            _ = itemProvider.loadObject(ofClass: String.self) { text, _ in continuation.resume(returning: text) }
+        }) {
+            return text
         }
     }
     return nil
