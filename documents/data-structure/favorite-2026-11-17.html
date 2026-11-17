@@ -1,0 +1,192 @@
+<title>Quick Buy お気に入りの型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* レイアウト: 1 カラムの文書。型定義 (コード) → 操作と読み書きの表 → 決めてほしい点、の順に縦に読む */
+  :root {
+    --bg: #ffffff;
+    --surface: #f1f5f3;
+    --fg: #14201b;
+    --muted: #55635c;
+    --accent: #0b6b4f;
+    --line: #d3dbd7;
+    --read: #1f5fae;
+    --write: #a8480c;
+    --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    --font-code: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101613;
+      --surface: #1a231f;
+      --fg: #e9efec;
+      --muted: #a3b0aa;
+      --accent: #49c59c;
+      --line: #2c3833;
+      --read: #7fb4f5;
+      --write: #f0a36b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101613;
+    --surface: #1a231f;
+    --fg: #e9efec;
+    --muted: #a3b0aa;
+    --accent: #49c59c;
+    --line: #2c3833;
+    --read: #7fb4f5;
+    --write: #f0a36b;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding-block: 32px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  h1 { font-size: 26px; line-height: 1.4; margin: 0; text-wrap: balance; }
+  h2 { font-size: 19px; line-height: 1.5; margin: 24px 0 0; padding-top: 20px; border-top: 1px solid var(--line); text-wrap: balance; }
+  p { margin: 0; max-width: 46em; }
+  .lead { color: var(--muted); }
+  ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 46em; }
+  code { font-family: var(--font-code); font-size: 0.92em; }
+  pre {
+    margin: 0;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: var(--font-code);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { background: var(--surface); font-weight: 700; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .r { color: var(--read); font-weight: 700; }
+  .w { color: var(--write); font-weight: 700; }
+  .none { color: var(--muted); }
+  .ask { border-left: 3px solid var(--accent); padding-left: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .ask strong { color: var(--accent); }
+  .session-origin { color: var(--muted); }
+</style>
+<div class="page">
+  <h1>Quick Buy お気に入りの型</h1>
+  <aside class="session-origin" style="font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;margin:0">
+  <div>tmux window: 2.1.326 (quickbuy:0)</div>
+  <div>セッション再開:</div>
+  <pre style="margin:4px 0 0;white-space:pre-wrap;padding:0;border:none;background:none">cd /Users/bannzai/ghq/github.com/bannzai/quickbuy
+claude --resume 8f529b2f-93c9-4048-b3e0-91a832b2851e</pre>
+  </aside>
+  <p class="lead">最初の版 (iOS で お気に入り → ウィジェットのタップ → 購入画面) が端末内に保存するデータの案。保存する型はこの 1 つだけ。実装の前に見てもらうための資料で、まだコードには入れていない (2026-11-17 作成)。</p>
+
+  <h2>型定義 (Swift)</h2>
+  <pre><code>/// お気に入り: 利用者が「また買う」ために登録した 1 つの商品。
+struct Favorite: Codable, Identifiable, Equatable {
+    /// お気に入りの識別子 (端末内で作る)。
+    let id: UUID
+    /// 一覧とウィジェットに出す名前。利用者が編集できる。
+    var name: String
+    /// 商品の画像の URL。取得できなかった時は nil。
+    var imageURL: URL?
+    /// 1 回に買う個数。1 以上。
+    var quantity: Int
+    /// どの店のどの商品か。
+    var product: Product
+
+    /// 購入画面を開くのに要る、店の種類ごとの商品の指し方。
+    enum Product: Codable, Equatable {
+        /// Shopify の店の商品。店のドメインと商品バリアントの ID。
+        case shopify(shopDomain: String, variantID: UInt64)
+        /// Amazon (amazon.co.jp) の商品。ASIN。
+        case amazon(asin: String)
+    }
+}
+
+/// 端末内 (アプリとウィジェットが共有する領域) に保存するのは [Favorite] の 1 つだけ。
+/// 配列の並びが、一覧とウィジェットの並び順になる。</code></pre>
+  <ul>
+    <li>購入画面の URL は保存しない。開く時に、店のドメイン・商品の識別子・個数から決まった形で組み立てる (Shopify は <code>https://{店のドメイン}/cart/{商品バリアントの ID}:{個数}</code>)</li>
+    <li>店ごとの「いつものセット」は保存しない。同じ店のお気に入りを、開く時に 1 つの URL にまとめる</li>
+    <li>アカウント・サーバーに置くデータ・購入の履歴・最後に開いた日時は持たない</li>
+  </ul>
+
+  <h2>利用者の操作と、読み書きするデータ</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>利用者の操作</th><th>アプリがすること</th><th>読み書きするデータ</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>商品ページの URL か、店が配る追加リンクを、貼り付けるか共有メニューから Quick Buy に渡す</td>
+          <td>URL から店のドメインと商品の識別子を取り出す。取り出せない URL は登録しない</td>
+          <td class="none">まだ書かない</td>
+        </tr>
+        <tr>
+          <td>名前と個数を確かめて「お気に入りに入れる」を押す</td>
+          <td>お気に入りを 1 件足す</td>
+          <td><span class="w">書く</span> Favorite (id・name・imageURL・quantity・product)</td>
+        </tr>
+        <tr>
+          <td>アプリを開いてお気に入りの一覧を見る</td>
+          <td>保存した並びのまま表示する</td>
+          <td><span class="r">読む</span> [Favorite]</td>
+        </tr>
+        <tr>
+          <td>名前・個数を変える、並べ替える、削除する</td>
+          <td>変えた内容で保存し直し、ウィジェットを更新する</td>
+          <td><span class="w">書く</span> name・quantity・配列の並び・要素の削除</td>
+        </tr>
+        <tr>
+          <td>ホーム画面にウィジェットを置く</td>
+          <td>並びの先頭から、ウィジェットの大きさに入る数だけ表示する</td>
+          <td><span class="r">読む</span> [Favorite]</td>
+        </tr>
+        <tr>
+          <td>ウィジェットか一覧で商品をタップする</td>
+          <td>その商品が個数分カートに入った購入画面の URL を組み立てて開く</td>
+          <td><span class="r">読む</span> Favorite 1 件 (product・quantity)</td>
+        </tr>
+        <tr>
+          <td>同じ店のお気に入りをまとめて開く (いつものセット)</td>
+          <td>同じ店のお気に入りを 1 つの URL にまとめて開く</td>
+          <td><span class="r">読む</span> product が同じ shopDomain の Favorite</td>
+        </tr>
+        <tr>
+          <td>店の画面で内容を確かめ、支払いを確定する</td>
+          <td>何もしない (店の画面での操作)</td>
+          <td class="none">読み書きしない</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>見てほしい点</h2>
+  <div class="ask">
+    <p><strong>1. URL ではなく、店のドメイン・商品の識別子・個数を保存する</strong></p>
+    <p>企画は「cart permalink と Amazon のカートに入れる URL を保存して開く形」だった。URL のまま保存すると、個数の変更と、同じ店の商品をまとめることのたびに URL を書き換えることになり、渡された URL をそのまま開く作りにもなる。そのため部品で保存する案にした。</p>
+  </div>
+  <div class="ask">
+    <p><strong>2. 「いつものセット」を保存しない</strong></p>
+    <p>この案では、同じ店のお気に入りは全部まとめて 1 つのセットになる。「セットに入れる商品を選ぶ」「セットに名前を付ける」「同じ店でセットを 2 つ持つ」が要るなら、セットを表す型を足す。</p>
+  </div>
+  <div class="ask">
+    <p><strong>3. 最初の版の追加の入口は「URL を貼り付ける・共有メニューから渡す」</strong></p>
+    <p>企画の入口 (アプリ内の検索・相性の良い商品の一覧・店が配るリンクや QR) のうち、検索と一覧は Shopify の Catalog の API キーと自分のサーバーが要る。それらが無い最初の版で登録できるように、この入口を足した。</p>
+  </div>
+</div>
