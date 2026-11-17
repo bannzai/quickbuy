@@ -38,7 +38,8 @@ struct ShopifyCartPermalinkTests {
         )
     }
 
-    /// スキーム・パス・ポート・認証情報・クエリを含む文字列と、ラベルが 1 つ・空・ハイフン始まりの文字列は nil になる。
+    /// スキーム・パス・ポート・認証情報・クエリを含む文字列、ラベルが 1 つ・空・ハイフン始まりや終わりの文字列、
+    /// ASCII の英数字とハイフン以外の文字 (日本語・全角数字・アクセント付きの文字・空白・改行・下線) を含む文字列は nil になる。
     @Test(arguments: [
         "https://example.myshopify.com",
         "example.myshopify.com/cart",
@@ -48,8 +49,15 @@ struct ShopifyCartPermalinkTests {
         "-example.myshopify.com",
         "example-.myshopify.com",
         "example..com",
+        "example.myshopify.com.",
         "localhost",
         "",
+        "例え.jp",
+        "１２３.com",
+        "é.com",
+        "example .com",
+        "example\n.com",
+        "exa_mple.com",
     ])
     func ホスト名の形でない店のドメインは通さない(shopDomain: String) {
         #expect(

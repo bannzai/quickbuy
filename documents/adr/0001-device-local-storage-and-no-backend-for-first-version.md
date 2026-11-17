@@ -18,7 +18,7 @@ Quick Buy は、Shopify の店と Amazon の「いつもの商品」をお気に
 - **ホスティング / バックエンド**: 最初の版は持たない。紹介ページと法務ページだけを GitHub Pages (`docs/`) で配信する。自分のサーバーを経由する URL (上の 3) を作る時に、ホスティングと DB を別の ADR で決める
 - **認証**: 最初の版は持たない (ログイン・会員登録の画面を作らない)。サーバーが利用者ごとの商品の一覧を持つ段階で、利用者の識別方法を別の ADR で決める
 - **課金**: 消費者向けアプリは無料で、アプリ内課金を持たない (企画の「収益」)
-- **計測とクラッシュ収集**: Firebase Analytics と Crashlytics を使う。判定基準の指標を bannzai/dashboard 経由で他のプロダクトと同じ形で読むため (`~/.claude/documents/rules/scaffold-scope-and-product-lessons.md`「雛形にしてよいもの」)。Firebase のプロジェクトの作成は、作るかの判断 (https://github.com/bannzai/quickbuy の「作るかの判断」の issue) の返答の後に行う
+- **計測とクラッシュ収集**: 未決定。案は Firebase Analytics と Crashlytics (判定基準の指標を bannzai/dashboard 経由で他のプロダクトと同じ形で読むため。`~/.claude/documents/rules/scaffold-scope-and-product-lessons.md`「雛形にしてよいもの」)。使うかと、Firebase のプロジェクトを作るかは https://github.com/bannzai/quickbuy/issues/2 の返答で決め、決まったらこの行を書き換える
 
 ## Consequences
 
