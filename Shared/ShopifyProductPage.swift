@@ -1,1 +1,227 @@
 import Foundation
+
+/// Shopify の店の商品ページの URL から取り出した、店のドメインと商品の指し方。
+struct ShopifyProductPage: Equatable {
+    /// 店のドメイン (小文字)。`isHostName(text:)` を通った値。
+    let shopDomain: String
+    /// URL のパスの先頭にあった言語の部分 (例: `ja`・`en-ca`)。無ければ nil。
+    let localePathComponent: String?
+    /// 商品のハンドル。URL のパスにあった percent-encoding のままの文字列 (例: `red-rain-coat`・`%E6%97%A5%E6%9C%AC`)。
+    let percentEncodedProductHandle: String
+    /// `?variant=` で指された商品バリアントの ID。数字だけの文字列。指定が無ければ nil。
+    let variantID: String?
+}
+
+/// 文字列が Shopify の店の商品ページの URL の形なら、店のドメインと商品の指し方に分解して返す。形が違えば nil を返す。
+///
+/// 通す形は `https://{店のドメイン}[/{言語}][/collections/{コレクション}]/products/{商品のハンドル}[/][?variant={商品バリアントの ID}]`。
+/// 形式の出典: 商品ページのパス `/products/{handle}` は https://shopify.dev/docs/api/ajax/reference/product の応答の例の `"url": "/products/red-rain-coat"`、
+/// 言語の部分は同ページの `GET /{locale}/products/{product-handle}.js`、
+/// `/collections/{コレクション}/products/…` は https://shopify.dev/docs/api/liquid/filters/within の出力の例 `/collections/sale-potions/products/draught-of-immortality`、
+/// `?variant=` は https://shopify.dev/docs/api/liquid/objects/product の `url` の例 `/products/gorgeous-wooden-computer?variant=1234567890`。
+/// 商品のハンドルは ASCII に限らない (https://shopify.dev/changelog/certain-properties-are-changing-to-support-a-full-utf-8-character-set ) ため、percent-encoding された文字列のまま受け取る。
+///
+/// nil を返す入力: 印字できる ASCII 以外の文字 (空白・改行・タブ・percent-encoding していない日本語) を含む文字列、`https` 以外のスキーム、
+/// 認証情報 (`user@`)・ポートを含む URL、ホスト名の形でない店のドメイン (`isHostName(text:)`)、上の形でないパス (Amazon の商品ページ `/dp/{ASIN}` を含む)、
+/// 数字だけでない `variant`。どの店かは見ない (店のドメインは、確認の画面で利用者が確かめる。documents/adr/0003)。
+func shopifyProductPage(text: String) -> ShopifyProductPage? {
+    guard text.utf8.allSatisfy({ (0x21 ... 0x7E).contains($0) }),
+          let urlComponents = URLComponents(string: text, encodingInvalidCharacters: false),
+          urlComponents.scheme?.lowercased() == "https",
+          urlComponents.user == nil,
+          urlComponents.password == nil,
+          urlComponents.port == nil,
+          let shopDomain = urlComponents.host?.lowercased(),
+          isHostName(text: shopDomain),
+          let percentEncodedProductHandle = productHandle(percentEncodedPath: urlComponents.percentEncodedPath)
+    else {
+        return nil
+    }
+    let variantQueryItem = urlComponents.queryItems?.first { $0.name == "variant" }
+    guard variantQueryItem.map({ isASCIIDigits(text: $0.value ?? "") }) != false else {
+        return nil
+    }
+    return ShopifyProductPage(
+        shopDomain: shopDomain,
+        localePathComponent: localePathComponent(percentEncodedPath: urlComponents.percentEncodedPath),
+        percentEncodedProductHandle: percentEncodedProductHandle,
+        variantID: variantQueryItem?.value
+    )
+}
+
+/// URL のパスを `/` で区切った部分の並びを返す。先頭の `/` と、末尾に 1 つだけある `/` は部分に数えない。
+///
+/// `/` が続く所 (`//products/x`) は空の部分として残す (呼び出し側が形の違うパスとして弾けるようにするため)。
+private func pathComponents(percentEncodedPath: String) -> [Substring] {
+    let components = percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false).dropFirst()
+    return Array(components.last == "" ? components.dropLast() : components)
+}
+
+/// 言語の部分の形 (英字 2〜3 文字。続けて `-` と英数字 2〜4 文字があってもよい。例: `ja`・`en-ca`・`zh-TW`) なら true を返す。
+private func isLocalePathComponent(text: Substring) -> Bool {
+    let subtags = text.split(separator: "-", omittingEmptySubsequences: false)
+    guard let languageSubtag = subtags.first, subtags.count <= 2 else {
+        return false
+    }
+    return (2 ... 3).contains(languageSubtag.count)
+        && languageSubtag.allSatisfy { $0.isASCII && $0.isLetter }
+        && subtags.dropFirst().allSatisfy { (2 ... 4).contains($0.count) && $0.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) } }
+}
+
+/// 商品ページのパスなら、`products` の前にある部分の並び (言語・`collections`・コレクションの名前) を返す。商品ページのパスでなければ nil を返す。
+private func productPagePrefixComponents(percentEncodedPath: String) -> [Substring]? {
+    let components = pathComponents(percentEncodedPath: percentEncodedPath)
+    guard components.count >= 2,
+          components.allSatisfy({ !$0.isEmpty }),
+          components[components.count - 2] == "products"
+    else {
+        return nil
+    }
+    let prefixComponents = components.dropLast(2)
+    let componentsAfterLocale = prefixComponents.first.map(isLocalePathComponent(text:)) == true ? prefixComponents.dropFirst() : prefixComponents
+    guard componentsAfterLocale.isEmpty || (componentsAfterLocale.count == 2 && componentsAfterLocale.first == "collections") else {
+        return nil
+    }
+    return Array(prefixComponents)
+}
+
+/// 商品ページのパスから商品のハンドル (percent-encoding のまま) を返す。商品ページのパスでなければ nil を返す。
+private func productHandle(percentEncodedPath: String) -> String? {
+    productPagePrefixComponents(percentEncodedPath: percentEncodedPath) == nil
+        ? nil
+        : pathComponents(percentEncodedPath: percentEncodedPath).last.map(String.init)
+}
+
+/// 商品ページのパスの先頭に言語の部分があれば返す。無い時と商品ページのパスでない時は nil を返す。
+private func localePathComponent(percentEncodedPath: String) -> String? {
+    productPagePrefixComponents(percentEncodedPath: percentEncodedPath)?.first
+        .flatMap { isLocalePathComponent(text: $0) ? String($0) : nil }
+}
+
+/// 商品の名前・画像・商品バリアントを取得する URL (Shopify の Ajax Product API) を組み立てて返す。
+///
+/// 形式の出典: https://shopify.dev/docs/api/ajax/reference/product の `GET /{locale}/products/{product-handle}.js`。
+/// URL に入るのは、`shopifyProductPage(text:)` が取り出した店のドメイン・言語の部分・商品のハンドルだけ。
+func shopifyAjaxProductURL(productPage: ShopifyProductPage) -> URL? {
+    URL(
+        string: "https://\(productPage.shopDomain)\(productPage.localePathComponent.map { "/\($0)" } ?? "")/products/\(productPage.percentEncodedProductHandle).js"
+    )
+}
+
+/// Shopify の Ajax Product API が返す商品の JSON のうち、お気に入りの登録に使う部分。
+///
+/// キーと値の形の出典: https://shopify.dev/docs/api/ajax/reference/product の応答の例。
+struct ShopifyAjaxProduct: Decodable, Equatable {
+    /// 商品の名前。
+    let title: String
+    /// 商品の画像の URL。応答の例ではスキームを省いた形 (`//cdn.shopify.com/…`)。画像が無い商品では値が無い。
+    let featuredImage: String?
+    /// 商品バリアントの並び。
+    let variants: [Variant]
+
+    /// 商品バリアント (色・大きさなどの違いごとの、カートに入れる単位)。
+    struct Variant: Decodable, Equatable {
+        /// 商品バリアントの ID。応答の例では数値。
+        let id: UInt64
+        /// 商品バリアントの名前 (例: `Small`)。
+        let title: String
+        /// 今買えるか (在庫があるか)。
+        let available: Bool
+    }
+
+    /// JSON のキー (snake_case) とプロパティの対応。
+    enum CodingKeys: String, CodingKey {
+        case title
+        case featuredImage = "featured_image"
+        case variants
+    }
+}
+
+/// 商品ページの URL から取り出した値と、取得した商品の JSON から、確認の画面に出す登録前のお気に入りを作って返す。保存はしない。
+///
+/// 商品バリアントは、URL に `?variant=` があればその ID のもの、無ければ並びの中で最初の今買えるもの、今買えるものが無ければ並びの先頭のものにする
+/// (店の商品ページが最初に選ぶ商品バリアントと同じ決め方。出典: https://shopify.dev/docs/api/liquid/objects/product の `selected_or_first_available_variant`)。
+/// 名前は商品の名前にし、商品バリアントが 2 つ以上ある商品では、どれを登録するかが分かるよう商品バリアントの名前を後ろに足す。
+/// `?variant=` の ID が商品バリアントの並びに無い時と、商品バリアントが 1 つも無い時は nil を返す。
+/// 画像の URL は `https` のものだけを入れる (スキームを省いた形は `https` を補う)。
+func favoriteDraft(id: UUID, productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> Favorite? {
+    guard let variant = productPage.variantID == nil
+        ? product.variants.first(where: \.available) ?? product.variants.first
+        : product.variants.first(where: { String($0.id) == productPage.variantID })
+    else {
+        return nil
+    }
+    return Favorite(
+        id: id,
+        name: product.variants.count >= 2 ? "\(product.title) \(variant.title)" : product.title,
+        imageURL: product.featuredImage.flatMap(httpsImageURL(text:)),
+        // 1 回に買う個数の下限 (`Favorite.quantity` は 1 以上)。確認の画面で利用者が変えられる。
+        quantity: 1,
+        product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
+        reminder: nil
+    )
+}
+
+/// 画像の URL の文字列が `https://` で始まるか、スキームを省いた形 (`//`) なら、`https` の URL にして返す。それ以外は nil を返す。
+private func httpsImageURL(text: String) -> URL? {
+    if text.hasPrefix("//") {
+        return URL(string: "https:\(text)")
+    }
+    return text.hasPrefix("https://") ? URL(string: text) : nil
+}
+
+/// お気に入りの登録が、確認の画面に進まずに終わった理由。
+enum FavoriteDraftLoadError: Error, Equatable {
+    /// 渡された文字列が、Shopify の店の商品ページの URL の形でない。
+    case notProductPageURL
+    /// 通信できなかった、または店が一時的に応答を制限している (HTTP 429)。待てば取得できる可能性がある。
+    case temporarilyUnavailable
+    /// 商品の情報を取得できない (Shopify の店でない・商品が無い・指定の商品バリアントが無い)。
+    case notRegistrable
+}
+
+/// 渡された文字列 (前後の空白と改行は除く) から、確認の画面に出す登録前のお気に入りを作って返す。保存はしない。
+///
+/// 文字列を `shopifyProductPage(text:)` で分解し、その店から商品の JSON を取得して `favoriteDraft(id:productPage:product:)` に渡す。
+/// 通信するのは、分解できた時の `shopifyAjaxProductURL(productPage:)` の URL への GET の 1 回だけ。
+/// 失敗した時は `FavoriteDraftLoadError` を投げる (HTTP 200 以外・JSON として読めない応答は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
+func loadFavoriteDraft(text: String, id: UUID, urlSession: URLSession) async throws -> Favorite {
+    guard let productPage = shopifyProductPage(text: text.trimmingCharacters(in: .whitespacesAndNewlines)),
+          let ajaxProductURL = shopifyAjaxProductURL(productPage: productPage)
+    else {
+        throw FavoriteDraftLoadError.notProductPageURL
+    }
+    guard let (data, response) = try? await urlSession.data(from: ajaxProductURL) else {
+        throw FavoriteDraftLoadError.temporarilyUnavailable
+    }
+    guard (response as? HTTPURLResponse)?.statusCode != 429 else {
+        throw FavoriteDraftLoadError.temporarilyUnavailable
+    }
+    guard (response as? HTTPURLResponse)?.statusCode == 200,
+          let favorite = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data))
+          .flatMap({ favoriteDraft(id: id, productPage: productPage, product: $0) })
+    else {
+        throw FavoriteDraftLoadError.notRegistrable
+    }
+    return favorite
+}
+
+/// 確認の画面で利用者が選んだ操作。
+enum FavoriteAdditionChoice {
+    /// 「お気に入りに入れる」を押した。
+    case add
+    /// 「やめる」を押した。
+    case cancel
+}
+
+/// 確認の画面の操作を保存に反映する。`add` の時だけお気に入りを並びの末尾に足し、`cancel` の時は保存先に何も書かない。
+///
+/// 登録前のお気に入りを保存する経路はこの関数の `add` だけにする (確認の画面を通さずに保存しない。documents/adr/0003)。
+func finishFavoriteAddition(choice: FavoriteAdditionChoice, favorite: Favorite, fileURL: URL) throws {
+    switch choice {
+    case .add:
+        try addFavorite(favorite: favorite, fileURL: fileURL)
+    case .cancel:
+        break
+    }
+}

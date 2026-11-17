@@ -1,0 +1,45 @@
+name: CI Release Build (xcode)
+
+# Release ビルドが通ることと、DEBUG ビルドだけの開発者メニューが Release ビルドのアプリに入っていないことを確かめる。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-build:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Release ビルドを作る
+        run: |
+          xcodebuild build -project "QuickBuy.xcodeproj" -scheme "QuickBuy" -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+      - name: 開発者メニューが Release ビルドに入っていないことを確かめる
+        run: |
+          set -euo pipefail
+          app="build/DerivedData/Build/Products/Release-iphonesimulator/QuickBuy.app"
+          # 検査が文言を見つけられることを、Release にも入る画面の文言で先に確かめる (見つけられない検査は、開発者メニューが入っていても通ってしまうため)。
+          if ! grep -r -a -q "お気に入りから外す" "$app"; then
+            echo "::error::Release ビルドのアプリから、編集の画面の文言を見つけられない。検査の方法が合っていない"
+            exit 1
+          fi
+          for text in "開発者メニュー" "見本のお気に入りを入れる" "お気に入りをすべて消す" "sukoyaka-soap.example"; do
+            if grep -r -a -q "$text" "$app"; then
+              echo "::error::Release ビルドのアプリに開発者メニューの文言が入っている: $text"
+              exit 1
+            fi
+          done
+          echo "開発者メニューの文言は Release ビルドのアプリに入っていない"
