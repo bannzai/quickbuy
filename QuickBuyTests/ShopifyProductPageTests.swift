@@ -204,14 +204,21 @@ struct ShopifyProductPageTests {
     }
 
     /// 画像の URL は、`https` (スキームを省いた形を含む) で、ホストが Shopify の CDN か店のドメイン (`mori-coffee.example`) のものだけを入れる。
-    /// 無関係なホスト・CDN の名前で始まるだけのホスト・認証情報の位置に CDN の名前を書いた URL・店のドメインのサブドメイン・`http`・ほかのスキーム・空文字・画像なしでは入れない。
+    /// ホストの大文字と小文字は区別しない。
+    /// 無関係なホスト (スキームを省いた形を含む)・CDN の名前で始まるだけのホスト・末尾にドットの付いたホスト・認証情報の位置に CDN の名前を書いた URL・パスワードだけを含む URL・ポートを含む URL・店のドメインのサブドメイン・`http`・ほかのスキーム・空文字・画像なしでは入れない。
     @Test(arguments: [
         ("https://cdn.shopify.com/s/files/beans.png", "https://cdn.shopify.com/s/files/beans.png"),
         ("//cdn.shopify.com/s/files/beans.png", "https://cdn.shopify.com/s/files/beans.png"),
         ("https://CDN.Shopify.com/s/files/beans.png", "https://CDN.Shopify.com/s/files/beans.png"),
         ("https://mori-coffee.example/cdn/shop/beans.png", "https://mori-coffee.example/cdn/shop/beans.png"),
         ("//mori-coffee.example/cdn/shop/beans.png", "https://mori-coffee.example/cdn/shop/beans.png"),
+        ("https://Mori-Coffee.Example/cdn/shop/beans.png", "https://Mori-Coffee.Example/cdn/shop/beans.png"),
         ("https://tracker.example/beans.png", nil),
+        ("//tracker.example/beans.png", nil),
+        ("https://cdn.shopify.com:8443/s/files/beans.png", nil),
+        ("https://mori-coffee.example:8443/cdn/shop/beans.png", nil),
+        ("https://:password@cdn.shopify.com/s/files/beans.png", nil),
+        ("https://cdn.shopify.com./s/files/beans.png", nil),
         ("https://cdn.shopify.com.tracker.example/beans.png", nil),
         ("https://cdn.shopify.com@tracker.example/beans.png", nil),
         ("https://sub.mori-coffee.example/beans.png", nil),

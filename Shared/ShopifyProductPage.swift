@@ -170,13 +170,14 @@ let shopifyCDNHost = "cdn.shopify.com"
 
 /// 商品の JSON が返した画像の URL の文字列を、アプリが読み込んでよい URL にして返す。読み込まない URL では nil を返す。
 ///
-/// 返すのは、`https` (スキームを省いた形 `//…` は `https` を補う) で、認証情報 (`user@`) を含まず、ホストが店のドメインか `shopifyCDNHost` の URL だけ。
+/// 返すのは、`https` (スキームを省いた形 `//…` は `https` を補う) で、認証情報 (`user@`) とポートを含まず、ホストが店のドメインか `shopifyCDNHost` の URL だけ (商品ページの URL の検査 `shopifyProductPage(text:)` と同じ条件)。ホストの大文字と小文字は区別しない。
 /// 画像は一覧を表示するたびに読み込まれるため、店が JSON で指した無関係なホストへ利用者の端末から通信させない。
 func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
     guard let urlComponents = URLComponents(string: text.hasPrefix("//") ? "https:\(text)" : text),
           urlComponents.scheme?.lowercased() == "https",
           urlComponents.user == nil,
           urlComponents.password == nil,
+          urlComponents.port == nil,
           [shopDomain, shopifyCDNHost].contains(urlComponents.host?.lowercased())
     else {
         return nil
