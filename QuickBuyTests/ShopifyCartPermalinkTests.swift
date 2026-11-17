@@ -73,7 +73,7 @@ struct ShopifyCartPermalinkTests {
     }
 
     /// スキーム・パス・ポート・認証情報・クエリを含む文字列、ラベルが 1 つ・空・ハイフン始まりや終わりの文字列、
-    /// ASCII の英数字とハイフン以外の文字 (日本語・全角数字・アクセント付きの文字・空白・改行・下線) を含む文字列、
+    /// ASCII の英数字とハイフン以外の文字 (日本語・全角数字・アクセント付きの文字・下線) を含む文字列、
     /// IP アドレスの形 (最後のラベルに英字が無い)、64 文字のラベル、全体が 254 文字の文字列は nil になる。
     @Test(arguments: [
         "127.0.0.1",
@@ -95,8 +95,6 @@ struct ShopifyCartPermalinkTests {
         "例え.jp",
         "１２３.com",
         "é.com",
-        "example .com",
-        "example\n.com",
         "exa_mple.com",
     ])
     func ホスト名の形でない店のドメインは通さない(shopDomain: String) {
@@ -106,6 +104,19 @@ struct ShopifyCartPermalinkTests {
                 lines: [ShopifyCartLine(variantID: 1, quantity: 1)]
             ) == nil
         )
+    }
+
+    /// 空白・改行・タブを含む文字列は、ホスト名と判定されない。
+    /// この 3 つは `URL(string:)` も弾くため (店のドメインの検査を外した版でも URL が nil になることを CI で確かめた)、
+    /// URL の組み立ての結果ではなく `isHostName(text:)` を直接確かめる。似ているが通る側は空白の無い同じドメイン。
+    @Test(arguments: [
+        ("example.com", true),
+        ("example .com", false),
+        ("example\n.com", false),
+        ("example\t.com", false),
+    ])
+    func 空白や改行を含む文字列はホスト名と判定しない(text: String, expected: Bool) {
+        #expect(isHostName(text: text) == expected)
     }
 
     /// 商品が 1 つも無い時は nil になる。

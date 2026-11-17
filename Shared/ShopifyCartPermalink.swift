@@ -23,7 +23,8 @@ func shopifyCartPermalinkURL(shopDomain: String, lines: [ShopifyCartLine]) -> UR
 /// 英数字とハイフンのラベルをドットで 2 つ以上つないだ、DNS の長さの上限に収まるドメイン名なら true を返す。
 ///
 /// スキーム・パス・ポート・認証情報を含む文字列と、IP アドレスの形 (最後のラベルに英字が無い) は false。
-private func isHostName(text: String) -> Bool {
+/// private にしていないのは、`URL(string:)` も弾く入力 (空白・改行を含む文字列) をこの関数が弾くことを、テストから直接確かめるため。
+func isHostName(text: String) -> Bool {
     let labels = text.split(separator: ".", omittingEmptySubsequences: false)
     // 長さの上限は RFC 1035 2.3.4 (ラベルは 63 オクテット以下、名前は 255 オクテット以下で、ドット区切りの表記では 253 文字以下) に合わせる。
     // 最後のラベルに英字を求めるのは、数字だけのラベルが並ぶ IP アドレスを店のドメインとして通さないため。
