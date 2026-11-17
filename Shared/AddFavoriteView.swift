@@ -43,6 +43,7 @@ struct AddFavoriteView: View {
             }
             .alert("保存できませんでした", isPresented: $isSaveFailed) {}
         }
+        .tint(quickBuyAccentColor)
         .task {
             guard !initialText.isEmpty else {
                 return
@@ -112,7 +113,11 @@ struct AddFavoriteView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
+                .padding(16)
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: shopDomainBoxShape)
+                .overlay(shopDomainBoxShape.strokeBorder(.tint, lineWidth: 2))
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
             Section {
                 HStack(spacing: 12) {
@@ -123,10 +128,17 @@ struct AddFavoriteView: View {
                 QuantityStepperRow(quantity: favorite.quantity)
             }
             Section {
-                Button("お気に入りに入れる") {
+                Button {
                     finish(choice: .add)
+                } label: {
+                    Text("お気に入りに入れる")
+                        .bold()
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
                 .disabled(favorite.wrappedValue.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } footer: {
                 Text("入れただけでは購入されません")
@@ -159,6 +171,16 @@ struct AddFavoriteView: View {
         }
     }
 }
+
+/// アプリと共有メニューの拡張で使う、ボタンと強調の色。
+///
+/// 画面の見本 (documents/design/mock-2026-11-17/index.html) の「買う」「お気に入りに入れる」と店のドメインの枠の色 `#0F5E6B`。
+let quickBuyAccentColor = Color(red: 0x0F / 255, green: 0x5E / 255, blue: 0x6B / 255)
+
+/// 確認の画面で店のドメインを囲む枠の形。
+///
+/// 角の丸みは、一覧の行のまとまりの角の丸み (iOS 26 の simulator で、丸み 10 の枠の四隅が切れた) より大きくして、枠の四隅が切れないようにしている。
+private let shopDomainBoxShape = RoundedRectangle(cornerRadius: 26, style: .continuous)
 
 /// 登録できなかった理由を、入力欄の下に出す文言にして返す。
 func favoriteDraftLoadErrorMessage(error: FavoriteDraftLoadError) -> String {

@@ -63,6 +63,7 @@ struct FavoritesListView: View {
                     }
                 }
         }
+        .tint(quickBuyAccentColor)
         .onAppear(perform: reload)
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
