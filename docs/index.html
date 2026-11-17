@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Buy | いつもの商品をホーム画面からワンタップで買い直す</title>
+  <meta name="description" content="Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリです。定期購入の契約は不要で、支払いの確定は毎回自分で行います。">
+  <link rel="canonical" href="https://bannzai.github.io/quickbuy/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Quick Buy | いつもの商品をホーム画面からワンタップで買い直す">
+  <meta property="og:description" content="いつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリ。支払いの確定は毎回自分で。">
+  <meta property="og:url" content="https://bannzai.github.io/quickbuy/">
+  <meta property="og:image" content="https://bannzai.github.io/quickbuy/og.png">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://bannzai.github.io/quickbuy/og.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Quick Buy",
+    "applicationCategory": "ShoppingApplication",
+    "operatingSystem": "iOS",
+    "description": "Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリ",
+    "url": "https://bannzai.github.io/quickbuy/",
+    "image": "https://bannzai.github.io/quickbuy/og.png",
+    "author": { "@type": "Person", "name": "bannzai" }
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f2f4f3;
+      --text: #14201b;
+      --muted: #55635c;
+      --accent: #0b6b4f;
+      --accent-text: #ffffff;
+      --line: #d5dbd8;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101613;
+        --surface: #1a231f;
+        --text: #e9efec;
+        --muted: #a3b0aa;
+        --accent: #49c59c;
+        --accent-text: #08130f;
+        --line: #2c3833;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.8;
+    }
+    main, footer { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+    header.hero { max-width: 760px; margin: 0 auto; padding: 72px 20px 40px; }
+    h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.35; margin: 0 0 20px; letter-spacing: 0.01em; }
+    h2 { font-size: 22px; line-height: 1.5; margin: 56px 0 16px; }
+    h3 { font-size: 17px; margin: 0 0 4px; }
+    p { margin: 0 0 16px; }
+    .lead { font-size: 18px; color: var(--muted); }
+    .status {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      font-weight: 600;
+    }
+    ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    ol.steps li { padding: 18px 20px; border-radius: 12px; background: var(--surface); }
+    ol.steps p, ul.points p { margin: 0; color: var(--muted); }
+    ul.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+    ul.points li { padding-left: 16px; border-left: 3px solid var(--accent); }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .contact {
+      display: inline-block;
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    footer { margin-top: 72px; padding-top: 24px; padding-bottom: 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    footer ul { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>いつもの商品を<br>ホーム画面からワンタップで買い直す</h1>
+    <p class="lead">Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開くアプリです。定期購入の契約は要りません。支払いの確定は毎回自分で行います。</p>
+    <p class="status">iPhone 向けに開発中</p>
+  </header>
+  <main>
+    <section aria-labelledby="how">
+      <h2 id="how">使い方</h2>
+      <ol class="steps">
+        <li>
+          <h3>いつもの商品をお気に入りにする</h3>
+          <p>コーヒー豆や洗剤やペットフードなど、繰り返し買う商品を登録します。</p>
+        </li>
+        <li>
+          <h3>ホーム画面にウィジェットを置く</h3>
+          <p>お気に入りの商品がホーム画面に並びます。</p>
+        </li>
+        <li>
+          <h3>タップして購入画面を開く</h3>
+          <p>商品がカートに入った状態の購入画面が開きます。内容を確かめて自分で支払いを確定します。</p>
+        </li>
+      </ol>
+    </section>
+    <section aria-labelledby="for">
+      <h2 id="for">こんな人のためのアプリです</h2>
+      <ul class="points">
+        <li>
+          <h3>定期購入は契約したくない</h3>
+          <p>余る、足りない、解約が面倒。買う間隔が決まっていない商品は、必要になった時に買い直せます。</p>
+        </li>
+        <li>
+          <h3>買う時は自分で決めたい</h3>
+          <p>Quick Buy が勝手に購入することはありません。開くのは購入画面までです。</p>
+        </li>
+        <li>
+          <h3>毎回探してカートに入れる手間を省きたい</h3>
+          <p>店を開いて商品を探す操作を、ホーム画面のワンタップに置き換えます。</p>
+        </li>
+      </ul>
+    </section>
+    <section aria-labelledby="note">
+      <h2 id="note">購入について</h2>
+      <p>商品の購入は、それぞれの店や EC サイトとの取引です。価格や在庫や配送の条件は、開いた購入画面で確かめてください。Quick Buy にはアフィリエイトプログラムによるリンクが含まれる場合があります。</p>
+    </section>
+    <section aria-labelledby="support">
+      <h2 id="support">サポート・お問い合わせ</h2>
+      <p>ご質問や不具合の報告は、アプリ内の設定画面にあるお問い合わせから送れます。メールでも受け付けています。</p>
+      <p><a class="contact" href="mailto:bannzai.app@gmail.com">bannzai.app@gmail.com にメールする</a></p>
+    </section>
+  </main>
+  <footer>
+    <ul>
+      <li><a href="./Terms-ja">利用規約</a></li>
+      <li><a href="./PrivacyPolicy-ja">プライバシーポリシー</a></li>
+    </ul>
+    <p>&copy; bannzai</p>
+  </footer>
+</body>
+</html>
