@@ -16,6 +16,12 @@
 		8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */; };
 		BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB9167DB2F1CFC7FAF99C47 /* FavoritesWidget.swift */; };
 		E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */; };
+		B10000000000000000000001 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
+		B10000000000000000000002 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
+		B10000000000000000000003 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
+		B10000000000000000000004 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
+		B10000000000000000000005 /* FavoriteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* FavoriteStoreTests.swift */; };
+		B10000000000000000000006 /* AppGroupEntitlementsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* AppGroupEntitlementsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +67,12 @@
 		DB475B718CDC27643AF3FAA8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCartPermalink.swift; sourceTree = "<group>"; };
 		FF038E9464EE15A192F75816 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000001 /* Favorite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Favorite.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000003 /* FavoriteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStoreTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* AppGroupEntitlementsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupEntitlementsTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000005 /* QuickBuy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuy.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000006 /* QuickBuyWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuyWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -69,6 +81,7 @@
 			children = (
 				B5E40B1782B9401D57C38BBA /* Assets.xcassets */,
 				DB475B718CDC27643AF3FAA8 /* ContentView.swift */,
+				A10000000000000000000005 /* QuickBuy.entitlements */,
 				1ED3753C994B4E8ECC98A2C0 /* QuickBuyApp.swift */,
 			);
 			path = QuickBuy;
@@ -79,6 +92,7 @@
 			children = (
 				9AB9167DB2F1CFC7FAF99C47 /* FavoritesWidget.swift */,
 				FF038E9464EE15A192F75816 /* Info.plist */,
+				A10000000000000000000006 /* QuickBuyWidget.entitlements */,
 				1BF07603093DE31EB60A2AA5 /* QuickBuyWidgetBundle.swift */,
 			);
 			path = QuickBuyWidget;
@@ -87,6 +101,8 @@
 		996C6285F6F8BF5CBB65DF30 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000001 /* Favorite.swift */,
+				A10000000000000000000002 /* FavoriteStore.swift */,
 				DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */,
 			);
 			path = Shared;
@@ -105,6 +121,8 @@
 		F01AC5468D109E92174A7029 /* QuickBuyTests */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000004 /* AppGroupEntitlementsTests.swift */,
+				A10000000000000000000003 /* FavoriteStoreTests.swift */,
 				C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */,
 			);
 			path = QuickBuyTests;
@@ -238,6 +256,8 @@
 			files = (
 				BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */,
 				76132C1EF59E00AEE7EF022B /* QuickBuyWidgetBundle.swift in Sources */,
+				B10000000000000000000002 /* Favorite.swift in Sources */,
+				B10000000000000000000004 /* FavoriteStore.swift in Sources */,
 				630B9AF57D0E2713E505BD72 /* ShopifyCartPermalink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -246,6 +266,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B10000000000000000000006 /* AppGroupEntitlementsTests.swift in Sources */,
+				B10000000000000000000005 /* FavoriteStoreTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -256,6 +278,8 @@
 			files = (
 				6176567ED72EA8A01DD20E9E /* ContentView.swift in Sources */,
 				834ED59FF7E782B26E69E7CB /* QuickBuyApp.swift in Sources */,
+				B10000000000000000000001 /* Favorite.swift in Sources */,
+				B10000000000000000000003 /* FavoriteStore.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -281,6 +305,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuickBuy/QuickBuy.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Quick Buy";
@@ -376,6 +401,7 @@
 		917E61CED01E1F9F75E846F3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuickBuyWidget/QuickBuyWidget.entitlements;
 				INFOPLIST_FILE = QuickBuyWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -475,6 +501,7 @@
 		BB2CC610E5C6FDEFCA10F3FD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuickBuyWidget/QuickBuyWidget.entitlements;
 				INFOPLIST_FILE = QuickBuyWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -493,6 +520,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuickBuy/QuickBuy.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Quick Buy";

@@ -1,0 +1,100 @@
+import Foundation
+
+/// アプリとウィジェット拡張が共有する領域 (App Group) の識別子。
+/// `QuickBuy/QuickBuy.entitlements` と `QuickBuyWidget/QuickBuyWidget.entitlements` の `com.apple.security.application-groups` と同じ値にする (documents/adr/0001)。
+let favoritesAppGroupIdentifier = "group.com.bannzai.QuickBuy"
+
+/// お気に入りの保存の操作が、保存せずに終わった理由。
+enum FavoriteStoreError: Error, Equatable {
+    /// 個数が 1 未満のお気に入りがある。
+    case quantityLessThanOne
+    /// リマインドの日数が 1 未満のお気に入りがある。
+    case reminderIntervalDaysLessThanOne
+    /// 指定した識別子のお気に入りが保存されていない。
+    case favoriteNotFound
+    /// 並べ替えの移動先が、保存されているお気に入りの並びの範囲に無い。
+    case destinationIndexOutOfRange
+}
+
+/// アプリとウィジェット拡張が共有する領域にある、お気に入りの保存先のファイルの URL を返す。
+///
+/// 保存するのは `[Favorite]` を JSON にしたファイル 1 つ。
+/// 実行しているターゲットに App Group の設定が無く、共有する領域を得られない時は nil を返す。
+func sharedFavoritesFileURL() -> URL? {
+    FileManager.default
+        .containerURL(forSecurityApplicationGroupIdentifier: favoritesAppGroupIdentifier)?
+        .appending(path: "favorites.json")
+}
+
+/// 保存先のファイルからお気に入りを、保存した並びのまま読んで返す。
+///
+/// ファイルがまだ無い時 (1 件も保存していない時) は空の配列を返す。
+/// ファイルがあるのに読めない・`[Favorite]` として解釈できない時は、空の配列にせずエラーを投げる (保存済みのお気に入りを、次の保存で黙って上書きしないため)。
+func loadFavorites(fileURL: URL) throws -> [Favorite] {
+    guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        return []
+    }
+    return try JSONDecoder().decode([Favorite].self, from: Data(contentsOf: fileURL))
+}
+
+/// お気に入りの並びを、保存先のファイルの中身と置き換える。配列の並びが一覧とウィジェットの並び順になる。
+///
+/// 個数が 1 未満、またはリマインドの日数が 1 未満のお気に入りが 1 つでもあれば、何も書かずにエラーを投げる。
+/// 書き込みは一時ファイルを経て置き換えるため、ウィジェット拡張が書きかけのファイルを読むことは無い。
+func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
+    guard favorites.allSatisfy({ $0.quantity >= 1 }) else {
+        throw FavoriteStoreError.quantityLessThanOne
+    }
+    guard favorites.allSatisfy({ $0.reminder.map { $0.intervalDays >= 1 } != false }) else {
+        throw FavoriteStoreError.reminderIntervalDaysLessThanOne
+    }
+    try JSONEncoder().encode(favorites).write(to: fileURL, options: .atomic)
+}
+
+/// お気に入りを並びの末尾に足して保存する。
+///
+/// 同じ識別子のお気に入りが保存済みの時は何も変えない (同じ追加を 2 回呼んでも 1 件のまま)。
+func addFavorite(favorite: Favorite, fileURL: URL) throws {
+    let favorites = try loadFavorites(fileURL: fileURL)
+    guard !favorites.contains(where: { $0.id == favorite.id }) else {
+        return
+    }
+    try saveFavorites(favorites: favorites + [favorite], fileURL: fileURL)
+}
+
+/// 指定した識別子のお気に入りの名前と個数を書き換えて保存する。並びとほかの値は変えない。
+///
+/// その識別子のお気に入りが無い時は `FavoriteStoreError.favoriteNotFound` を投げる。
+func updateFavorite(id: UUID, name: String, quantity: Int, fileURL: URL) throws {
+    var favorites = try loadFavorites(fileURL: fileURL)
+    guard let favoriteIndex = favorites.firstIndex(where: { $0.id == id }) else {
+        throw FavoriteStoreError.favoriteNotFound
+    }
+    favorites[favoriteIndex].name = name
+    favorites[favoriteIndex].quantity = quantity
+    try saveFavorites(favorites: favorites, fileURL: fileURL)
+}
+
+/// 指定した識別子のお気に入りを、並びの `destinationIndex` 番目 (0 始まり。移動した後の位置) へ移して保存する。
+///
+/// 移動した後の位置で指定するため、同じ呼び出しを繰り返しても並びは変わらない。
+/// その識別子のお気に入りが無い時は `FavoriteStoreError.favoriteNotFound`、
+/// `destinationIndex` が並びの範囲に無い時は `FavoriteStoreError.destinationIndexOutOfRange` を投げる。
+func moveFavorite(id: UUID, destinationIndex: Int, fileURL: URL) throws {
+    var favorites = try loadFavorites(fileURL: fileURL)
+    guard let favoriteIndex = favorites.firstIndex(where: { $0.id == id }) else {
+        throw FavoriteStoreError.favoriteNotFound
+    }
+    guard favorites.indices.contains(destinationIndex) else {
+        throw FavoriteStoreError.destinationIndexOutOfRange
+    }
+    favorites.insert(favorites.remove(at: favoriteIndex), at: destinationIndex)
+    try saveFavorites(favorites: favorites, fileURL: fileURL)
+}
+
+/// 指定した識別子のお気に入りを並びから除いて保存する。
+///
+/// その識別子のお気に入りが無い時は、残りの並びを変えずに終わる (同じ削除を 2 回呼んでも結果は同じ)。
+func deleteFavorite(id: UUID, fileURL: URL) throws {
+    try saveFavorites(favorites: loadFavorites(fileURL: fileURL).filter { $0.id != id }, fileURL: fileURL)
+}
