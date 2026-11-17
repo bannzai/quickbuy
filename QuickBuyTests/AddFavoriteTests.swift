@@ -218,13 +218,21 @@ struct AddFavoriteTests {
         )
     }
 
-    /// URL の項目が無ければ、最初の文字列の項目を返す。
+    /// URL の項目が無ければ、最初の文字列の項目を返す (URL として読めない文字列)。
     @Test func URLの項目が無ければ文字列を返す() async {
         #expect(
             await sharedText(itemProviders: [
-                NSItemProvider(object: "https://mori-coffee.example/products/coffee-beans" as NSString),
+                NSItemProvider(object: "コーヒー豆 200g" as NSString),
                 NSItemProvider(object: "2 つ目の文字列" as NSString),
-            ]) == "https://mori-coffee.example/products/coffee-beans"
+            ]) == "コーヒー豆 200g"
+        )
+    }
+
+    /// URL の形の文字列だけが渡された時は、その文字列を返す。
+    @Test func URLの形の文字列はそのまま返す() async {
+        #expect(
+            await sharedText(itemProviders: [NSItemProvider(object: "https://mori-coffee.example/products/coffee-beans" as NSString)])
+                == "https://mori-coffee.example/products/coffee-beans"
         )
     }
 
