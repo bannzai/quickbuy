@@ -10,22 +10,24 @@ final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         Task { @MainActor in
-            await embedAddFavoriteView(initialText: sharedText(typeIdentifier: UTType.url.identifier) ?? sharedText(typeIdentifier: UTType.plainText.identifier) ?? "")
+            await embedAddFavoriteView(initialText: sharedText() ?? "")
         }
     }
 
-    /// 共有された項目のうち、指定した種類の最初の項目を文字列にして返す (URL は絶対 URL の文字列)。その種類の項目が無い・読めない時は nil を返す。
-    private func sharedText(typeIdentifier: String) async -> String? {
-        for itemProvider in (extensionContext?.inputItems as? [NSExtensionItem] ?? []).flatMap({ $0.attachments ?? [] })
-            where itemProvider.hasItemConformingToTypeIdentifier(typeIdentifier)
-        {
-            switch try? await itemProvider.loadItem(forTypeIdentifier: typeIdentifier) {
-            case let url as URL:
-                return url.absoluteString
-            case let text as String:
-                return text
-            default:
-                continue
+    /// 共有された項目のうち、最初に読めた URL (絶対 URL の文字列) を返す。URL の項目が無ければ、最初に読めた文字列を返す。どちらも無い・読めない時は nil を返す。
+    private func sharedText() async -> String? {
+        for typeIdentifier in [UTType.url.identifier, UTType.plainText.identifier] {
+            for itemProvider in (extensionContext?.inputItems as? [NSExtensionItem] ?? []).flatMap({ $0.attachments ?? [] })
+                where itemProvider.hasItemConformingToTypeIdentifier(typeIdentifier)
+            {
+                switch try? await itemProvider.loadItem(forTypeIdentifier: typeIdentifier) {
+                case let url as URL:
+                    return url.absoluteString
+                case let text as String:
+                    return text
+                default:
+                    continue
+                }
             }
         }
         return nil
