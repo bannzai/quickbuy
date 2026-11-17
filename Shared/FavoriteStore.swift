@@ -75,6 +75,40 @@ func updateFavorite(id: UUID, name: String, quantity: Int, fileURL: URL) throws 
     try saveFavorites(favorites: favorites, fileURL: fileURL)
 }
 
+/// 指定した識別子のお気に入りのリマインドを書き換えて保存する。並びとほかの値は変えない。
+///
+/// `reminder` が保存済みのリマインドと同じ時は何も変えない (日数を数え始めた日時も変えない)。nil の時はリマインドをやめる。
+/// 保存済みと違う時は、日数を `reminder.intervalDays`、日数を数え始めた日時を `now` にして保存する。
+/// 通知は保存した時刻から日数ごとに予約するため、渡された `countedFrom` ではなく保存の時刻から数え始める。
+/// その識別子のお気に入りが無い時は `FavoriteStoreError.favoriteNotFound` を投げる。
+func setFavoriteReminder(id: UUID, reminder: Reminder?, now: Date, fileURL: URL) throws {
+    var favorites = try loadFavorites(fileURL: fileURL)
+    guard let favoriteIndex = favorites.firstIndex(where: { $0.id == id }) else {
+        throw FavoriteStoreError.favoriteNotFound
+    }
+    guard favorites[favoriteIndex].reminder != reminder else {
+        return
+    }
+    favorites[favoriteIndex].reminder = reminder.map { Reminder(intervalDays: $0.intervalDays, countedFrom: now) }
+    try saveFavorites(favorites: favorites, fileURL: fileURL)
+}
+
+/// 指定した識別子のお気に入りのリマインドの、日数を数え始めた日時を `now` に書き換えて保存する (購入画面を開いた時の数え直し)。
+///
+/// リマインドを設定していないお気に入りでは何も変えない。
+/// その識別子のお気に入りが無い時は `FavoriteStoreError.favoriteNotFound` を投げる。
+func recountFavoriteReminder(id: UUID, now: Date, fileURL: URL) throws {
+    var favorites = try loadFavorites(fileURL: fileURL)
+    guard let favoriteIndex = favorites.firstIndex(where: { $0.id == id }) else {
+        throw FavoriteStoreError.favoriteNotFound
+    }
+    guard favorites[favoriteIndex].reminder != nil else {
+        return
+    }
+    favorites[favoriteIndex].reminder?.countedFrom = now
+    try saveFavorites(favorites: favorites, fileURL: fileURL)
+}
+
 /// 指定した識別子のお気に入りを、並びの `destinationIndex` 番目 (0 始まり。移動した後の位置) へ移して保存する。
 ///
 /// 移動した後の位置で指定するため、同じ呼び出しを繰り返しても並びは変わらない。

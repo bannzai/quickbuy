@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
 struct ContentView: View {
@@ -147,7 +148,7 @@ struct FavoritesListView: View {
                         Text(shopDomainText(favorite: favorite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        Text("\(favorite.quantity) 個")
+                        Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: .now))")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -156,9 +157,13 @@ struct FavoritesListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if let favoritePurchaseURL = purchaseURL(favorite: favorite) {
+            if purchaseURL(favorite: favorite) != nil {
                 Button("買う") {
-                    openURL(favoritePurchaseURL)
+                    save {
+                        if let openingURL = try purchaseURLForOpening(favoriteID: favorite.id, now: .now, fileURL: favoritesFileURL) {
+                            openURL(openingURL)
+                        }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -176,9 +181,10 @@ struct FavoritesListView: View {
     }
 
     /// 保存の操作を実行し、失敗した時はその旨を知らせる。成否にかかわらず、保存先の今の並びを表示に反映する。
+    /// 操作で変わったリマインドに合わせて、通知の予約も取り消す・予約し直す。
     private func save(operation: () throws -> Void) {
         do {
-            try operation()
+            try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current(), operation: operation)
         } catch {
             isSaveFailed = true
         }
