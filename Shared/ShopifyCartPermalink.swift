@@ -12,6 +12,7 @@ struct ShopifyCartLine: Equatable {
 ///
 /// URL の形式の出典: https://shopify.dev/docs/apps/build/checkout/create-cart-permalinks
 /// 外から渡された URL をそのまま開かず、決まった形だけを組み立てる (URL に入るのは店のドメイン・商品バリアントの ID・個数だけ)。
+/// 店のドメインは形だけを検査し、どの店かは見ない。渡してよいのは、お気に入りの登録の画面で利用者が確かめて保存したドメインだけ (documents/adr/0003)。
 /// 店のドメインがホスト名の形でない時、商品が空の時、個数が 1 未満の商品がある時は nil を返す。
 func shopifyCartPermalinkURL(shopDomain: String, lines: [ShopifyCartLine]) -> URL? {
     guard isHostName(text: shopDomain), !lines.isEmpty, lines.allSatisfy({ $0.quantity >= 1 }) else {
