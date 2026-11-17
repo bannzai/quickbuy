@@ -154,6 +154,8 @@ struct Reminder: Codable, Equatable {
     <li>商品バリアントの ID は文字列で持つため、URL を組み立てる時に数字だけであることを検査する (数字以外を含む ID は URL に入れない)</li>
     <li>アカウント・サーバーに置くデータ・購入の履歴は持たない</li>
     <li>通知は端末の中だけで予約する (サーバーから送らない)</li>
+    <li>予約する通知は、お気に入り 1 件につき 1 つにする。<code>countedFrom</code> か <code>intervalDays</code> を書き換える時は、前の予約を取り消してから予約し直す</li>
+    <li>数え直しは、タップがアプリを通る前提で成り立つ。ウィジェットのタップがアプリを通らずに店の画面を開く作りになる場合は <code>countedFrom</code> を更新できないため、ウィジェットを実装する時に実機で確かめる (未確認)</li>
   </ul>
 
   <h2>利用者の操作と、読み書きするデータ</h2>
@@ -180,12 +182,12 @@ struct Reminder: Codable, Equatable {
         </tr>
         <tr>
           <td>名前・個数を変える、並べ替える、削除する</td>
-          <td>変えた内容で保存し直し、ウィジェットを更新する</td>
+          <td>変えた内容で保存し直し、ウィジェットを更新する。削除した時は、そのお気に入りの予約済みの通知を取り消す</td>
           <td><span class="w">書く</span> name・quantity・配列の並び・要素の削除</td>
         </tr>
         <tr>
           <td>お気に入りに「何日ごとに知らせるか」を設定する (変える・やめる)</td>
-          <td>設定した時刻から日数分あとに通知を予約する。やめた時は予約を取り消す</td>
+          <td>そのお気に入りの予約済みの通知を取り消してから、設定した時刻から日数分あとに通知を予約する。やめた時は予約を取り消すだけにする</td>
           <td><span class="w">書く</span> reminder (intervalDays・countedFrom)。やめた時は nil</td>
         </tr>
         <tr>
@@ -195,12 +197,12 @@ struct Reminder: Codable, Equatable {
         </tr>
         <tr>
           <td>ウィジェットか一覧で商品をタップする</td>
-          <td>その商品が個数分カートに入った購入画面の URL を組み立てて開く</td>
+          <td>その商品が個数分カートに入った購入画面の URL を組み立てて開く。リマインドがあれば、予約済みの通知を取り消し、開いた時刻から日数分あとに予約し直す</td>
           <td><span class="r">読む</span> Favorite 1 件 (product・quantity)<br><span class="w">書く</span> リマインドがあれば countedFrom (開いた時刻から数え直す)</td>
         </tr>
         <tr>
           <td>リマインドの通知を受け取り、タップする</td>
-          <td>その商品の購入画面を開く (ウィジェットのタップと同じ動き)</td>
+          <td>その商品の購入画面を開く (ウィジェットのタップと同じ動きで、通知も予約し直す)。通知が指すお気に入りが無い時は、購入画面を開かずお気に入りの一覧を表示する</td>
           <td><span class="r">読む</span> Favorite 1 件 (product・quantity)<br><span class="w">書く</span> countedFrom (開いた時刻から数え直す)</td>
         </tr>
         <tr>
