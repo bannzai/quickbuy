@@ -53,6 +53,7 @@ struct EditFavoriteView: View {
             }
             .alert("保存できませんでした", isPresented: $isSaveFailed) {}
         }
+        .tint(quickBuyAccentColor)
     }
 
     /// 保存の操作を実行し、成功したら画面を閉じる。失敗した時は画面を閉じずにその旨を知らせる。

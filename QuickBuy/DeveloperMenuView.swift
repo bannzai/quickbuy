@@ -84,6 +84,7 @@
                 }
                 .alert("操作に失敗しました", isPresented: $isOperationFailed) {}
             }
+            .tint(quickBuyAccentColor)
         }
 
         /// 操作を実行し、成功したら画面を閉じる。失敗した時は画面を閉じずにその旨を知らせる。
