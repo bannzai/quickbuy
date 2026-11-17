@@ -121,25 +121,53 @@ func favoriteIDsMissingReminderNotification(favorites: [Favorite], pendingNotifi
         .map(\.id)
 }
 
-/// 通知が許可されているのに予約の無いリマインドを、`now` から数え直して予約する。
+/// 通知が許可されているのに予約の無いリマインドを予約する。アプリが前面に来た時に呼ぶ。
 ///
 /// 通知を拒否している間に保存したリマインドは予約されない (拒否された状態の予約は失敗する。
-/// https://developer.apple.com/documentation/usernotifications/unerror/notificationsnotallowed )。
-/// 後から設定アプリで許可した時に届くよう、アプリが前面に来た時に呼ぶ。予約は予約した時刻から日数ごとに届くため、日数を数え始めた日時も `now` に合わせる。
+/// https://developer.apple.com/documentation/usernotifications/unerror/notificationsnotallowed )。後から設定アプリで許可した時に届くようにする。
 /// 通知が許可されていない時、予約の無いリマインドが無い時、保存先を読めない・書けない時は何も変えない。
+/// 画面からの保存の操作と同時に保存先を読み書きしないよう、メインのスレッド (画面の操作と同じ) で実行する。
+@MainActor
 func restoreMissingReminderNotifications(fileURL: URL, center: UNUserNotificationCenter, now: Date) async {
     guard await center.notificationSettings().authorizationStatus == .authorized else {
         return
     }
-    let pendingNotificationIdentifiers = await Set(center.pendingNotificationRequests().map(\.identifier))
-    try? performSavingWithReminderNotifications(fileURL: fileURL, center: center) {
-        for favoriteID in try favoriteIDsMissingReminderNotification(
-            favorites: loadFavorites(fileURL: fileURL),
-            pendingNotificationIdentifiers: pendingNotificationIdentifiers
-        ) {
-            try recountFavoriteReminder(id: favoriteID, now: now, fileURL: fileURL)
+    try? await restoreMissingReminderNotifications(
+        fileURL: fileURL,
+        pendingNotificationIdentifiers: Set(center.pendingNotificationRequests().map(\.identifier)),
+        now: now,
+        applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) }
+    )
+}
+
+/// 予約の無いリマインドについて、通知の予約へ加える変更を `applyChanges` に渡す。
+///
+/// - 日数がまだ過ぎていないリマインドは、`now` から数え直して保存し、予約する (予約は予約した時刻から日数ごとに届くため、一覧の「次の知らせは N 日後」と届く時刻を合わせる)
+/// - 日数が過ぎているリマインドは、数え直さずに予約する (「そろそろ買う頃」は、購入画面を開くかリマインドを設定し直すまで出し続けるため)
+///
+/// `pendingNotificationIdentifiers` は、端末に残っている未配信の予約の識別子。予約の無いリマインドが無い時は `applyChanges` に空の変更が渡る。
+/// 通知の仕組みを呼ばずにテストできるよう、未配信の予約の識別子と、変更を反映する処理を引数で受け取る。
+func restoreMissingReminderNotifications(
+    fileURL: URL,
+    pendingNotificationIdentifiers: Set<String>,
+    now: Date,
+    applyChanges: ([ReminderNotificationChange]) -> Void
+) throws {
+    let favoritesMissingNotification = try loadFavorites(fileURL: fileURL).filter { favorite in
+        favoriteIDsMissingReminderNotification(favorites: [favorite], pendingNotificationIdentifiers: pendingNotificationIdentifiers) == [favorite.id]
+    }
+    try performSaving(fileURL: fileURL, applyChanges: applyChanges) {
+        for favorite in favoritesMissingNotification {
+            if let reminder = favorite.reminder, !isReminderDue(reminder: reminder, now: now) {
+                try recountFavoriteReminder(id: favorite.id, now: now, fileURL: fileURL)
+            }
         }
     }
+    applyChanges(
+        favoritesMissingNotification
+            .filter { favorite in favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true }
+            .map { ReminderNotificationChange.schedule(favorite: $0) }
+    )
 }
 
 /// リマインドの通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
@@ -158,24 +186,25 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
     /// 通知がタップされた時に、通知が指すお気に入りの購入画面を既定のブラウザで開き、リマインドの日数を数え直す。
     ///
     /// 通知が指すお気に入りが保存されていない時は購入画面を開かない (アプリは開くので、お気に入りの一覧が表示される)。
+    /// 画面からの保存の操作と同時に保存先を読み書きしないよう、数え直しの保存もメインのスレッド (画面の操作と同じ) で実行する。
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        guard let favoritesFileURL = sharedFavoritesFileURL(),
-              let openingURL = purchaseURLForNotificationResponse(
-                  actionIdentifier: response.actionIdentifier,
-                  userInfo: response.notification.request.content.userInfo,
-                  now: .now,
-                  fileURL: favoritesFileURL,
-                  applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) }
-              )
-        else {
-            completionHandler()
-            return
-        }
         DispatchQueue.main.async {
+            guard let favoritesFileURL = sharedFavoritesFileURL(),
+                  let openingURL = purchaseURLForNotificationResponse(
+                      actionIdentifier: response.actionIdentifier,
+                      userInfo: response.notification.request.content.userInfo,
+                      now: .now,
+                      fileURL: favoritesFileURL,
+                      applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) }
+                  )
+            else {
+                completionHandler()
+                return
+            }
             UIApplication.shared.open(openingURL) { _ in
                 completionHandler()
             }

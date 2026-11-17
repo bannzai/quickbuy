@@ -573,6 +573,65 @@ struct ReminderTests {
         #expect(favoriteIDsMissingReminderNotification(favorites: [], pendingNotificationIdentifiers: []) == [])
     }
 
+    /// 日数がまだ過ぎていない、予約の無いリマインドは、その時刻から数え直して予約する。予約のあるリマインドは変えない。
+    @Test func 予約の無い日数が過ぎていないリマインドは数え直して予約する() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let scheduledFavorite = favorite(idSuffix: "2", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom))
+        try saveFavorites(
+            favorites: [favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)), scheduledFavorite],
+            fileURL: fileURL
+        )
+        let restoredAt = countedFrom.addingTimeInterval(3 * daySeconds)
+        let recountedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: restoredAt))
+        var appliedChanges: [ReminderNotificationChange] = []
+
+        try restoreMissingReminderNotifications(
+            fileURL: fileURL,
+            pendingNotificationIdentifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2"],
+            now: restoredAt,
+            applyChanges: { appliedChanges += $0 }
+        )
+
+        #expect(try loadFavorites(fileURL: fileURL) == [recountedFavorite, scheduledFavorite])
+        #expect(appliedChanges == [.schedule(favorite: recountedFavorite)])
+    }
+
+    /// 日数が過ぎている、予約の無いリマインドは、数え直さずに予約する (「そろそろ買う頃」を消さない)。
+    @Test func 予約の無い日数が過ぎたリマインドは数え直さずに予約する() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let dueFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        try saveFavorites(favorites: [dueFavorite], fileURL: fileURL)
+        var appliedChanges: [ReminderNotificationChange] = []
+
+        try restoreMissingReminderNotifications(
+            fileURL: fileURL,
+            pendingNotificationIdentifiers: [],
+            now: countedFrom.addingTimeInterval(30 * daySeconds),
+            applyChanges: { appliedChanges += $0 }
+        )
+
+        #expect(try loadFavorites(fileURL: fileURL) == [dueFavorite])
+        #expect(appliedChanges == [.schedule(favorite: dueFavorite)])
+    }
+
+    /// すべてのリマインドに予約がある時は、保存の内容も予約も変えない。
+    @Test func 予約がそろっている時は復旧で何も変えない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let scheduledFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        try saveFavorites(favorites: [scheduledFavorite, favorite(idSuffix: "2", reminder: nil)], fileURL: fileURL)
+        var appliedChanges: [ReminderNotificationChange] = []
+
+        try restoreMissingReminderNotifications(
+            fileURL: fileURL,
+            pendingNotificationIdentifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"],
+            now: countedFrom.addingTimeInterval(40 * daySeconds),
+            applyChanges: { appliedChanges += $0 }
+        )
+
+        #expect(try loadFavorites(fileURL: fileURL) == [scheduledFavorite, favorite(idSuffix: "2", reminder: nil)])
+        #expect(appliedChanges.isEmpty)
+    }
+
     // MARK: - 開発者メニュー
 
     /// 数え始めた日時を、今から設定した日数だけ前にずらす。リマインドの無いお気に入りは変えない。

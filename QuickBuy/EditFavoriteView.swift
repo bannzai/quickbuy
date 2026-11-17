@@ -12,6 +12,8 @@ struct EditFavoriteView: View {
 
     /// 保存に失敗したことを知らせる表示を出している間は true。
     @State private var isSaveFailed = false
+    /// アプリが前面にあるか。設定アプリから戻った時に、通知の許可の状態を読み直すために見る。
+    @Environment(\.scenePhase) private var scenePhase
     /// 端末の設定で Quick Buy の通知が拒否されている時は true。
     @State private var isNotificationDenied = false
 
@@ -76,7 +78,8 @@ struct EditFavoriteView: View {
             .alert("保存できませんでした", isPresented: $isSaveFailed) {}
         }
         .tint(quickBuyAccentColor)
-        .task {
+        // 設定アプリで通知の許可を変えて戻った時にも案内を合わせるよう、画面を開いた時とアプリが前面に戻るたびに読み直す。
+        .task(id: scenePhase) {
             await refreshNotificationDenied()
         }
     }
