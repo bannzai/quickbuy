@@ -1,10 +1,11 @@
 import Foundation
 
+/// リマインドが 1 日として数える秒数 (24 時間)。通知の予約が秒数で数えるため、暦の日付の変わり目では数えない。
+let reminderDaySeconds: TimeInterval = 86400
+
 /// リマインドの「何日ごと」を秒数にして返す。
-///
-/// 1 日を 24 時間 (86400 秒) として数える。通知の予約が秒数で数えるため、暦の日付の変わり目では数えない。
 func reminderTimeInterval(reminder: Reminder) -> TimeInterval {
-    TimeInterval(reminder.intervalDays) * 86400
+    TimeInterval(reminder.intervalDays) * reminderDaySeconds
 }
 
 /// リマインドの日数が過ぎたか (日数を数え始めた日時から、設定した日数が `now` までに過ぎたか) を返す。
@@ -35,7 +36,7 @@ func reminderStatusText(reminder: Reminder?, now: Date) -> String {
     guard !isReminderDue(reminder: reminder, now: now) else {
         return "そろそろ買う頃"
     }
-    return "次の知らせは \(Int((nextReminderDate(reminder: reminder, now: now).timeIntervalSince(now) / 86400).rounded(.up))) 日後"
+    return "次の知らせは \(Int((nextReminderDate(reminder: reminder, now: now).timeIntervalSince(now) / reminderDaySeconds).rounded(.up))) 日後"
 }
 
 /// 保存の操作の後に、通知の予約へ加える変更。

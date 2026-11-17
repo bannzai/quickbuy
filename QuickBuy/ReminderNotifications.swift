@@ -58,16 +58,51 @@ func applyReminderNotificationChanges(changes: [ReminderNotificationChange], cen
 /// 一覧・編集の画面・通知のタップ・開発者メニューの保存の操作をすべてここに通すことで、数え直した時・日数を変えた時・リマインドをやめた時・お気に入りを削除した時の予約の扱いを 1 か所で決める。
 /// 操作が途中でエラーを投げた時も、そこまでに保存された分を予約に反映してから、そのエラーを投げる。
 func performSavingWithReminderNotifications(fileURL: URL, center: UNUserNotificationCenter, operation: () throws -> Void) throws {
+    try performSaving(
+        fileURL: fileURL,
+        applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) },
+        operation: operation
+    )
+}
+
+/// お気に入りの保存の操作を実行し、その前後のお気に入りの違いから決めた、通知の予約へ加える変更を `applyChanges` に渡す。
+///
+/// 操作が途中でエラーを投げた時も、そこまでに保存された分の変更を `applyChanges` に渡してから、そのエラーを投げる。
+/// 操作の前に保存先を読めない時は、操作を実行せず `applyChanges` も呼ばずにエラーを投げる。
+/// 通知の仕組みを呼ばずにテストできるよう、変更を反映する処理を引数で受け取る。
+func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) -> Void, operation: () throws -> Void) throws {
     let favoritesBeforeOperation = try loadFavorites(fileURL: fileURL)
     defer {
         if let favoritesAfterOperation = try? loadFavorites(fileURL: fileURL) {
-            applyReminderNotificationChanges(
-                changes: reminderNotificationChanges(before: favoritesBeforeOperation, after: favoritesAfterOperation),
-                center: center
-            )
+            applyChanges(reminderNotificationChanges(before: favoritesBeforeOperation, after: favoritesAfterOperation))
         }
     }
     try operation()
+}
+
+/// 通知への操作を受けて、開く購入画面の URL を返す。開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に渡す。
+///
+/// 次の時は何も保存せずに nil を返す (呼び出し側は購入画面を開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
+/// 通知の付加情報からお気に入りの識別子を取り出せない、通知が指すお気に入りが保存されていない、購入画面の URL を組み立てられない、保存先を読めない・書けない。
+func purchaseURLForNotificationResponse(
+    actionIdentifier: String,
+    userInfo: [AnyHashable: Any],
+    now: Date,
+    fileURL: URL,
+    applyChanges: ([ReminderNotificationChange]) -> Void
+) -> URL? {
+    guard actionIdentifier == UNNotificationDefaultActionIdentifier, let favoriteID = reminderNotificationFavoriteID(userInfo: userInfo) else {
+        return nil
+    }
+    var openingURL: URL?
+    do {
+        try performSaving(fileURL: fileURL, applyChanges: applyChanges) {
+            openingURL = try purchaseURLForOpening(favoriteID: favoriteID, now: now, fileURL: fileURL)
+        }
+    } catch {
+        return nil
+    }
+    return openingURL
 }
 
 /// リマインドの通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
@@ -91,18 +126,15 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
-              let favoriteID = reminderNotificationFavoriteID(userInfo: response.notification.request.content.userInfo),
-              let favoritesFileURL = sharedFavoritesFileURL()
+        guard let favoritesFileURL = sharedFavoritesFileURL(),
+              let openingURL = purchaseURLForNotificationResponse(
+                  actionIdentifier: response.actionIdentifier,
+                  userInfo: response.notification.request.content.userInfo,
+                  now: .now,
+                  fileURL: favoritesFileURL,
+                  applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) }
+              )
         else {
-            completionHandler()
-            return
-        }
-        var openingURL: URL?
-        try? performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: center) {
-            openingURL = try purchaseURLForOpening(favoriteID: favoriteID, now: .now, fileURL: favoritesFileURL)
-        }
-        guard let openingURL else {
             completionHandler()
             return
         }
