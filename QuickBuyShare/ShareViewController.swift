@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 /// 共有メニューから Quick Buy を選んだ時に表示される画面。渡された URL を、アプリの中と同じお気に入りの追加の画面 (`AddFavoriteView`) に渡す。
 ///
@@ -10,27 +9,11 @@ final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         Task { @MainActor in
-            await embedAddFavoriteView(initialText: sharedText() ?? "")
+            // 共有された項目から URL も文字列も取り出せなかった時は、空の入力欄から始める (利用者が URL を貼り付けられる)。
+            await embedAddFavoriteView(
+                initialText: sharedText(itemProviders: (extensionContext?.inputItems as? [NSExtensionItem] ?? []).flatMap { $0.attachments ?? [] }) ?? ""
+            )
         }
-    }
-
-    /// 共有された項目のうち、最初に読めた URL (絶対 URL の文字列) を返す。URL の項目が無ければ、最初に読めた文字列を返す。どちらも無い・読めない時は nil を返す。
-    private func sharedText() async -> String? {
-        for typeIdentifier in [UTType.url.identifier, UTType.plainText.identifier] {
-            for itemProvider in (extensionContext?.inputItems as? [NSExtensionItem] ?? []).flatMap({ $0.attachments ?? [] })
-                where itemProvider.hasItemConformingToTypeIdentifier(typeIdentifier)
-            {
-                switch try? await itemProvider.loadItem(forTypeIdentifier: typeIdentifier) {
-                case let url as URL:
-                    return url.absoluteString
-                case let text as String:
-                    return text
-                default:
-                    continue
-                }
-            }
-        }
-        return nil
     }
 
     /// お気に入りの追加の画面を、この画面いっぱいに載せる。保存先を開けない時は、その旨の表示を載せる。

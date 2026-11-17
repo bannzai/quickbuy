@@ -115,9 +115,7 @@ struct FavoritesListView: View {
                     }
                     .onDelete { deletedIndexes in
                         save {
-                            for deletedFavoriteID in deletedIndexes.map({ favorites[$0].id }) {
-                                try deleteFavorite(id: deletedFavoriteID, fileURL: favoritesFileURL)
-                            }
+                            try deleteFavorites(indexes: deletedIndexes, favorites: favorites, fileURL: favoritesFileURL)
                         }
                     }
                 } footer: {
@@ -186,6 +184,15 @@ struct FavoritesListView: View {
 /// 元の位置より後ろへ移す時は、移すお気に入り自身が抜ける分だけ 1 つ前にずれる。
 func destinationIndexAfterMove(sourceIndex: Int, destinationOffset: Int) -> Int {
     destinationOffset > sourceIndex ? destinationOffset - 1 : destinationOffset
+}
+
+/// 一覧の削除 (`onDelete`) が渡す位置 (表示している並び `favorites` の中の位置。複数のこともある) のお気に入りを、保存先から消す。
+///
+/// 位置を先に識別子へ直してから消す (1 件消すたびに後ろの位置がずれるため、位置のまま順に消すと別のお気に入りを消してしまう)。
+func deleteFavorites(indexes: IndexSet, favorites: [Favorite], fileURL: URL) throws {
+    for deletedFavoriteID in indexes.map({ favorites[$0].id }) {
+        try deleteFavorite(id: deletedFavoriteID, fileURL: fileURL)
+    }
 }
 
 #Preview {

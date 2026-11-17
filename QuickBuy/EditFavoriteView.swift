@@ -48,7 +48,7 @@ struct EditFavoriteView: View {
                             try updateFavorite(id: favorite.id, name: favorite.name, quantity: favorite.quantity, fileURL: favoritesFileURL)
                         }
                     }
-                    .disabled(favorite.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!isFavoriteNameSavable(name: favorite.name))
                 }
             }
             .alert("保存できませんでした", isPresented: $isSaveFailed) {}
