@@ -43,7 +43,8 @@
 		B30000000000000000000003 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B30000000000000000000004 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B30000000000000000000005 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* QuickBuyAccentColor.swift */; };
-		B30000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000003 /* FavoritesWidgetTests.swift */; };
+		B30000000000000000000007 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
+		B30000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ ={isa = PBXBuildFile; fileRef = A30000000000000000000003 /* FavoritesWidgetTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -349,6 +350,7 @@
 				BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */,
 				76132C1EF59E00AEE7EF022B /* QuickBuyWidgetBundle.swift in Sources */,
 				B10000000000000000000002 /* Favorite.swift in Sources */,
+				B30000000000000000000007 /* FavoritePurchaseURL.swift in Sources */,
 				B10000000000000000000004 /* FavoriteStore.swift in Sources */,
 				B30000000000000000000002 /* FavoritesWidgetContent.swift in Sources */,
 				B30000000000000000000005 /* QuickBuyAccentColor.swift in Sources */,

@@ -66,9 +66,12 @@ struct FavoritesWidgetView: View {
             } else if widgetFamily == .systemSmall {
                 ForEach(widgetFavorites(favorites: favorites, widgetFamily: widgetFamily)) { favorite in
                     FavoriteWidgetTile(favorite: favorite, iconSideLength: 52, nameFont: .subheadline.bold()) {
-                        Text("タップで購入画面")
-                            .font(.footnote.bold())
-                            .foregroundStyle(quickBuyAccentColor)
+                        // 購入画面を開けないお気に入り (Amazon の商品) のタップはアプリの一覧を見せるため、購入画面が開くとは案内しない。
+                        if purchaseURL(favorite: favorite) != nil {
+                            Text("タップで購入画面")
+                                .font(.footnote.bold())
+                                .foregroundStyle(quickBuyAccentColor)
+                        }
                     }
                     .widgetURL(favoriteTapURL(favoriteID: favorite.id))
                 }
