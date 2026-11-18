@@ -13,7 +13,7 @@ https://github.com/bannzai/quickbuy/issues/27 の調査。2026-11-17 の調査 (
 
 | 調べること | 結論 |
 | --- | --- |
-| Shopify の商品を検索する API | Shopify の Catalog を使う。店をまたぐ検索は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`)、1 つの店の中の検索は店ごとの Storefront Catalog (`https://{店のドメイン}/api/ucp/mcp`)。どちらも鍵なしで呼べ、商品バリアントの ID・名前・画像・価格・店のドメインが返る (実測)。日本の店の商品も出る (実測) |
+| Shopify の商品を検索する API | Shopify の Catalog を使う。店をまたぐ検索は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`)、1 つの店の中の検索は店ごとの Storefront Catalog (`https://{店のドメイン}/api/ucp/mcp`)。どちらも鍵なしで呼べ、商品バリアントの ID・名前・画像・価格・店のドメインが返る (実測)。日本の店の商品も出る (実測)。実測は Shopify の見本のプロフィールで行い、自分で置いたプロフィールで通るかは未確認。Shopify は Global Catalog の鍵なしの呼び出しを「Don't use unauthenticated requests for production traffic」と書いており、鍵なしでは上限を上げられない |
 | Amazon の商品を検索する API | Creators API の SearchItems (Product Advertising API 5 は廃止)。使うには、アソシエイトのアカウントの最終の承認・過去 30 日に 10 件の適格販売・Amazon が承認したモバイルアプリ・鍵を置く自分のサーバー、の 4 つが要る。アプリの審査は公開の後で、最初の版はサーバーを持たないため、最初の版では使えない (アカウントの承認と適格販売の件数は bannzai のアカウントの状態に依り、未確認) |
 | Amazon のカートに入れる URL | 現行の公式文書に無い (2009 年版の文書だけが残る)。アソシエイトの ID を付けないと空のカートへ送られる (2026-11-15 の bannzai の実測)。最初の版では使わず、商品ページ `https://www.amazon.co.jp/dp/{ASIN}` を開く |
 | Amazon アソシエイトのアプリの承認 | ストアで公開したアプリを Amazon が審査する。ヘルプに「ショッピングや購買機能がメインとなっているアプリは、参加が承認されない可能性があります」とあり、検索した Amazon の商品を画像つきで並べる画面は、条件「Amazonのショッピングアプリの機能をエミュレート、偽装またはその機能と競合しないこと」に当たる読みが強い。「カートイン」の確認の後に外部のブラウザか Amazon のアプリで開く形は、開き方の禁止事項には当たらない読み |
@@ -22,7 +22,7 @@ https://github.com/bannzai/quickbuy/issues/27 の調査。2026-11-17 の調査 (
 
 最初の版への当てはめ (この調査の読み。`documents/DIRECTION.md` の「必要な機能」「決めたこと」に書いた):
 
-- Shopify の検索は、Catalog を鍵なしでアプリから直接呼ぶ
+- Shopify の検索は、Catalog を鍵なしでアプリから直接呼ぶ。Shopify が本番に使わないよう書いている呼び方で、サーバーを持たない最初の版で検索を入れるための選択になる。鍵ありにするには、鍵を置く自分のサーバーが要る (下の「4.」)
 - Amazon は、アプリ内の検索と Amazon が持つ名前・画像・価格の表示を最初の版に入れない。Amazon の商品は商品ページの URL を渡して登録し、「カートイン」の確認の後に商品ページを外部で開く。アソシエイトの ID は、Amazon がアプリを承認するまで付けない
 
 ## 1. Shopify: 商品を検索する API
@@ -96,6 +96,13 @@ ID からの引き直し (実測): Global Catalog の `lookup_catalog` に `gid:
 - 1 回に返る件数は「min `1`, default `10`, max `250`」(出典: https://shopify.dev/docs/agents/catalog/storefront-catalog )
 - 検索の結果に定期購入の商品 (「【定期購入｜5％OFF】コーヒー豆 200gセット」) も出た
 
+ID から引いた時 (実測。同じ店の入口):
+
+- `lookup_catalog` に商品バリアントの ID (`gid://shopify/ProductVariant/45476745412786`) を渡すと、商品の ID (`gid://shopify/Product/8503532617906`) と、その商品バリアント 1 件だけが返った。商品の ID を渡した時も、返った商品バリアントは 1 件だった
+- `get_product` に商品バリアントの ID か商品の ID を渡すと、`product.options` に店が付けた種類の名前 (「BITTER・MILD」に 3 つ、「豆・粉」に 2 つ) と、`product.selected` に選ばれている組が返り、`variants` は 1 件だった
+- `get_product` に商品の ID と `selected` (`[{"name":"BITTER・MILD","label":"【MILD】コーヒー豆（中深煎り）200g"},{"name":"豆・粉","label":"粉"}]`) を渡すと、その組の商品バリアント (`gid://shopify/ProductVariant/45476749770930`、「【MILD】コーヒー豆（中深煎り）200g / 粉」、2,700 円) が返った
+- 全部の商品バリアントが 1 回で返ったのは、検索語で探した `search_catalog` だけだった
+
 店がこの入口に対応しているかは、店の `/.well-known/ucp` で分かる。実測で、chimney-coffee.com・kinto.co.jp・mini-mal.tokyo・tsuchiya-kaban.jp・lightupcoffee.com の 5 店は JSON が返り、`dev.ucp.shopping.catalog.search`・`dev.ucp.shopping.catalog.lookup`・`dev.ucp.shopping.permalink` (`config.endpoint` は `https://{店のドメイン}/buy`) があった。shop.basefood.co.jp と allbirds.jp は HTML が返った (Shopify の店でないのか、店の画面を独自に作っている店なのかは未確認)。
 
 ### 鍵の発行の手順・費用・上限
@@ -153,7 +160,8 @@ Partner の組織では本人確認を求められることがある (出典: ht
 ### この調査の読み
 
 - 検索の API は Catalog で足りる。要る値 (商品バリアントの ID・名前・画像・価格・店のドメイン) は全部返り、日本の店の商品も出る。企画 ( https://github.com/bannzai/IdeaMemo/issues/398 ) の未確認の点「日本の店が Shopify の横断カタログの対象に入っているか」は、入っている
-- 流れは、Global Catalog の `search_catalog` で店をまたいで探し、選んだ商品の種類は、その店の入口 (`seller.url` のドメインの `/api/ucp/mcp`) の `lookup_catalog` か `search_catalog` で全部の商品バリアントを取る形が、呼ぶ回数が少ない。Global Catalog だけで作ると、種類を選ぶたびに `get_product` を呼び直す
+- 流れは、Global Catalog の `search_catalog` で店をまたいで探し、選んだ商品の種類は `get_product` で取る。`get_product` は、選べる種類の名前と、選ばれている 1 つの商品バリアントを返すので、利用者が種類を選ぶたびに `selected` を付けて呼び直す。返る商品バリアントが 1 件なのは、Global Catalog でも店の入口でも同じだった (`selected` を付けた呼び直しは、店の入口で確かめた)。店の入口 (`seller.url` のドメインの `/api/ucp/mcp`) の `get_product` は、Global Catalog が返した商品バリアントの ID をそのまま受け取り、店が付けた種類の名前を返すので、種類を選ぶ画面には店の入口の方が合う
+- 全部の商品バリアントを 1 回で取れたのは、店の入口を検索語で探した時だけで、ID からは取れなかった。Global Catalog の検索の結果から、その商品の全部の商品バリアントを 1 回で取る方法は、この調査では見つからなかった
 - 最初の版はサーバーを持たない (`documents/adr/0001-device-local-storage-and-no-backend-for-first-version.md`) ので、鍵なしで呼ぶ。鍵なしは Shopify が用意した入口だが、Global Catalog は「Don't use unauthenticated requests for production traffic」と書かれ、上限も上げられない。HTTP 429 が増えた時は、自分のサーバーに鍵を置く形 (下の「4. 鍵をアプリに埋め込めるか」) へ移る。移す時の費用の上限は bannzai が決める (`documents/DIRECTION.md`「agent に任せること」)
 - 利用者に確かめてもらう店のドメイン (`documents/adr/0003-open-purchase-screen-by-fixed-url-and-user-confirms-payment.md`) は、`seller.url` のドメインを見せる。`seller.domain` (myshopify.com) は利用者が知らない名前
 - 保存の決まりは、お気に入りの型 (`Shared/Favorite.swift`) に効く。今の型は、名前 (`name`) と画像の URL (`imageURL`) を端末に保存する。Catalog が返した名前と画像の URL を 24 時間を超えて持ち続けることは「Caching limits」に触れうる。保存するのは店のドメイン・商品バリアントの ID・個数・利用者が付けた名前にし、Catalog が返した名前・画像・価格は、表示する時に `lookup_catalog` で取り直して 24 時間 (価格は 10 分) を超えて持たない形が、決まりに沿う。利用者が登録の操作で保存した名前が「cache」に当たるかは、決まりの文からは決まらない
@@ -369,7 +377,7 @@ Creators API の文書 ( https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/l
 
 ### 未確認の点
 
-- 自分で置いたプロフィールで Catalog が通るか。今回の実測は全部 Shopify の見本のプロフィールで行った。`agent-profile.sample.json` の宣言で足りるかも確かめていない。実装の issue で、アプリのプロフィールを置いた時に最初に確かめる
+- 自分で置いたプロフィールで Catalog が通るか。今回の実測は全部 Shopify の見本のプロフィールで行った。`agent-profile.sample.json` は、この調査では 1 回も使っていない未検証の見本で、その宣言で足りるかも確かめていない。確かめなかった理由: このリポジトリに置いたプロフィールの URL には、運営者の GitHub のアカウント名とリポジトリ名が入る。それを Shopify へ送ることは、運営者の明示の依頼が無いため、agent の判断では行わなかった (鍵・ログイン・提供元の判断が理由の未確認ではない)。送ってよければ、1 回の呼び出しで確かめられる。実装の issue では、アプリのプロフィールを置いた時に最初に確かめる
 - 鍵なしの上限の数と、利用者が増えた時に HTTP 429 がどの程度出るか
 
 ## 5. トップページに並べる商品の候補
@@ -431,6 +439,7 @@ Shopify:
 Shopify の検索:
 
 - 入口は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`) と、店ごとの入口 (`https://{店のドメイン}/api/ucp/mcp`)。鍵なしで、リクエストごとにプロフィールの URL を入れる。最初に、自分で置いたプロフィールで通ることを確かめる
+- 種類を選ぶ画面は、`get_product` を `selected` つきで呼び直して作る。ID から全部の商品バリアントを 1 回で取る方法は見つからなかった
 - 実測で通った引数: `filters.ships_to.country` = `JP`、`context` = `{"address_country":"JP","language":"ja","currency":"JPY"}`。日本の店に絞る時は `filters.ships_from` = `[{"country":"JP"}]`
 - 利用者に見せる店のドメインは `variants[].seller.url` のドメイン。価格は通貨の最小の単位
 - HTTP 429 の時は `Retry-After` を読む
@@ -443,9 +452,11 @@ Amazon (最初の版):
 - アプリ内の検索と、Amazon が持つ名前・画像・価格の表示は入れない
 - お気に入りの追加は、商品ページの URL を貼り付けるか共有メニューから渡す形だけ。URL から ASIN を取り出し、名前は利用者が入れる。端末に保存するのは ASIN・個数・利用者が付けた名前
 - 「カートイン」の確認の後に開くのは `https://www.amazon.co.jp/dp/{ASIN}`。アソシエイトの ID は付けない。アプリの中の WebView とアプリの中のブラウザで開かず、アプリの外 (Safari か Amazon のアプリ) で開く。組み立ての関数とテストは `.claude/rules/purchase-url.md` に従う
+- 最初の版は、アフィリエイトのリンクを 1 つも含まない。設定画面の「アフィリエイトのリンクを含むことの表示」(`documents/DIRECTION.md`「必要な機能」) を最初の版で出すかを、設定画面の実装の issue で決める
 - 商品ページの URL から ASIN を取り出せる形 (`/dp/{ASIN}` 以外の形・短い URL) は、この調査では確かめていない
 - 商品ページの URL で個数を渡す方法は、この調査では確かめていない (個数の引数 `Quantity.1` があるのは、カートに入れる URL)。渡せなければ、Amazon では個数を利用者が Amazon の画面で選ぶことになる
-- Amazon では、開いた時に商品はカートに入っていない。利用者が Amazon の商品ページで「カートに入れる」を押す。Shopify の店 (商品がカートに入った状態の購入画面が開く) と動きが違うので、Amazon のお気に入りのボタンの文言を「カートイン」のままにするかを、実装の issue で決める
+- Amazon では、開いた時に商品はカートに入っていない。利用者が Amazon の商品ページで「カートに入れる」を押す。Shopify の店 (商品がカートに入った状態の購入画面が開く) と動きが違う。合わなくなる文言は 3 つある: ボタンの「カートイン」、確認の「購入画面を開きますか？」、用語の「購入画面」(`documents/DIRECTION.md`「用語」の定義は、商品がカートに入った状態から支払いの確定までを行う画面)。Amazon のお気に入りでこれらをどう出すかを、実装の issue で決める
+- お気に入りの個数を、Amazon の商品ページの URL で渡せるかは確かめていない (下の個数の点)。渡せない時に、個数を選ぶ画面を Amazon のお気に入りにも出すかを、実装の issue で決める
 - 上の「bannzai が行う作業」の 2 の答えで、承認の前のアプリにリンクを置けないと分かった時は、Amazon を最初の版に入れられない。入れる時期は bannzai が決め直す
 
 Amazon (承認の後):
