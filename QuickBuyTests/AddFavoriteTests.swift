@@ -242,6 +242,66 @@ struct AddFavoriteTests {
         #expect(await sharedText(itemProviders: [NSItemProvider(item: Data([0x89, 0x50]) as NSData, typeIdentifier: "public.png")]) == nil)
     }
 
+    // MARK: - 商品の画像の読み込み
+
+    /// 転送先が、同じホスト・Shopify の CDN (`https`) なら進み、無関係なホスト・`http`・ポート付き・認証情報付き・元の URL や転送先が無い時は進まない。
+    @Test(arguments: [
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example/cdn/b.png", true),
+        ("https://mori-coffee.example/cdn/a.png", "https://cdn.shopify.com/s/files/a.png", true),
+        ("https://cdn.shopify.com/s/files/a.png", "https://cdn.shopify.com/s/files/b.png", true),
+        ("https://Mori-Coffee.Example/cdn/a.png", "https://mori-coffee.example/cdn/b.png", true),
+        ("https://mori-coffee.example/cdn/a.png", "https://tracker.example/pixel", false),
+        ("https://cdn.shopify.com/s/files/a.png", "https://mori-coffee.example/cdn/a.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "http://mori-coffee.example/cdn/b.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example:8443/cdn/b.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example@tracker.example/pixel", false),
+        ("https://mori-coffee.example/cdn/a.png", nil, false),
+        (nil, "https://cdn.shopify.com/s/files/a.png", false),
+    ] as [(String?, String?, Bool)])
+    func 画像の転送先は同じホストかShopifyのCDNだけに進む(originalURLText: String?, redirectedURLText: String?, expectedAllowed: Bool) {
+        #expect(
+            isAllowedProductImageRedirect(originalURL: originalURLText.flatMap(URL.init(string:)), redirectedURL: redirectedURLText.flatMap(URL.init(string:)))
+                == expectedAllowed
+        )
+    }
+
+    /// 画像を読み込む通信の delegate は、無関係なホストへの転送には従わず (nil)、Shopify の CDN への転送には転送先のリクエストをそのまま返す。
+    @Test func 画像の通信は無関係なホストへの転送に従わない() async throws {
+        let task = URLSession.shared.dataTask(with: try #require(URL(string: "https://mori-coffee.example/cdn/a.png")))
+        let redirectResponse = try #require(
+            HTTPURLResponse(url: #require(task.originalRequest?.url), statusCode: 302, httpVersion: "HTTP/1.1", headerFields: nil)
+        )
+        let cdnRequest = URLRequest(url: try #require(URL(string: "https://cdn.shopify.com/s/files/a.png")))
+        #expect(
+            try await ProductImageRedirectGuard().urlSession(
+                .shared,
+                task: task,
+                willPerformHTTPRedirection: redirectResponse,
+                newRequest: URLRequest(url: #require(URL(string: "https://tracker.example/pixel")))
+            ) == nil
+        )
+        #expect(
+            await ProductImageRedirectGuard().urlSession(.shared, task: task, willPerformHTTPRedirection: redirectResponse, newRequest: cdnRequest) == cdnRequest
+        )
+    }
+
+    /// 画像の読み込みは、HTTP 200 で画像として読めるデータの時だけ画像を返し、200 以外 (従わなかった転送の応答 302 を含む)・画像でないデータ・通信の失敗では nil を返す。
+    @Test func 画像は200で画像として読める時だけ返す() async throws {
+        let shopDomain = uniqueShopDomain()
+        // 1x1 ピクセルの PNG。
+        let pngData = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/ok.png"] = .http(statusCode: 200, body: pngData)
+            $0["https://\(shopDomain)/redirect.png"] = .http(statusCode: 302, body: pngData)
+            $0["https://\(shopDomain)/not-image.png"] = .http(statusCode: 200, body: Data("<html></html>".utf8))
+            $0["https://\(shopDomain)/offline.png"] = .connectionFailure
+        }
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/ok.png")), urlSession: StubURLProtocol.urlSession()) != nil)
+        for path in ["redirect.png", "not-image.png", "offline.png"] {
+            #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/\(path)")), urlSession: StubURLProtocol.urlSession()) == nil)
+        }
+    }
+
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
         #expect(favoriteDraftLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))

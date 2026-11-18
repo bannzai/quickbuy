@@ -235,25 +235,76 @@ func shopDomainText(favorite: Favorite) -> String {
     }
 }
 
+/// 商品の画像の読み込みの途中で別の URL へ転送された時に、転送先へ進んでよいかを返す。
+///
+/// 進んでよいのは、転送先が `shopifyProductImageURL(text:shopDomain:)` の条件 (`https`・認証情報とポートなし) を満たし、
+/// ホストが最初に読み込もうとした URL のホストか `shopifyCDNHost` の時だけ。保存する時に確かめたホストの外へ、転送で通信させない。
+func isAllowedProductImageRedirect(originalURL: URL?, redirectedURL: URL?) -> Bool {
+    guard let originalHost = originalURL?.host?.lowercased(), let redirectedURL else {
+        return false
+    }
+    return shopifyProductImageURL(text: redirectedURL.absoluteString, shopDomain: originalHost) != nil
+}
+
+/// 商品の画像を読み込む通信で、転送先を確かめる delegate。
+///
+/// class にしているのは、`URLSessionTaskDelegate` が `NSObject` を継承した型を求めるため。
+final class ProductImageRedirectGuard: NSObject, URLSessionTaskDelegate {
+    /// 転送先へ進んでよい時は転送先へのリクエストを、進まない時は nil (転送に従わない) を返す。
+    func urlSession(
+        _: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        isAllowedProductImageRedirect(originalURL: task.originalRequest?.url, redirectedURL: request.url) ? request : nil
+    }
+}
+
+/// 商品の画像を読み込む通信。転送先を `ProductImageRedirectGuard` で確かめる。
+let productImageURLSession = URLSession(configuration: .default, delegate: ProductImageRedirectGuard(), delegateQueue: nil)
+
+/// 商品の画像を読み込んで返す。通信に失敗した時・HTTP 200 以外の時 (従わなかった転送の応答を含む)・画像として読めない時は nil を返す。
+func loadProductImage(url: URL, urlSession: URLSession) async -> UIImage? {
+    guard let (data, response) = try? await urlSession.data(from: url),
+          (response as? HTTPURLResponse)?.statusCode == 200
+    else {
+        return nil
+    }
+    return UIImage(data: data)
+}
+
 /// 商品の画像の小さな表示。画像の URL が無い時と読み込めない間は、買い物袋のアイコンを出す。
 struct FavoriteThumbnail: View {
     /// 商品の画像の URL。無ければ nil。
     let imageURL: URL?
 
+    /// 読み込んだ画像。読み込む前と読み込めなかった時は nil。
+    @State private var image: UIImage?
+
     /// 角を丸めた正方形の画像。
     var body: some View {
-        AsyncImage(url: imageURL) { image in
-            image
-                .resizable()
-                .scaledToFill()
-        } placeholder: {
-            Image(systemName: "bag")
-                .font(.title2)
-                .foregroundStyle(.tint)
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "bag")
+                    .font(.title2)
+                    .foregroundStyle(.tint)
+            }
         }
         .frame(width: 56, height: 56)
         .background(.quaternary)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .task(id: imageURL) {
+            guard let imageURL else {
+                image = nil
+                return
+            }
+            image = await loadProductImage(url: imageURL, urlSession: productImageURLSession)
+        }
     }
 }
 
