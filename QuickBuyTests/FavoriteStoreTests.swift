@@ -81,6 +81,7 @@ struct FavoriteStoreTests {
               {
                 "id": "00000000-0000-0000-0000-000000000001",
                 "name": "洗剤",
+                "variantName": "つめかえ用 / 2L",
                 "imageURL": "https://cdn.example.com/detergent.png",
                 "quantity": 2,
                 "product": {"shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}},
@@ -100,6 +101,7 @@ struct FavoriteStoreTests {
                 Favorite(
                     id: firstID,
                     name: "洗剤",
+                    variantName: "つめかえ用 / 2L",
                     imageURL: URL(string: "https://cdn.example.com/detergent.png"),
                     quantity: 2,
                     product: .shopify(ShopifyProduct(shopDomain: "example.myshopify.com", variantID: "70881412")),
@@ -109,6 +111,7 @@ struct FavoriteStoreTests {
                 Favorite(
                     id: secondID,
                     name: "電池",
+                    variantName: nil,
                     imageURL: nil,
                     quantity: 1,
                     product: .amazon(AmazonProduct(asin: "B00EXAMPLE")),
@@ -119,6 +122,7 @@ struct FavoriteStoreTests {
     }
 
     /// 書き出したファイルも、上の「保存済みのJSONの形を読める」と同じ形になる (キーの名前と入れ子、日時の秒数)。
+    /// 商品バリアントの名前・画像・リマインドが無いお気に入りは、そのキーを書かない。
     @Test func 保存するJSONの形() throws {
         let fileURL = temporaryFavoritesFileURL()
         try saveFavorites(
@@ -126,10 +130,20 @@ struct FavoriteStoreTests {
                 Favorite(
                     id: firstID,
                     name: "洗剤",
+                    variantName: "つめかえ用 / 2L",
                     imageURL: URL(string: "https://cdn.example.com/detergent.png"),
                     quantity: 2,
                     product: .shopify(ShopifyProduct(shopDomain: "example.myshopify.com", variantID: "70881412")),
                     reminder: Reminder(intervalDays: 30, countedFrom: Date(timeIntervalSince1970: 978_393_600))
+                ),
+                Favorite(
+                    id: secondID,
+                    name: "電池",
+                    variantName: nil,
+                    imageURL: nil,
+                    quantity: 1,
+                    product: .amazon(AmazonProduct(asin: "B00EXAMPLE")),
+                    reminder: nil
                 ),
             ],
             fileURL: fileURL
@@ -139,10 +153,17 @@ struct FavoriteStoreTests {
                 [
                     "id": "00000000-0000-0000-0000-000000000001",
                     "name": "洗剤",
+                    "variantName": "つめかえ用 / 2L",
                     "imageURL": "https://cdn.example.com/detergent.png",
                     "quantity": 2,
                     "product": ["shopify": ["_0": ["shopDomain": "example.myshopify.com", "variantID": "70881412"]]],
                     "reminder": ["intervalDays": 30, "countedFrom": 86400],
+                ] as NSDictionary,
+                [
+                    "id": "00000000-0000-0000-0000-000000000002",
+                    "name": "電池",
+                    "quantity": 1,
+                    "product": ["amazon": ["_0": ["asin": "B00EXAMPLE"]]],
                 ] as NSDictionary,
             ] as NSArray
         )

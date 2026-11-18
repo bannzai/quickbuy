@@ -61,11 +61,20 @@ func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
 ///
 /// 同じ識別子のお気に入りが保存済みの時は何も変えない (同じ追加を 2 回呼んでも 1 件のまま)。
 func addFavorite(favorite: Favorite, fileURL: URL) throws {
-    let favorites = try loadFavorites(fileURL: fileURL)
-    guard !favorites.contains(where: { $0.id == favorite.id }) else {
+    try addFavorites(favorites: [favorite], fileURL: fileURL)
+}
+
+/// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。
+///
+/// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる (個数が 1 未満のお気に入りが 1 つでもあれば、どれも保存せずにエラーを投げる)。
+/// 同じ識別子のお気に入りが保存済みのものは足さない (同じ追加を 2 回呼んでも件数は変わらない)。足すものが無い時は何も書かない。
+func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
+    let savedFavorites = try loadFavorites(fileURL: fileURL)
+    let newFavorites = addedFavorites.filter { addedFavorite in !savedFavorites.contains { $0.id == addedFavorite.id } }
+    guard !newFavorites.isEmpty else {
         return
     }
-    try saveFavorites(favorites: favorites + [favorite], fileURL: fileURL)
+    try saveFavorites(favorites: savedFavorites + newFavorites, fileURL: fileURL)
 }
 
 /// 指定した識別子のお気に入りの名前と個数を書き換えて保存する。並びとほかの値は変えない。

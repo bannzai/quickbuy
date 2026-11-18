@@ -79,9 +79,10 @@ struct FavoritesListTests {
 
     // MARK: - 開発者メニュー
 
-    /// 見本は 3 件で、どれも購入画面の URL を組み立てられ、店のドメインは実在しない `.example`。
+    /// 見本は 3 件で、どれも購入画面の URL を組み立てられ、店のドメインは実在しない `.example`。商品バリアントの名前を持つものと持たないものがある。
     @Test func 見本のお気に入りは購入画面を開ける形で実在しない店を指す() {
-        #expect(sampleFavorites().map(\.name) == ["コーヒー豆 200g", "洗濯用せっけん", "プロテイン 1kg"])
+        #expect(sampleFavorites().map(\.name) == ["コーヒー豆", "洗濯用せっけん", "プロテイン"])
+        #expect(sampleFavorites().map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
         #expect(
             sampleFavorites().map { purchaseURL(favorite: $0)?.absoluteString } == [
                 "https://mori-coffee.example/cart/70881412:2",
@@ -100,7 +101,7 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL) == [existingFavorite] + sampleFavorites())
         try updateFavorite(id: sampleFavorites()[0].id, name: "名前を変えた見本", quantity: 4, fileURL: fileURL)
         try insertSampleFavorites(fileURL: fileURL)
-        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["自分で入れた商品", "名前を変えた見本", "洗濯用せっけん", "プロテイン 1kg"])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["自分で入れた商品", "名前を変えた見本", "洗濯用せっけん", "プロテイン"])
     }
 
     /// 見本を消すと、名前を変えた見本を含む見本の 3 件だけが無くなり、自分で入れたお気に入りは並びも値もそのまま残る。もう一度消しても変わらない。

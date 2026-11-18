@@ -90,7 +90,7 @@ struct FavoritesListView: View {
             }
         }
         .sheet(isPresented: $isAddingFavorite, onDismiss: reload) {
-            AddFavoriteView(initialText: "", favoritesFileURL: favoritesFileURL) {
+            AddFavoriteView(initialText: "", favoritesFileURL: favoritesFileURL, urlSession: .shared) {
                 isAddingFavorite = false
             }
         }

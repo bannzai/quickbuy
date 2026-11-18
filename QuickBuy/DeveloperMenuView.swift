@@ -6,11 +6,13 @@
     ///
     /// 店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン) にしている。実在の店の名前をリポジトリに入れないため。
     /// 識別子を固定しているので、何度入れても 3 件のままになる。
+    /// 商品バリアントの名前を持つもの (1 件目と 3 件目) と持たないもの (2 件目) の両方を含む。
     func sampleFavorites() -> [Favorite] {
         [
             Favorite(
                 id: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!,
-                name: "コーヒー豆 200g",
+                name: "コーヒー豆",
+                variantName: "200g / 豆のまま",
                 imageURL: nil,
                 quantity: 2,
                 product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
@@ -26,7 +28,8 @@
             ),
             Favorite(
                 id: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA3")!,
-                name: "プロテイン 1kg",
+                name: "プロテイン",
+                variantName: "1kg",
                 imageURL: nil,
                 quantity: 1,
                 product: .shopify(ShopifyProduct(shopDomain: "karada-store.example", variantID: "70881999")),
@@ -82,6 +85,54 @@
         }
     }
 
+    /// 追加の画面の見本に使う商品ページの URL。店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン)。
+    let sampleProductPageURLText = "https://mori-coffee.example/products/coffee-beans"
+
+    /// 追加の画面の見本に使う、商品バリアントが 3 つある商品の JSON (Shopify の Ajax Product API の応答の形)。
+    let sampleProductJSONText = """
+    {"title":"コーヒー豆 中煎り","featured_image":null,"variants":[
+    {"id":70881412,"title":"200g / 豆のまま","available":true},
+    {"id":70881413,"title":"500g / 中挽き","available":true},
+    {"id":70881414,"title":"1kg / 豆のまま","available":true}]}
+    """
+
+    /// どの URL へのリクエストにも、ネットワークに出ずに `sampleProductJSONText` を HTTP 200 で返す、通信の差し替え。
+    ///
+    /// 実在しない店の商品で追加の画面を開くために使う (実在の店の名前をリポジトリと動作確認の記録に入れないため)。
+    /// class にしているのは、`URLSessionConfiguration.protocolClasses` が `URLProtocol` のサブクラスを求めるため。
+    final class SampleProductURLProtocol: URLProtocol {
+        /// すべてのリクエストをこの差し替えで受ける。
+        override class func canInit(with _: URLRequest) -> Bool {
+            true
+        }
+
+        /// リクエストを変えずに返す。
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+            request
+        }
+
+        /// `sampleProductJSONText` を本文にした HTTP 200 の応答を返す。
+        override func startLoading() {
+            if let url = request.url, let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil) {
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data(sampleProductJSONText.utf8))
+                client?.urlProtocolDidFinishLoading(self)
+            } else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            }
+        }
+
+        /// 途中で止めるものが無いため何もしない。
+        override func stopLoading() {}
+    }
+
+    /// `SampleProductURLProtocol` を通る (ネットワークに出ない) 通信を返す。
+    func sampleProductURLSession() -> URLSession {
+        let urlSessionConfiguration = URLSessionConfiguration.ephemeral
+        urlSessionConfiguration.protocolClasses = [SampleProductURLProtocol.self]
+        return URLSession(configuration: urlSessionConfiguration)
+    }
+
     /// 開発者メニュー (DEBUG ビルドだけ)。画面の操作では作りにくい状態を作る。
     struct DeveloperMenuView: View {
         /// お気に入りの保存先のファイルの URL。
@@ -91,8 +142,10 @@
 
         /// 操作に失敗したことを知らせる表示を出している間は true。
         @State private var isOperationFailed = false
+        /// 見本の商品の追加の画面を出している間は true。
+        @State private var isAddingSampleProduct = false
 
-        /// 見本のお気に入りを入れる・消すのボタンと、リマインドの状態と通知を作るボタン。
+        /// 見本のお気に入りを入れる・消すのボタン、見本の商品で追加の画面を開くボタン、リマインドの状態と通知を作るボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -101,6 +154,9 @@
                             finish {
                                 try insertSampleFavorites(fileURL: favoritesFileURL)
                             }
+                        }
+                        Button("種類のある見本の商品を追加の画面で開く") {
+                            isAddingSampleProduct = true
                         }
                         Button("見本のお気に入りを消す", role: .destructive) {
                             finish {
@@ -153,6 +209,14 @@
                     }
                 }
                 .alert("操作に失敗しました", isPresented: $isOperationFailed) {}
+                .sheet(isPresented: $isAddingSampleProduct) {
+                    AddFavoriteView(
+                        initialText: sampleProductPageURLText,
+                        favoritesFileURL: favoritesFileURL,
+                        urlSession: sampleProductURLSession(),
+                        onFinish: onFinish
+                    )
+                }
             }
             .tint(quickBuyAccentColor)
         }
