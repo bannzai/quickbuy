@@ -51,6 +51,7 @@
 		B50000000000000000000007 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
 		B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ ={isa = PBXBuildFile; fileRef = A50000000000000000000003 /* FavoritesWidgetTests.swift */; };
 		B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000001 /* NotificationPermissionExplanation.swift */; };
+		B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 		B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -133,6 +134,7 @@
 		A50000000000000000000002 /* QuickBuyAccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickBuyAccentColor.swift; sourceTree = "<group>"; };
 		A50000000000000000000003 /* FavoritesWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidgetTests.swift; sourceTree = "<group>"; };
 		A60000000000000000000001 /* NotificationPermissionExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanation.swift; sourceTree = "<group>"; };
+		A60000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -141,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				B5E40B1782B9401D57C38BBA /* Assets.xcassets */,
+				A60000000000000000000003 /* PrivacyInfo.xcprivacy */,
 				DB475B718CDC27643AF3FAA8 /* ContentView.swift */,
 				A20000000000000000000005 /* DeveloperMenuView.swift */,
 				A60000000000000000000001 /* NotificationPermissionExplanation.swift */,
@@ -358,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1E510AF7F06AF7D287B04471 /* Assets.xcassets in Resources */,
+				B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
