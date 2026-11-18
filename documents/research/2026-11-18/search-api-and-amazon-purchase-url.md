@@ -13,12 +13,12 @@ https://github.com/bannzai/quickbuy/issues/27 の調査。2026-11-17 の調査 (
 
 | 調べること | 結論 |
 | --- | --- |
-| Shopify の商品を検索する API | Shopify の Catalog を使う。店をまたぐ検索は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`)、1 つの店の中の検索は店ごとの Storefront Catalog (`https://{店のドメイン}/api/ucp/mcp`)。どちらも鍵なしで呼べ、商品バリアントの ID・名前・画像・価格・店のドメインが返る (実測)。日本の店の商品も出る (実測)。実測は Shopify の見本のプロフィールで行い、自分で置いたプロフィールで通るかは未確認。Shopify は Global Catalog の鍵なしの呼び出しを「Don't use unauthenticated requests for production traffic」と書いており、鍵なしでは上限を上げられない |
+| Shopify の商品を検索する API | Shopify の Catalog を使う。店をまたぐ検索は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`)、1 つの店の中の検索は店ごとの Storefront Catalog (`https://{店のドメイン}/api/ucp/mcp`)。どちらも鍵なしで呼べ、商品バリアントの ID・名前・画像・価格が返る (実測)。店のドメインは、Global Catalog では `variants[].seller.url` で返り、店ごとの入口では応答に無く、呼び先のドメインで決まる (実測)。日本の店の商品も出る (実測)。実測は Shopify の見本のプロフィールで行い、自分で置いたプロフィールで通るかは未確認。Shopify は Global Catalog の鍵なしの呼び出しを「Don't use unauthenticated requests for production traffic」と書いており、鍵なしでは上限を上げられない |
 | Amazon の商品を検索する API | Creators API の SearchItems (Product Advertising API 5 は廃止)。使うには、アソシエイトのアカウントの最終の承認・過去 30 日に 10 件の適格販売・Amazon が承認したモバイルアプリ・鍵を置く自分のサーバー、の 4 つが要る。アプリの審査は公開の後で、最初の版はサーバーを持たないため、最初の版では使えない (アカウントの承認と適格販売の件数は bannzai のアカウントの状態に依り、未確認) |
 | Amazon のカートに入れる URL | 現行の公式文書に無い (2009 年版の文書だけが残る)。アソシエイトの ID を付けないと空のカートへ送られる (2026-11-15 の bannzai の実測)。最初の版では使わず、商品ページ `https://www.amazon.co.jp/dp/{ASIN}` を開く |
 | Amazon アソシエイトのアプリの承認 | ストアで公開したアプリを Amazon が審査する。ヘルプに「ショッピングや購買機能がメインとなっているアプリは、参加が承認されない可能性があります」とあり、検索した Amazon の商品を画像つきで並べる画面は、条件「Amazonのショッピングアプリの機能をエミュレート、偽装またはその機能と競合しないこと」に当たる読みが強い。「カートイン」の確認の後に外部のブラウザか Amazon のアプリで開く形は、開き方の禁止事項には当たらない読み |
 | 鍵をアプリに埋め込めるか | Amazon は埋め込めない (文書に「Never expose your clientid and clientsecret in client-side code」)。Shopify の client secret も埋め込めない読みだが、Catalog には鍵なしの入口があり、最初の版はサーバーなしで検索できる |
-| トップページに並べる商品の候補 | 最初の版 (サーバーなし・鍵なし) で出せるのは、買い直す物の検索語の候補と、選んだ店の商品 (Global Catalog の `filters.shops`)。人気の順に並べる方法は Shopify の Catalog の文書に見つからなかった |
+| トップページに並べる商品の候補 | 最初の版 (サーバーなし・鍵なし) で出せるのは、買い直す物の検索語・選んだ店の商品 (Global Catalog の `filters.shops`)・決まった検索語の結果・利用者が前に検索した語の 4 つ。人気の順に並べる方法は Shopify の Catalog の文書に見つからなかった |
 
 最初の版への当てはめ (この調査の読み。`documents/DIRECTION.md` の「必要な機能」「決めたこと」に書いた):
 
@@ -454,9 +454,8 @@ Amazon (最初の版):
 - 「カートイン」の確認の後に開くのは `https://www.amazon.co.jp/dp/{ASIN}`。アソシエイトの ID は付けない。アプリの中の WebView とアプリの中のブラウザで開かず、アプリの外 (Safari か Amazon のアプリ) で開く。組み立ての関数とテストは `.claude/rules/purchase-url.md` に従う
 - 最初の版は、アフィリエイトのリンクを 1 つも含まない。設定画面の「アフィリエイトのリンクを含むことの表示」(`documents/DIRECTION.md`「必要な機能」) を最初の版で出すかを、設定画面の実装の issue で決める
 - 商品ページの URL から ASIN を取り出せる形 (`/dp/{ASIN}` 以外の形・短い URL) は、この調査では確かめていない
-- 商品ページの URL で個数を渡す方法は、この調査では確かめていない (個数の引数 `Quantity.1` があるのは、カートに入れる URL)。渡せなければ、Amazon では個数を利用者が Amazon の画面で選ぶことになる
+- 商品ページの URL で個数を渡す方法は、この調査では確かめていない (個数の引数 `Quantity.1` があるのは、カートに入れる URL)。渡せなければ、Amazon では個数を利用者が Amazon の画面で選ぶことになる。その時に、個数を選ぶ画面を Amazon のお気に入りにも出すかを、実装の issue で決める
 - Amazon では、開いた時に商品はカートに入っていない。利用者が Amazon の商品ページで「カートに入れる」を押す。Shopify の店 (商品がカートに入った状態の購入画面が開く) と動きが違う。合わなくなる文言は 3 つある: ボタンの「カートイン」、確認の「購入画面を開きますか？」、用語の「購入画面」(`documents/DIRECTION.md`「用語」の定義は、商品がカートに入った状態から支払いの確定までを行う画面)。Amazon のお気に入りでこれらをどう出すかを、実装の issue で決める
-- お気に入りの個数を、Amazon の商品ページの URL で渡せるかは確かめていない (下の個数の点)。渡せない時に、個数を選ぶ画面を Amazon のお気に入りにも出すかを、実装の issue で決める
 - 上の「bannzai が行う作業」の 2 の答えで、承認の前のアプリにリンクを置けないと分かった時は、Amazon を最初の版に入れられない。入れる時期は bannzai が決め直す
 
 Amazon (承認の後):
