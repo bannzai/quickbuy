@@ -41,9 +41,12 @@
         }
     }
 
-    /// 保存済みのお気に入りを、見本かどうかを問わずすべて消す (お気に入りが無い状態の確認に使う)。
-    func deleteAllFavorites(fileURL: URL) throws {
-        try saveFavorites(favorites: [], fileURL: fileURL)
+    /// 保存済みのお気に入りから、見本のお気に入り (名前や個数を変えたものを含む) だけを消す。利用者が自分で入れたお気に入りと、その並びは変えない。
+    func deleteSampleFavorites(fileURL: URL) throws {
+        try saveFavorites(
+            favorites: loadFavorites(fileURL: fileURL).filter { favorite in !sampleFavorites().contains { $0.id == favorite.id } },
+            fileURL: fileURL
+        )
     }
 
     /// 開発者メニュー (DEBUG ビルドだけ)。画面の操作では作りにくい状態を作る。
@@ -56,7 +59,7 @@
         /// 操作に失敗したことを知らせる表示を出している間は true。
         @State private var isOperationFailed = false
 
-        /// 見本のお気に入りを入れる・すべて消すのボタン。
+        /// 見本のお気に入りを入れる・消すのボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -66,9 +69,9 @@
                                 try insertSampleFavorites(fileURL: favoritesFileURL)
                             }
                         }
-                        Button("お気に入りをすべて消す", role: .destructive) {
+                        Button("見本のお気に入りを消す", role: .destructive) {
                             finish {
-                                try deleteAllFavorites(fileURL: favoritesFileURL)
+                                try deleteSampleFavorites(fileURL: favoritesFileURL)
                             }
                         }
                     } header: {
