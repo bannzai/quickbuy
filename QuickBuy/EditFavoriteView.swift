@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 
 /// お気に入りの編集の画面。名前と個数とリマインドを変えて保存する、またはお気に入りから外す。
@@ -12,8 +13,6 @@ struct EditFavoriteView: View {
 
     /// 保存に失敗したことを知らせる表示を出している間は true。
     @State private var isSaveFailed = false
-    /// アプリが前面にあるか。設定アプリから戻った時に、通知の許可の状態を読み直すために見る。
-    @Environment(\.scenePhase) private var scenePhase
     /// 端末の設定で Quick Buy の通知が拒否されている時は true。
     @State private var isNotificationDenied = false
 
@@ -79,8 +78,14 @@ struct EditFavoriteView: View {
         }
         .tint(quickBuyAccentColor)
         // 設定アプリで通知の許可を変えて戻った時にも案内を合わせるよう、画面を開いた時とアプリが前面に戻るたびに読み直す。
-        .task(id: scenePhase) {
+        .task {
             await refreshNotificationDenied()
+        }
+        // この画面は sheet の中に出るため、アプリが前面に戻ったことを、sheet の中でも届くアプリの通知で受け取る。
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task {
+                await refreshNotificationDenied()
+            }
         }
     }
 
