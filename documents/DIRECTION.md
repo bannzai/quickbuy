@@ -25,24 +25,25 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 ## 必要な機能
 
-作るかの判断 (https://github.com/bannzai/quickbuy/issues/2 ) で、2026-11-17 に bannzai が決めたのは、作ること・お気に入りの型・「いつものセット」を作らないこと・リマインドを入れること (下の「決めたこと」)。Amazon を最初の版でどう扱うかと、計測に Firebase を使うかは未返答。
+作るかの判断 (https://github.com/bannzai/quickbuy/issues/2 ) で、2026-11-17 に bannzai が決めたのは、作ること・お気に入りの型・「いつものセット」を作らないこと・リマインドを入れること (下の「決めたこと」)。2026-11-18 に、Amazon を最初の版に入れること・計測に Firebase を使うこと・体験の流れ (トップページの検索から「お気に入り追加」、一覧の「カートイン」、確認の後に購入画面) を決めた。
 
 最初の版 (iOS。お気に入り → ウィジェットのタップ → 購入画面):
 
 - [ ] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
-- [ ] お気に入りの追加: 商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡す。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)
-- [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon を最初の版でどう扱うか (入れない / 商品ページを開くだけ / 対象から外す) は https://github.com/bannzai/quickbuy/issues/2 の返答で決める。返答までは、どの案でも要る Shopify の店の部分から作る
-- [ ] ホーム画面のウィジェット: お気に入りを並べ、タップで購入画面を開く
+- [ ] トップページ: 通常の EC のように、検索窓と画像つきの商品を並べる。検索した商品から「お気に入り追加」に進む (何を並べるかと、Shopify・Amazon の商品を検索する API は実装の issue で決める。API キーの発行は bannzai が行う)
+- [ ] お気に入りの追加: 種類 (商品バリアント) と個数を選ぶ。種類ごとにお気に入りの行を 1 つ作る。商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡すこともできる。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)
+- [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon は最初の版に入れる (アソシエイトのアカウントは bannzai が持っている。アプリにリンクを置くための承認の条件は `documents/research/2026-11-17/monetization.md`)。一覧の「カートイン」を押すと「購入画面を開きますか？」のトーストを出し、利用者が開く操作をした時に購入画面を開く
+- [ ] ホーム画面のウィジェット: お気に入りを種類ごとの行で並べ、行の「カートイン」を押すと「購入画面を開きますか？」の通知を出す。通知をタップすると購入画面を開く
+- [ ] 通知の許可: 最初のお気に入りを追加した後に、なぜ通知が要るのか (ウィジェットからの確認・買う頃の知らせ) を説明してから許可を求める (出す時機は agent の案)
 - [ ] リマインド: お気に入りごとに「何日ごとに知らせるか」を設定し、端末の通知で知らせる。通知をタップすると、その商品の購入画面が開く。日数は購入画面を開いた時刻から数え直す (数え方と通知をタップした時の動きは agent の案)
 - [ ] 設定画面: お問い合わせ・利用規約・プライバシーポリシー・アフィリエイトのリンクを含むことの表示
 - [ ] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
-- [ ] 計測とクラッシュ収集: 購入画面を開いた・ウィジェットを置いた、を数える (案は Firebase Analytics・Crashlytics・bannzai/dashboard への収集。Firebase を使うかは https://github.com/bannzai/quickbuy/issues/2 の返答で決める)
+- [ ] 計測とクラッシュ収集: 購入画面を開いた・ウィジェットを置いた、を数える (Firebase Analytics・Crashlytics・bannzai/dashboard への収集)
 - [ ] 多言語化 (日本語・英語) とストアの素材
 
 その後:
 
 - [ ] 自分のサーバーを経由する URL (ブックマークできる・中身の商品を後から変えられる・経由した回数を数える)
-- [ ] アプリ内の検索 (Shopify の Catalog)
 - [ ] 相性の良い商品の一覧 (最初の画面) と、店の表示枠
 - [ ] 店向けの無料 Shopify アプリ (「Quick Buy に入れる」ボタン・追加リンク・QR)
 - [ ] Android 版 (Kotlin・Glance)
@@ -50,7 +51,9 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 ## デザインの方向
 
-未定。主要画面のモックを見てもらって決める。
+bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#issuecomment-6966345862 ): 通常の EC のようなトップページにする。商品の画像を出し、タイトルをのっぺりさせない。トップページに検索窓を置く。
+
+この返答で作り直したモックは `documents/design/mock-2026-11-18/`。色・余白・書体はこのモックを bannzai に見てもらって決める (https://github.com/bannzai/quickbuy/issues/8 )。1 つ前の `documents/design/mock-2026-11-17/` は採らない。
 
 ## 決めたこと
 
@@ -67,11 +70,17 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 | 2026-11-17 | 作るかの判断 (リマインドの型) | リマインドは「何日ごと」と「日数を数え始めた日時」を持ち、購入画面を開いた時刻から数え直す。通知をタップすると購入画面を直接開く。通知は端末の中だけで予約する | agent (変えにくい面) |
 | 2026-11-17 | 作るかの判断 | 作る (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6947809876 ) | bannzai |
 | 2026-11-17 | お気に入りの保存の実装 (https://github.com/bannzai/quickbuy/issues/9 ) | お気に入りは App Group `group.com.bannzai.QuickBuy` の領域の `favorites.json` に、`[Favorite]` を Swift の `Codable` の自動合成の形の JSON で保存する (`Product` は `{"shopify":{"_0":{…}}}` の入れ子、日時は 2001-01-01 00:00:00 UTC からの秒数)。形は `QuickBuyTests/FavoriteStoreTests.swift` の「保存済みのJSONの形を読める」で固定する。公開前なので、形を変える時は移行を書かずに変えられる | agent (変えにくい面) |
+| 2026-11-18 | 作るかの判断 (上の 2026-11-17 の 4 つの確認) | お気に入りの型・「いつものセット」を作らない・リマインドを入れる・対象の人の言い方でよい (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966340254 ) | bannzai |
+| 2026-11-18 | 作るかの判断 (Amazon の扱い) | Amazon を最初の版に入れる。アソシエイトのアカウントは持っている (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai |
+| 2026-11-18 | 作るかの判断 (計測) | 計測に Firebase を使い、agent が Firebase のプロジェクトを作る。同じ返答の「入れる」を、Amazon と並べて聞いた Firebase にもかかると agent が読んだ (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai (Firebase にもかかるという読みは agent) |
+| 2026-11-18 | 見た目と体験の方向の判断 | トップページは通常の EC のようにし、検索窓を置く。検索から「お気に入り追加」、お気に入り一覧に「カートイン」ボタン、トーストの「購入画面を開きますか？」の後に購入画面。ウィジェットからは通知で確かめる。通知の許可をこの流れの中で求め、なぜ要るのかを説明する。お気に入りは個数と種類 (商品バリアント) を決められ、種類ごとに行を分ける (https://github.com/bannzai/quickbuy/issues/8#issuecomment-6966345862 ) | bannzai |
+| 2026-11-18 | 見た目と体験の方向の判断 (ウィジェット) | 「Widgetからならプッシュ通知」は、ウィジェットからはトーストを出せないため、同じ確認を通知で出すことと読む。通知の許可の説明は、最初のお気に入りを追加した後に出す | agent |
+
 ## agent に任せること
 
 文書に無い問いはすべて。画面構成・文言・ライブラリの選定・テストの方針を含む。次は任せず、bannzai が決める・行う。
 
-- Amazon アソシエイトへの参加とアプリの承認の申請、Shopify の Dev Dashboard での Catalog の API キーの発行、Firebase のプロジェクトの作成 (外部サービスとの新規の連携)
+- Amazon アソシエイトのアプリの承認の申請、Shopify・Amazon の商品を検索する API のキーの発行 (外部サービスとの新規の連携)。Firebase のプロジェクトの作成は 2026-11-18 の返答で agent が行う
 - 自分のサーバーを持つ時の費用の上限
 - 公開に進むか
 
