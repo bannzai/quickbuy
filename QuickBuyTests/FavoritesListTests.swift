@@ -65,6 +65,126 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == expectedNames)
     }
 
+    // MARK: - 「カートイン」の確認
+
+    /// 名前・商品バリアントの名前・個数・商品・リマインドを指定したお気に入りを返す。
+    private func favorite(name: String, variantName: String?, quantity: Int, product: Favorite.Product, reminder: Reminder?) -> Favorite {
+        Favorite(id: UUID(), name: name, variantName: variantName, imageURL: nil, quantity: quantity, product: product, reminder: reminder)
+    }
+
+    /// 同じ商品の商品バリアント違いの 2 行と別の商品の 1 行で、「カートイン」を押した行のお気に入りを確認が指す。
+    /// 先頭・途中・末尾のどの行でも同じで、別の行を押した時はその行のお気に入りに替わる。
+    @Test(arguments: [0, 1, 2])
+    func 確認はカートインを押した行のお気に入りを指す(pressedIndex: Int) {
+        let favorites = [
+            favorite(
+                name: "コーヒー豆 中煎り",
+                variantName: "200g / 豆のまま",
+                quantity: 2,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                reminder: nil
+            ),
+            favorite(
+                name: "コーヒー豆 中煎り",
+                variantName: "500g / 中挽き",
+                quantity: 1,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")),
+                reminder: nil
+            ),
+            favorite(
+                name: "洗濯用せっけん",
+                variantName: nil,
+                quantity: 1,
+                product: .shopify(ShopifyProduct(shopDomain: "sukoyaka-soap.example", variantID: "70881382")),
+                reminder: nil
+            ),
+        ]
+        #expect(cartInConfirmationFavorite(favoriteID: favorites[pressedIndex].id, favorites: favorites) == favorites[pressedIndex])
+    }
+
+    /// 確認を出していない時・確認が指すお気に入りが一覧から消えた時・お気に入りが 1 件も無い時は、確認が指すお気に入りは無い (先頭のお気に入りなど別のものを指さない)。
+    @Test func 確認を出していない時と指すお気に入りが消えた時は確認を出さない() {
+        let savedFavorite = favorite(name: "コーヒー豆")
+        #expect(cartInConfirmationFavorite(favoriteID: nil, favorites: [savedFavorite]) == nil)
+        #expect(cartInConfirmationFavorite(favoriteID: UUID(), favorites: [savedFavorite]) == nil)
+        #expect(cartInConfirmationFavorite(favoriteID: savedFavorite.id, favorites: []) == nil)
+    }
+
+    /// 購入画面の URL を組み立てられないお気に入り (Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
+    @Test(arguments: [
+        Favorite.Product.amazon(AmazonProduct(asin: "B00EXAMPLE")),
+        Favorite.Product.shopify(ShopifyProduct(shopDomain: "mori-coffee.example/evil", variantID: "70881412")),
+    ])
+    func 購入画面を開けないお気に入りには確認を出さない(product: Favorite.Product) {
+        let unopenableFavorite = favorite(name: "電池", variantName: nil, quantity: 1, product: product, reminder: nil)
+        #expect(cartInConfirmationFavorite(favoriteID: unopenableFavorite.id, favorites: [unopenableFavorite]) == nil)
+    }
+
+    /// 確認の 2 行目は、名前・商品バリアントの名前 (持つお気に入りだけ)・個数からなる。
+    @Test func 確認の文は何を何個カートに入れて開くかを書く() {
+        #expect(
+            cartInConfirmationText(
+                favorite: favorite(
+                    name: "コーヒー豆 中煎り",
+                    variantName: "200g / 豆のまま",
+                    quantity: 2,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                    reminder: nil
+                )
+            ) == "コーヒー豆 中煎り 200g / 豆のまま を 2 個カートに入れて開きます"
+        )
+        #expect(
+            cartInConfirmationText(
+                favorite: favorite(
+                    name: "洗濯用せっけん",
+                    variantName: nil,
+                    quantity: 12,
+                    product: .shopify(ShopifyProduct(shopDomain: "sukoyaka-soap.example", variantID: "70881382")),
+                    reminder: nil
+                )
+            ) == "洗濯用せっけん を 12 個カートに入れて開きます"
+        )
+    }
+
+    /// 「カートイン」で確認が指すお気に入りを決めただけでは、リマインドの数え始めた日時は変わらない。
+    /// 確認の「開く」で、確認が指すお気に入りの店のドメイン・商品バリアントの ID・保存済みの個数 (確認を出した後に変えた個数を含む) から組み立てた URL が返り、
+    /// そのお気に入りのリマインドだけが開いた時刻から数え直される。
+    @Test func 開くを押した時にだけ確認が指すお気に入りのURLが返りリマインドが数え直される() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        // 2026-11-17 00:00:00 UTC。
+        let countedFrom = Date(timeIntervalSince1970: 1_794_873_600)
+        let otherFavorite = favorite(
+            name: "コーヒー豆 中煎り",
+            variantName: "200g / 豆のまま",
+            quantity: 2,
+            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+            reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)
+        )
+        let pressedFavorite = favorite(
+            name: "コーヒー豆 中煎り",
+            variantName: "500g / 中挽き",
+            quantity: 1,
+            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")),
+            reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)
+        )
+        try saveFavorites(favorites: [otherFavorite, pressedFavorite], fileURL: fileURL)
+
+        let confirmingFavorite = try #require(cartInConfirmationFavorite(favoriteID: pressedFavorite.id, favorites: try loadFavorites(fileURL: fileURL)))
+        #expect(try loadFavorites(fileURL: fileURL) == [otherFavorite, pressedFavorite])
+
+        try updateFavorite(id: pressedFavorite.id, name: pressedFavorite.name, quantity: 3, fileURL: fileURL)
+        // 数え始めてから 10 日後 (10 × 86400 秒)。
+        let openedAt = countedFrom.addingTimeInterval(864_000)
+        #expect(
+            try purchaseURLForOpening(favoriteID: confirmingFavorite.id, now: openedAt, fileURL: fileURL)?.absoluteString
+                == "https://mori-coffee.example/cart/70881413:3"
+        )
+        #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [
+            Reminder(intervalDays: 30, countedFrom: countedFrom),
+            Reminder(intervalDays: 7, countedFrom: openedAt),
+        ])
+    }
+
     // MARK: - 店のドメインの表示
 
     /// Shopify の商品は保存した店のドメイン、Amazon の商品は `amazon.co.jp` を表示する。

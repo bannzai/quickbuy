@@ -13,7 +13,8 @@ struct ContentView: View {
     }
 }
 
-/// お気に入りの一覧の画面。保存した並びで表示し、「買う」で店の購入画面を開く。追加・名前と個数の変更・並べ替え・削除・設定画面の入口を持つ。
+/// お気に入りの一覧の画面。保存した並びで表示し、「カートイン」で「購入画面を開きますか？」の確認を出して、確認の「開く」で店の購入画面を開く。
+/// 追加・名前と個数の変更・並べ替え・削除・設定画面の入口を持つ。
 struct FavoritesListView: View {
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
@@ -34,12 +35,18 @@ struct FavoritesListView: View {
     @State private var isAddingFavorite = false
     /// 設定画面を出している間は true。
     @State private var isSettingsPresented = false
+    /// 「カートイン」を押して出している確認が指すお気に入りの識別子と、確認を出した (同じ行で押し直した時は出し直した) 時刻。出していない時は nil。
+    /// 持つのは識別子だけで、購入画面の URL は「開く」を押した時に保存済みのお気に入りから組み立てる (documents/adr/0003)。
+    @State private var cartInConfirmation: (favoriteID: UUID, shownAt: Date)?
 
     /// 一覧と、追加・編集・設定の画面への入口。
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("お気に入り")
+                .toolbarBackground(quickBuyAccentColor, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
@@ -47,9 +54,11 @@ struct FavoritesListView: View {
                         } label: {
                             Label("設定", systemImage: "gearshape")
                         }
+                        .tint(.white)
                     }
                     ToolbarItem(placement: .topBarLeading) {
                         EditButton()
+                            .tint(.white)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -57,14 +66,27 @@ struct FavoritesListView: View {
                         } label: {
                             Label("お気に入りを追加", systemImage: "plus")
                         }
+                        .tint(.white)
                     }
                 }
         }
         .tint(quickBuyAccentColor)
         .onAppear(perform: reload)
+        .task(id: cartInConfirmation?.shownAt) {
+            guard cartInConfirmation != nil else {
+                return
+            }
+            do {
+                try await Task.sleep(for: .seconds(cartInConfirmationSeconds))
+            } catch {
+                // 別の行の「カートイン」か「開く」で、この確認の待ちが取り消された。
+                return
+            }
+            cartInConfirmation = nil
+        }
         .onOpenURL { tapURL in
             // 購入画面を開けない時 (お気に入りが消されている・購入画面の URL を組み立てられない等) は、この一覧をそのまま見せる。
-            // 一覧の「買う」と同じ経路で、リマインドの数え直しと通知の予約のし直しを行う。
+            // 確認の「開く」と同じ経路で、リマインドの数え直しと通知の予約のし直しを行う。
             save {
                 if let tappedPurchaseURL = try tappedFavoritePurchaseURL(tapURL: tapURL, now: .now, fileURL: favoritesFileURL) {
                     openURL(tappedPurchaseURL)
@@ -137,13 +159,67 @@ struct FavoritesListView: View {
                         }
                     }
                 } footer: {
-                    Text("「買う」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います")
+                    Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います")
                 }
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                        .padding(.vertical, 5)
+                        .padding(.horizontal, 16)
+                )
+                .listRowInsets(EdgeInsets(top: 17, leading: 28, bottom: 17, trailing: 28))
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
+            .safeAreaInset(edge: .bottom) {
+                cartInConfirmationView
+            }
+            .animation(.default, value: cartInConfirmation?.shownAt)
         }
     }
 
-    /// お気に入り 1 件の行。名前の側を押すと編集の画面、「買う」を押すと店の購入画面が開く。
+    /// 「カートイン」を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面を開く。
+    /// 確認が指すお気に入りが保存先から消えた時と、購入画面を開けなくなった時は出さない。
+    @ViewBuilder private var cartInConfirmationView: some View {
+        if let confirmingFavorite = cartInConfirmationFavorite(favoriteID: cartInConfirmation?.favoriteID, favorites: favorites) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("購入画面を開きますか？")
+                        .font(.subheadline.weight(.heavy))
+                    Text(cartInConfirmationText(favorite: confirmingFavorite))
+                        .font(.caption)
+                        .foregroundStyle(cartInConfirmationSecondaryTextColor)
+                }
+                Spacer(minLength: 0)
+                Button {
+                    cartInConfirmation = nil
+                    save {
+                        if let openingURL = try purchaseURLForOpening(favoriteID: confirmingFavorite.id, now: .now, fileURL: favoritesFileURL) {
+                            openURL(openingURL)
+                        }
+                    }
+                } label: {
+                    Text("開く")
+                        .font(.subheadline.weight(.heavy))
+                        .foregroundStyle(cartInConfirmationBackgroundColor)
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 44)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(.white)
+            .padding(14)
+            .background(cartInConfirmationBackgroundColor, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    /// お気に入り 1 件の行。名前の側を押すと編集の画面が開き、「カートイン」を押すと購入画面を開くかの確認が出る (購入画面はまだ開かない)。
     private func row(favorite: Favorite) -> some View {
         HStack(spacing: 12) {
             Button {
@@ -151,22 +227,27 @@ struct FavoritesListView: View {
             } label: {
                 HStack(spacing: 12) {
                     FavoriteThumbnail(imageURL: favorite.imageURL)
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(favorite.name)
-                            .font(.headline)
-                        Text(shopDomainText(favorite: favorite))
-                            .font(.footnote)
+                            .font(.subheadline.weight(.bold))
+                        if let variantName = favorite.variantName {
+                            Text(variantName)
+                                .font(.footnote.weight(.bold))
+                                .foregroundStyle(quickBuyAccentColor)
+                        }
+                        Text("\(shopDomainText(favorite: favorite)) ・ \(favorite.quantity) 個")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                         // 一覧を開いたまま日数が過ぎた時にも文言が切り替わるよう、1 分ごとに描き直す。
                         // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
                         TimelineView(.periodic(from: .now, by: 60)) { timeline in
                             if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: timeline.date) {
-                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: timeline.date))")
-                                    .font(.footnote.weight(.medium))
+                                Text(reminderStatusText(reminder: reminder, now: timeline.date))
+                                    .font(.caption.weight(.bold))
                                     .foregroundStyle(reminderDueColor)
                             } else {
-                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: timeline.date))")
-                                    .font(.footnote)
+                                Text(reminderStatusText(reminder: favorite.reminder, now: timeline.date))
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -177,14 +258,12 @@ struct FavoritesListView: View {
             }
             .buttonStyle(.plain)
             if purchaseURL(favorite: favorite) != nil {
-                Button("買う") {
-                    save {
-                        if let openingURL = try purchaseURLForOpening(favoriteID: favorite.id, now: .now, fileURL: favoritesFileURL) {
-                            openURL(openingURL)
-                        }
-                    }
+                Button("カートイン") {
+                    cartInConfirmation = (favoriteID: favorite.id, shownAt: .now)
                 }
+                .font(.subheadline.weight(.heavy))
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: 10))
             }
         }
     }
@@ -215,6 +294,31 @@ struct FavoritesListView: View {
 ///
 /// 画面の見本 (documents/design/mock-2026-11-17/project/Main.dc.html) の「そろそろ買う頃」の色 `#9A3412`。
 let reminderDueColor = Color(red: 0x9A / 255, green: 0x34 / 255, blue: 0x12 / 255)
+
+/// 「カートイン」の確認を、利用者が何も押さない時に出しておく秒数。
+///
+/// 8 秒は、確認の 2 行を読んで「開く」を押すのに足り、押し間違えて放っておいた確認が画面に残り続けない長さとして agent が決めた値 (実測した値ではない)。
+/// 消えた後は、同じ行の「カートイン」を押せば同じ確認をまた出せる。
+let cartInConfirmationSeconds: Double = 8
+
+/// 「カートイン」の確認の地の色。画面の見本 (documents/design/mock-2026-11-18/project/Favorites.dc.html) の確認の色 `#111318`。「開く」の文字にも使う。
+let cartInConfirmationBackgroundColor = Color(red: 0x11 / 255, green: 0x13 / 255, blue: 0x18 / 255)
+
+/// 「カートイン」の確認の 2 行目の文字の色。画面の見本 (documents/design/mock-2026-11-18/project/Favorites.dc.html) の色 `#D5D9E0`。
+let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 255, blue: 0xE0 / 255)
+
+/// 「カートイン」の確認が指すお気に入りを、表示している並び (保存先から読んだもの) から返す。
+///
+/// `favoriteID` は最後に「カートイン」を押した行のお気に入りの識別子 (確認を出していない時は nil)。
+/// その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等) と、購入画面の URL を組み立てられない時は nil を返す (確認を出さない)。
+func cartInConfirmationFavorite(favoriteID: UUID?, favorites: [Favorite]) -> Favorite? {
+    favorites.first { $0.id == favoriteID && purchaseURL(favorite: $0) != nil }
+}
+
+/// 「カートイン」の確認の 2 行目に出す、何を何個カートに入れて開くかの文を返す。商品バリアントの名前を持つお気に入りでは、名前の後ろに足す。
+func cartInConfirmationText(favorite: Favorite) -> String {
+    "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます"
+}
 
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。
 ///
