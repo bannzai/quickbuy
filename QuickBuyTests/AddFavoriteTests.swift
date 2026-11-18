@@ -13,6 +13,8 @@ final class StubURLProtocol: URLProtocol {
         case http(statusCode: Int, body: Data)
         /// 通信の失敗 (圏外など)。
         case connectionFailure
+        /// 指定した URL への転送 (HTTP 302)。
+        case redirect(locationURLText: String)
     }
 
     /// URL の文字列ごとの、返す応答。
@@ -50,6 +52,12 @@ final class StubURLProtocol: URLProtocol {
             )
             client?.urlProtocol(self, didLoad: body)
             client?.urlProtocolDidFinishLoading(self)
+        case let .redirect(locationURLText):
+            client?.urlProtocol(
+                self,
+                wasRedirectedTo: URLRequest(url: URL(string: locationURLText)!),
+                redirectResponse: HTTPURLResponse(url: request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": locationURLText])!
+            )
         case .connectionFailure, nil:
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
         }
@@ -299,6 +307,27 @@ struct AddFavoriteTests {
         for path in ["redirect.png", "not-image.png", "offline.png"] {
             #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/\(path)")), urlSession: StubURLProtocol.urlSession()) == nil)
         }
+    }
+
+    /// 実際の通信で、無関係なホストへの転送を受けた時は転送先へリクエストを出さず画像も返さない。同じホストへの転送には従って画像を返す。
+    /// 時間の上限は、転送に従わなかった通信が終わらない場合に、テストを止めずに失敗させるために付けている。
+    @Test(.timeLimit(.minutes(1))) func 通信の途中の転送は同じホストにだけ従う() async throws {
+        let shopDomain = uniqueShopDomain()
+        let trackerURLText = "https://tracker-\(UUID().uuidString.lowercased()).example/pixel.png"
+        let pngData = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/to-tracker.png"] = .redirect(locationURLText: trackerURLText)
+            $0[trackerURLText] = .http(statusCode: 200, body: pngData)
+            $0["https://\(shopDomain)/to-same-host.png"] = .redirect(locationURLText: "https://\(shopDomain)/moved.png")
+            $0["https://\(shopDomain)/moved.png"] = .http(statusCode: 200, body: pngData)
+        }
+        let urlSessionConfiguration = URLSessionConfiguration.ephemeral
+        urlSessionConfiguration.protocolClasses = [StubURLProtocol.self]
+        let urlSession = URLSession(configuration: urlSessionConfiguration, delegate: ProductImageRedirectGuard(), delegateQueue: nil)
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/to-same-host.png")), urlSession: urlSession) != nil)
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/to-tracker.png")), urlSession: urlSession) == nil)
+        #expect(StubURLProtocol.requestedURLTexts.withLock { $0.contains("https://\(shopDomain)/moved.png") })
+        #expect(StubURLProtocol.requestedURLTexts.withLock { !$0.contains(trackerURLText) })
     }
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
