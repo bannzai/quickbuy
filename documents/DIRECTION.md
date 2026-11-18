@@ -54,7 +54,16 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#issuecomment-6966345862 ): 通常の EC のようなトップページにする。商品の画像を出し、タイトルをのっぺりさせない。トップページに検索窓を置く。
 
-この返答で作り直したモックは `documents/design/mock-2026-11-18/`。色・余白・書体はこのモックを bannzai に見てもらって決める (https://github.com/bannzai/quickbuy/issues/8 )。1 つ前の `documents/design/mock-2026-11-17/` は採らない。
+この返答で作り直したモックは `documents/design/mock-2026-11-18/`。bannzai はこのモックの方向でよいと返答した (2026-11-18「良いと思います。」。https://github.com/bannzai/quickbuy/issues/8#issuecomment-6968093230 )。1 つ前の `documents/design/mock-2026-11-17/` は採らない。
+
+画面はこのモックに合わせて作る。色・角の丸み・文字の太さの値はモックの HTML が正で、下はモックから読み取った要点 (bannzai が値を 1 つずつ指定したものではなく、agent がモックに置いた値)。
+
+- 強調の色は緑 (`#0B6E4F`)。「カートイン」「お気に入り追加」などの主なボタンと選択中の印に使う
+- 画面の地は薄い灰色 (`#F4F5F7`)、商品や行は白いカードに載せる。文字は濃い色 (`#111318`)、補足の文字は灰色 (`#5B6270`)
+- 商品の画像を行とカードの左か上に出す (モックは画像を図形で代えている)
+- 見出しと商品の名前は太い文字にし、画面の見出しは大きくする。書体は iOS の標準の書体を使う
+- カードとボタンは角を丸くする
+- 「そろそろ買う頃」の知らせは、強調の色とは別の色 (`#9A3412`) で出す
 
 ## 決めたこと
 
@@ -73,7 +82,7 @@ bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#iss
 | 2026-11-17 | お気に入りの保存の実装 (https://github.com/bannzai/quickbuy/issues/9 ) | お気に入りは App Group `group.com.bannzai.QuickBuy` の領域の `favorites.json` に、`[Favorite]` を Swift の `Codable` の自動合成の形の JSON で保存する (`Product` は `{"shopify":{"_0":{…}}}` の入れ子、日時は 2001-01-01 00:00:00 UTC からの秒数)。形は `QuickBuyTests/FavoriteStoreTests.swift` の「保存済みのJSONの形を読める」で固定する。公開前なので、形を変える時は移行を書かずに変えられる | agent (変えにくい面) |
 | 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 商品の名前・画像・商品バリアントの ID は、商品ページの URL の店から Shopify の Ajax Product API (`/products/{商品のハンドル}.js`) で取る。取れない店 (Shopify でない・パスワードで保護されている) の商品は登録できないと表示する。`?variant=` の無い URL は、店の商品ページが最初に選ぶのと同じ「最初の今買える商品バリアント」を登録し、商品バリアントを選ぶ画面は作らない (どれを登録するかは名前に商品バリアントの名前を付けて確認の画面で見せる)。商品バリアントを選ぶ画面を作らない点は、下の 2026-11-18 の判断 (種類を決められる) で変わる | agent |
 | 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 共有メニューから渡された URL は、アプリ本体を開かず、共有メニューの拡張 (`QuickBuyShare`) の中でアプリと同じ確認の画面を出して保存する | agent |
-| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 一覧の行を押すと編集の画面を開く。並べ替えは一覧の「編集」、削除は行のスワイプ・一覧の「編集」・編集の画面の「お気に入りから外す」で行う (iOS の標準の一覧の操作)。名前が空 (空白だけを含む) の間は保存できない。ボタンと強調の色は、デザインの方向が決まるまで主要画面のモックの色 (`#0F5E6B`) を `quickBuyAccentColor` の 1 か所に置く | agent |
+| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 一覧の行を押すと編集の画面を開く。並べ替えは一覧の「編集」、削除は行のスワイプ・一覧の「編集」・編集の画面の「お気に入りから外す」で行う (iOS の標準の一覧の操作)。名前が空 (空白だけを含む) の間は保存できない。ボタンと強調の色は、デザインの方向が決まるまで主要画面のモックの色 (`#0F5E6B`) を `quickBuyAccentColor` の 1 か所に置く。デザインの方向は 2026-11-18 に決まり (下の「見た目と体験の方向の判断 (モック)」の行)、強調の色は `#0B6E4F` に替える (https://github.com/bannzai/quickbuy/issues/31 で替える) | agent |
 | 2026-11-17 | お気に入りの一覧と追加の実装 (https://github.com/bannzai/quickbuy/issues/12 、https://github.com/bannzai/quickbuy/issues/11 ) | お気に入りの保存先を開けない時・読めない時は、空の一覧を出さずに「お気に入りの保存先を開けません」「お気に入りを読み込めません」と表示する (読めない状態を 0 件と見分けるため)。保存・削除・並べ替えに失敗した時は「保存できませんでした」と知らせ、画面は保存先の今の中身に戻す。一覧は、開いた時とアプリが前面に戻った時に保存先を読み直す (共有メニューで足したお気に入りを出すため)。共有メニューは URL と文字列を受け取り、URL を優先する。どちらも取り出せない時は、空の入力欄から始める。入力欄と共有メニューから受け取った文字列は、前後の空白と改行を除いてから分解する (貼り付けた文字列の前後に空白や改行が付いていても登録できるようにするため)。途中に空白や改行を含む文字列は、URL の形でないものとして登録できない | agent |
 | 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 「買う」は店の購入画面を端末の既定のブラウザで開く。Amazon の商品のお気に入りは、扱いが決まるまで一覧に「買う」を出さない。ボタンの名前と確認を挟まない点は、下の 2026-11-18 の判断 (「カートイン」と「購入画面を開きますか？」の確認) で変わる | agent |
 | 2026-11-18 | 作るかの判断 (上の 2026-11-17 の 4 つの確認) | お気に入りの型・「いつものセット」を作らない・リマインドを入れる・対象の人の言い方でよい (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966340254 ) | bannzai |
@@ -81,6 +90,7 @@ bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#iss
 | 2026-11-18 | 作るかの判断 (計測) | 計測に Firebase を使い、agent が Firebase のプロジェクトを作る。agent の問いは「計測に Firebase を使い、agent が Firebase のプロジェクトを作ってよいか」で、同じ返答の「入れる」を、Amazon と並べて聞いたこの問いにもかかると agent が読んだ (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai (Firebase にもかかるという読みは agent) |
 | 2026-11-18 | 見た目と体験の方向の判断 | トップページは通常の EC のようにし、検索窓を置く。検索から「お気に入り追加」、お気に入り一覧に「カートイン」ボタン、トーストの「購入画面を開きますか？」の後に購入画面。ウィジェットからは通知で確かめる。通知の許可をこの流れの中で求め、なぜ要るのかを説明する。お気に入りは個数と種類 (商品バリアント) を決められ、種類ごとに行を分ける (https://github.com/bannzai/quickbuy/issues/8#issuecomment-6966345862 ) | bannzai |
 | 2026-11-18 | 見た目と体験の方向の判断 (ウィジェット) | 「Widgetからならプッシュ通知」は、ウィジェットからはトーストを出せないため、同じ確認を通知で出すことと読む。通知の許可の説明は、最初のお気に入りを追加した後に出す | agent |
+| 2026-11-18 | 見た目と体験の方向の判断 (モック) | 作り直したモック (`documents/design/mock-2026-11-18/`) の方向でよい。画面はこのモックに合わせて作る (https://github.com/bannzai/quickbuy/issues/8#issuecomment-6968093230 ) | bannzai |
 | 2026-11-18 | 検索の API と Amazon で開く URL の調査 (https://github.com/bannzai/quickbuy/issues/27 ) | Shopify の商品の検索は、Shopify の Catalog を鍵なしでアプリから直接呼ぶ。最初の版はサーバーを持たず、client secret はアプリに埋め込めないため。Shopify は Global Catalog の鍵なしの呼び出しを本番に使わないよう書いており、鍵なしでは上限を上げられない。それを承知で選んでおり、鍵なしの上限に当たった時は、自分のサーバーに鍵を置く形へ移る。鍵なしで通ることは Shopify の見本のプロフィールで確かめただけで、自分で置いたプロフィールでは未確認 (根拠: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`) | agent |
 | 2026-11-18 | 検索の API と Amazon で開く URL の調査 (https://github.com/bannzai/quickbuy/issues/27 ) | 最初の版の Amazon は、商品ページの URL から登録し、「カートイン」の確認の後に商品ページ `https://www.amazon.co.jp/dp/{ASIN}` をアプリの外で開く。開いた時に商品はカートに入っていない。カートに入れる URL と、Amazon の商品の検索・Amazon が持つ名前・画像・価格の表示は入れない。アソシエイトの ID は、Amazon がアプリを承認するまで付けない。承認の前のアプリにリンクを置けないと Amazon が答えた時は、Amazon を入れる時期を bannzai が決め直す (根拠: 同じ文書) | agent (変えにくい面) |
 | 2026-11-18 | 設定画面の実装 (https://github.com/bannzai/quickbuy/issues/15 ) | 設定画面は一覧の左上のボタンから開き、iOS の標準の一覧の形にする。お問い合わせは宛先と件名を入れたメールの作成を端末の既定のメールアプリで開き、行に宛先のメールアドレスを見せる。メールアプリを開けない時は、宛先を書いた表示で知らせる。利用規約とプライバシーポリシーは端末の既定のブラウザで開く。アプリのバージョンとビルド番号を見せる。開発者メニュー (DEBUG ビルドだけ) の入口は設定画面に置く | agent |
