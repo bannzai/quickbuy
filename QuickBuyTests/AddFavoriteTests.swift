@@ -267,10 +267,9 @@ struct AddFavoriteTests {
 
     /// 画像を読み込む通信の delegate は、無関係なホストへの転送には従わず (nil)、Shopify の CDN への転送には転送先のリクエストをそのまま返す。
     @Test func 画像の通信は無関係なホストへの転送に従わない() async throws {
-        let task = URLSession.shared.dataTask(with: try #require(URL(string: "https://mori-coffee.example/cdn/a.png")))
-        let redirectResponse = try #require(
-            HTTPURLResponse(url: #require(task.originalRequest?.url), statusCode: 302, httpVersion: "HTTP/1.1", headerFields: nil)
-        )
+        let originalURL = try #require(URL(string: "https://mori-coffee.example/cdn/a.png"))
+        let task = URLSession.shared.dataTask(with: originalURL)
+        let redirectResponse = try #require(HTTPURLResponse(url: originalURL, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: nil))
         let cdnRequest = URLRequest(url: try #require(URL(string: "https://cdn.shopify.com/s/files/a.png")))
         #expect(
             try await ProductImageRedirectGuard().urlSession(
