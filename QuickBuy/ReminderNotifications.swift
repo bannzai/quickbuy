@@ -6,12 +6,14 @@ let reminderNotificationFavoriteIDKey = "favoriteID"
 
 /// お気に入りのリマインドの通知の内容を返す。
 ///
-/// 載せるのは見出し・お気に入りの名前・案内の文言と、タップされた時にお気に入りを探すための識別子だけ。
+/// 載せるのは見出し・お気に入りの名前・商品バリアントの名前 (持つお気に入りだけ)・案内の文言と、タップされた時にお気に入りを探すための識別子だけ。
+/// 商品バリアントの名前は、同じ商品の商品バリアントごとのお気に入りの通知を見分けられるよう、名前と同じ行に空白で区切って続ける
+/// (並べ方は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本「コーヒー豆 200g / 豆のまま」)。
 /// 購入画面の URL は載せない (.claude/rules/purchase-url.md。URL はタップされた時に保存済みのお気に入りから組み立てる)。
 func reminderNotificationContent(favorite: Favorite) -> UNMutableNotificationContent {
     let content = UNMutableNotificationContent()
     content.title = "そろそろ買う頃です"
-    content.body = "\(favorite.name)\nタップすると購入画面が開きます"
+    content.body = "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます"
     content.sound = .default
     content.userInfo = [reminderNotificationFavoriteIDKey: favorite.id.uuidString]
     return content
