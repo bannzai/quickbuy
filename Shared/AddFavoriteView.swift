@@ -172,11 +172,6 @@ struct AddFavoriteView: View {
     }
 }
 
-/// アプリと共有メニューの拡張で使う、ボタンと強調の色。
-///
-/// 画面の見本 (documents/design/mock-2026-11-17/index.html) の「買う」「お気に入りに入れる」と店のドメインの枠の色 `#0F5E6B`。
-let quickBuyAccentColor = Color(red: 0x0F / 255, green: 0x5E / 255, blue: 0x6B / 255)
-
 /// 確認の画面で店のドメインを囲む枠の形。
 ///
 /// 角の丸みは、一覧の行のまとまりの角の丸み (iOS 26 の simulator で、丸み 10 の枠の四隅が切れた) より大きくして、枠の四隅が切れないようにしている。

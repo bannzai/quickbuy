@@ -1,4 +1,8 @@
 import Foundation
+import WidgetKit
+
+/// お気に入りを並べるウィジェット (`QuickBuyWidget/FavoritesWidget.swift`) の種類の識別子。
+let favoritesWidgetKind = "FavoritesWidget"
 
 /// アプリとウィジェット拡張が共有する領域 (App Group) の識別子。
 /// `QuickBuy/QuickBuy.entitlements` と `QuickBuyWidget/QuickBuyWidget.entitlements` の `com.apple.security.application-groups` と同じ値にする (documents/adr/0001)。
@@ -41,6 +45,7 @@ func loadFavorites(fileURL: URL) throws -> [Favorite] {
 ///
 /// 個数が 1 未満、またはリマインドの日数が 1 未満のお気に入りが 1 つでもあれば、何も書かずにエラーを投げる。
 /// 書き込みは一時ファイルを経て置き換えるため、ウィジェット拡張が書きかけのファイルを読むことは無い。
+/// 書いた後に、お気に入りを並べるウィジェットの表示の更新を OS に頼む (追加・変更・並べ替え・削除はすべてこの関数を通る)。
 func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
     guard favorites.allSatisfy({ $0.quantity >= 1 }) else {
         throw FavoriteStoreError.quantityLessThanOne
@@ -49,6 +54,7 @@ func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
         throw FavoriteStoreError.reminderIntervalDaysLessThanOne
     }
     try JSONEncoder().encode(favorites).write(to: fileURL, options: .atomic)
+    WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
 }
 
 /// お気に入りを並びの末尾に足して保存する。
