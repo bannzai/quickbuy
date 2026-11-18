@@ -41,7 +41,7 @@ struct ShareRootView: View {
     /// お気に入りの追加の画面、または保存先を開けないことの表示。
     var body: some View {
         if let favoritesFileURL = sharedFavoritesFileURL() {
-            AddFavoriteView(initialText: initialText, favoritesFileURL: favoritesFileURL, onFinish: onFinish)
+            AddFavoriteView(initialText: initialText, favoritesFileURL: favoritesFileURL, urlSession: .shared, onFinish: onFinish)
         } else {
             FavoritesStoreUnavailableView()
         }

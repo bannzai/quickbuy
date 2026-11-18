@@ -6,6 +6,9 @@ struct Favorite: Codable, Identifiable, Equatable {
     let id: UUID
     /// 一覧とウィジェットに出す名前。利用者が編集できる。
     var name: String
+    /// 商品バリアントの名前 (例: `200g / 豆のまま`)。一覧とウィジェットで、同じ商品の商品バリアントごとのお気に入りを見分けるために出す。
+    /// 商品バリアントが 1 つだけの商品と、商品バリアントの名前を取っていない商品 (Amazon の商品) では nil。
+    var variantName: String?
     /// 商品の画像の URL。取得できなかった時は nil。
     var imageURL: URL?
     /// 1 回に買う個数。1 以上。

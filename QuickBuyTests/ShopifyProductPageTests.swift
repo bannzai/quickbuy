@@ -1,8 +1,9 @@
 import Foundation
+import os
 import Testing
 @testable import QuickBuy
 
-/// 商品ページの URL の分解・商品の JSON を取得する URL の組み立て・登録前のお気に入りの作成を確かめる。
+/// 商品ページの URL の分解・商品の JSON を取得する URL の組み立て・確認の画面で選ぶ商品バリアント・選んだ商品バリアントから作るお気に入りを確かめる。
 /// 形式の出典は `shopifyProductPage(text:)` と `ShopifyAjaxProduct` の document コメント。
 struct ShopifyProductPageTests {
     // MARK: - 商品ページの URL の分解
@@ -134,10 +135,14 @@ struct ShopifyProductPageTests {
         )
     }
 
-    // MARK: - 登録前のお気に入り
+    // MARK: - 確認の画面で選ぶ商品バリアント
 
-    /// 登録前のお気に入りの確認に使う識別子。
-    private let draftID = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+    /// 作るお気に入りの確認に使う 1 つ目の識別子。
+    private let firstID = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+    /// 作るお気に入りの確認に使う 2 つ目の識別子。
+    private let secondID = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
+    /// 作るお気に入りの確認に使う 3 つ目の識別子。
+    private let thirdID = UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!
 
     /// 店のドメインが `mori-coffee.example` の商品ページ (商品バリアントの ID は引数のとおり) を返す。
     private func productPage(variantID: String?) -> ShopifyProductPage {
@@ -157,50 +162,161 @@ struct ShopifyProductPageTests {
         )
     }
 
-    /// 商品バリアントの指定が無い時は、最初の今買える商品バリアントを選び、個数 1・リマインドなしで作る。名前には商品バリアントの名前が付く。
-    @Test func 指定が無い時は最初の買える商品バリアントで作る() {
+    /// 商品バリアントが「Default Title」(売り切れ) の 1 つだけの商品を返す。
+    private func productWithOneVariant() -> ShopifyAjaxProduct {
+        ShopifyAjaxProduct(title: "せっけん", featuredImage: nil, variants: [.init(id: 201, title: "Default Title", available: false)])
+    }
+
+    /// 商品バリアントが 2 つ以上ある商品は、`?variant=` が無ければどれも選んでいない状態から始まる (最初の買える商品バリアントを勝手に選ばない)。
+    @Test func 複数ある商品は指定が無ければ未選択から始まる() {
+        #expect(initialVariantQuantities(productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: nil)) == [:])
+    }
+
+    /// `?variant=` で指定された商品バリアントは、売り切れ (先頭) でも・最後の 1 つでも、それだけを個数 1 で選んだ状態から始まる。
+    @Test(arguments: [("101", 101), ("103", 103)] as [(String, UInt64)])
+    func 指定された商品バリアントだけを選んだ状態から始まる(variantIDText: String, expectedVariantID: UInt64) {
         #expect(
-            favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: "//cdn.shopify.com/beans.png"))
-                == Favorite(
-                    id: draftID,
-                    name: "コーヒー豆 200g",
+            initialVariantQuantities(productPage: productPage(variantID: variantIDText), product: productWithThreeVariants(featuredImage: nil))
+                == [expectedVariantID: 1]
+        )
+    }
+
+    /// 商品バリアントが 1 つだけの商品は、指定が無くても・その 1 つを指定しても、売り切れでも、その 1 つを個数 1 で選んだ状態から始まる。
+    @Test(arguments: [nil, "201"] as [String?])
+    func 商品バリアントが1つの商品はその1つを選んだ状態から始まる(variantIDText: String?) {
+        #expect(initialVariantQuantities(productPage: productPage(variantID: variantIDText), product: productWithOneVariant()) == [201: 1])
+    }
+
+    /// 指定された商品バリアントがその商品に無い時 (複数ある商品でも 1 つだけの商品でも) は、確認の画面に進めない (別の商品バリアントにすり替えない)。
+    @Test func 指定された商品バリアントが無い時は進めない() {
+        #expect(initialVariantQuantities(productPage: productPage(variantID: "999"), product: productWithThreeVariants(featuredImage: nil)) == nil)
+        #expect(initialVariantQuantities(productPage: productPage(variantID: "999"), product: productWithOneVariant()) == nil)
+    }
+
+    /// 商品バリアントが 1 つも無い商品では、確認の画面に進めない。
+    @Test func 商品バリアントが無い商品では進めない() {
+        #expect(
+            initialVariantQuantities(
+                productPage: productPage(variantID: nil),
+                product: ShopifyAjaxProduct(title: "コーヒー豆", featuredImage: nil, variants: [])
+            ) == nil
+        )
+    }
+
+    /// 選んでいない商品バリアントの行を押すと個数 1 で選ばれ、選んである行を押すと選ぶのをやめる。ほかの商品バリアントの個数は変わらない。
+    @Test(arguments: [
+        ([:], [102: 1]),
+        ([103: 2], [102: 1, 103: 2]),
+        ([102: 3, 103: 2], [103: 2]),
+        ([102: 3], [:]),
+    ] as [([UInt64: Int], [UInt64: Int])])
+    func 商品バリアントの行を押すと選ぶ選ばないが替わる(quantitiesByVariantID: [UInt64: Int], expectedQuantitiesByVariantID: [UInt64: Int]) {
+        #expect(toggledVariantQuantities(quantitiesByVariantID: quantitiesByVariantID, variantID: 102) == expectedQuantitiesByVariantID)
+    }
+
+    // MARK: - 選んだ商品バリアントから作るお気に入り
+
+    /// 3 つのうち「500g」を 1 個・「100g」を 2 個選ぶと、商品の並び順 (100g・500g) で 2 件でき、それぞれが選んだ個数・商品バリアントの名前・商品バリアントの ID を持つ。
+    /// 名前はどちらも確認の画面の名前、選んでいない「200g」のお気に入りはできない。
+    @Test func 選んだ商品バリアントごとに1件ずつお気に入りを作る() {
+        #expect(
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithThreeVariants(featuredImage: "//cdn.shopify.com/beans.png"),
+                name: "いつもの豆",
+                quantitiesByVariantID: [103: 1, 101: 2],
+                favoriteIDsByVariantID: [101: firstID, 102: thirdID, 103: secondID]
+            ) == [
+                Favorite(
+                    id: firstID,
+                    name: "いつもの豆",
+                    variantName: "100g",
+                    imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
+                    quantity: 2,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "101")),
+                    reminder: nil
+                ),
+                Favorite(
+                    id: secondID,
+                    name: "いつもの豆",
+                    variantName: "500g",
                     imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
                     quantity: 1,
-                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "102")),
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "103")),
                     reminder: nil
-                )
+                ),
+            ]
         )
     }
 
-    /// `?variant=` で指定された商品バリアントは、売り切れでも・最後の 1 つでも、そのまま選ぶ。
-    @Test(arguments: [("101", "コーヒー豆 100g"), ("103", "コーヒー豆 500g")])
-    func 指定された商品バリアントで作る(variantID: String, expectedName: String) {
-        let favorite = favoriteDraft(id: draftID, productPage: productPage(variantID: variantID), product: productWithThreeVariants(featuredImage: nil))
-        #expect(favorite?.name == expectedName)
-        #expect(favorite?.product == .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: variantID)))
-    }
-
-    /// 指定された商品バリアントがその商品に無い時は作らない (別の商品バリアントにすり替えない)。
-    @Test func 指定された商品バリアントが無い時は作らない() {
-        #expect(favoriteDraft(id: draftID, productPage: productPage(variantID: "999"), product: productWithThreeVariants(featuredImage: nil)) == nil)
-    }
-
-    /// 商品バリアントが 1 つも無い商品では作らない。
-    @Test func 商品バリアントが無い商品では作らない() {
+    /// 識別子が決まっていない商品バリアントは、選んでいてもお気に入りを作らない。
+    @Test func 識別子の無い商品バリアントのお気に入りは作らない() {
         #expect(
-            favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: ShopifyAjaxProduct(title: "コーヒー豆", featuredImage: nil, variants: [])) == nil
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithThreeVariants(featuredImage: nil),
+                name: "いつもの豆",
+                quantitiesByVariantID: [101: 1, 103: 1],
+                favoriteIDsByVariantID: [103: secondID]
+            ).map(\.id) == [secondID]
         )
     }
 
-    /// 商品バリアントが 1 つだけの商品は、名前に商品バリアントの名前を付けない。今買えるものが無い時は先頭を選ぶ。
-    @Test func 商品バリアントが1つの商品は商品の名前だけにする() {
-        let favorite = favoriteDraft(
-            id: draftID,
-            productPage: productPage(variantID: nil),
-            product: ShopifyAjaxProduct(title: "せっけん", featuredImage: nil, variants: [.init(id: 201, title: "Default Title", available: false)])
+    /// 商品バリアントごとの識別子は、並び順に 1 つずつ作られる。同じ ID の商品バリアントが 2 回並ぶ商品では、最初に作った識別子を使う。
+    @Test func 商品バリアントごとに識別子を1つずつ作る() {
+        // 識別子を作る処理が呼ばれるたびに、先頭から 1 つずつ渡す。
+        let remainingIDs = OSAllocatedUnfairLock(initialState: [firstID, secondID, thirdID])
+        #expect(
+            makeFavoriteIDsByVariantID(
+                product: ShopifyAjaxProduct(
+                    title: "コーヒー豆",
+                    featuredImage: nil,
+                    variants: [
+                        .init(id: 101, title: "100g", available: true),
+                        .init(id: 102, title: "200g", available: true),
+                        .init(id: 101, title: "100g", available: true),
+                    ]
+                ),
+                makeID: { remainingIDs.withLock { $0.removeFirst() } }
+            ) == [101: firstID, 102: secondID]
         )
-        #expect(favorite?.name == "せっけん")
-        #expect(favorite?.product == .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "201")))
+        #expect(makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct(title: "コーヒー豆", featuredImage: nil, variants: []), makeID: { firstID }) == [:])
+    }
+
+    /// 1 つも選んでいない時は、お気に入りを 1 件も作らない。
+    @Test func 選んでいない時はお気に入りを作らない() {
+        #expect(
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithThreeVariants(featuredImage: nil),
+                name: "いつもの豆",
+                quantitiesByVariantID: [:],
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
+            ) == []
+        )
+    }
+
+    /// 商品バリアントが 1 つだけの商品のお気に入りは、商品バリアントの名前を持たない (`Default Title` を入れない)。個数は決めた値になる。
+    @Test func 商品バリアントが1つの商品は商品バリアントの名前を持たない() {
+        #expect(
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithOneVariant(),
+                name: "せっけん",
+                quantitiesByVariantID: [201: 3],
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
+            ) == [
+                Favorite(
+                    id: firstID,
+                    name: "せっけん",
+                    variantName: nil,
+                    imageURL: nil,
+                    quantity: 3,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "201")),
+                    reminder: nil
+                ),
+            ]
+        )
     }
 
     /// 画像の URL は、`https` (スキームを省いた形を含む) で、ホストが Shopify の CDN か店のドメイン (`mori-coffee.example`) のものだけを入れる。
@@ -229,8 +345,27 @@ struct ShopifyProductPageTests {
     ] as [(String?, String?)])
     func 画像のURLはhttpsで店のドメインかShopifyのCDNのものだけを入れる(featuredImage: String?, expectedImageURLText: String?) {
         #expect(
-            favoriteDraft(id: draftID, productPage: productPage(variantID: nil), product: productWithThreeVariants(featuredImage: featuredImage))?.imageURL?.absoluteString
-                == expectedImageURLText
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithThreeVariants(featuredImage: featuredImage),
+                name: "コーヒー豆",
+                quantitiesByVariantID: [102: 1],
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
+            ).map { $0.imageURL?.absoluteString } == [expectedImageURLText]
         )
+    }
+
+    // MARK: - 保存するボタンの文言
+
+    /// 商品バリアントが複数ある商品で 1 つ以上選んでいる時だけ、選んだ数を入れる。1 つも選んでいない時と、1 つだけの商品では数を入れない。
+    @Test(arguments: [
+        (3, 2, "2 種類をお気に入りに追加"),
+        (3, 1, "1 種類をお気に入りに追加"),
+        (2, 2, "2 種類をお気に入りに追加"),
+        (3, 0, "お気に入りに追加"),
+        (1, 1, "お気に入りに追加"),
+    ])
+    func 保存するボタンは選んだ種類の数を出す(variantCount: Int, selectedVariantCount: Int, expectedTitle: String) {
+        #expect(favoriteAdditionButtonTitle(variantCount: variantCount, selectedVariantCount: selectedVariantCount) == expectedTitle)
     }
 }

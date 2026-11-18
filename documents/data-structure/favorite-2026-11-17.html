@@ -109,6 +109,9 @@ struct Favorite: Codable, Identifiable, Equatable {
     let id: UUID
     /// 一覧とウィジェットに出す名前。利用者が編集できる。
     var name: String
+    /// 商品バリアントの名前 (例: 200g / 豆のまま)。同じ商品の商品バリアントごとのお気に入りを見分けるために出す。
+    /// 商品バリアントが 1 つだけの商品と、商品バリアントの名前を取っていない商品 (Amazon の商品) では nil。
+    var variantName: String?
     /// 商品の画像の URL。取得できなかった時は nil。
     var imageURL: URL?
     /// 1 回に買う個数。1 以上。
@@ -171,9 +174,9 @@ struct Reminder: Codable, Equatable {
           <td class="none">まだ書かない</td>
         </tr>
         <tr>
-          <td>名前と個数を確かめて「お気に入りに入れる」を押す</td>
-          <td>お気に入りを 1 件足す</td>
-          <td><span class="w">書く</span> Favorite (id・name・imageURL・quantity・product)</td>
+          <td>名前を確かめ、種類 (商品バリアント) を選んでそれぞれの個数を決め、「お気に入りに追加」を押す</td>
+          <td>選んだ商品バリアントごとに、お気に入りを 1 件ずつ足す (商品バリアントが 1 つだけの商品は 1 件)</td>
+          <td><span class="w">書く</span> Favorite (id・name・variantName・imageURL・quantity・product)</td>
         </tr>
         <tr>
           <td>アプリを開いてお気に入りの一覧を見る</td>

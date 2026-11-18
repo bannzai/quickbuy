@@ -137,29 +137,81 @@ struct ShopifyAjaxProduct: Decodable, Equatable {
     }
 }
 
-/// 商品ページの URL から取り出した値と、取得した商品の JSON から、確認の画面に出す登録前のお気に入りを作って返す。保存はしない。
+/// 商品バリアントを選んだ時に最初に入れる個数。
 ///
-/// 商品バリアントは、URL に `?variant=` があればその ID のもの、無ければ並びの中で最初の今買えるもの、今買えるものが無ければ並びの先頭のものにする
-/// (店の商品ページが最初に選ぶ商品バリアントと同じ決め方。出典: https://shopify.dev/docs/api/liquid/objects/product の `selected_or_first_available_variant`)。
-/// 名前は商品の名前にし、商品バリアントが 2 つ以上ある商品では、どれを登録するかが分かるよう商品バリアントの名前を後ろに足す。
-/// `?variant=` の ID が商品バリアントの並びに無い時と、商品バリアントが 1 つも無い時は nil を返す。
-/// 画像の URL は、`https` で、ホストが店のドメインか Shopify の CDN のものだけを入れる (`shopifyProductImageURL(text:shopDomain:)`)。
-func favoriteDraft(id: UUID, productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> Favorite? {
-    guard let variant = productPage.variantID == nil
-        ? product.variants.first(where: \.available) ?? product.variants.first
-        : product.variants.first(where: { String($0.id) == productPage.variantID })
-    else {
+/// 1 回に買う個数の下限 (`Favorite.quantity` は 1 以上)。確認の画面で利用者が変えられる。
+let initialVariantQuantity = 1
+
+/// 確認の画面を開いた時に選んである商品バリアントと個数を、商品バリアントの ID ごとの個数で返す。選んでいない商品バリアントは入らない。
+///
+/// URL に `?variant=` があれば、その ID の商品バリアントだけを選んだ状態にする (売り切れでも選ぶ)。
+/// `?variant=` が無く、商品バリアントが 1 つだけの商品は、その 1 つを選んだ状態にする (選ぶ操作を挟まないため)。
+/// `?variant=` が無く、商品バリアントが 2 つ以上ある商品は、どれも選んでいない状態にする (どれをお気に入りにするかを利用者が選ぶため)。
+/// `?variant=` の ID が商品バリアントの並びに無い時 (別の商品バリアントにすり替えない) と、商品バリアントが 1 つも無い時は nil を返す。
+func initialVariantQuantities(productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> [UInt64: Int]? {
+    if let variantID = productPage.variantID {
+        return product.variants.first { String($0.id) == variantID }.map { [$0.id: initialVariantQuantity] }
+    }
+    guard let firstVariant = product.variants.first else {
         return nil
     }
-    return Favorite(
-        id: id,
-        name: product.variants.count >= 2 ? "\(product.title) \(variant.title)" : product.title,
-        imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) },
-        // 1 回に買う個数の下限 (`Favorite.quantity` は 1 以上)。確認の画面で利用者が変えられる。
-        quantity: 1,
-        product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
-        reminder: nil
-    )
+    return product.variants.count == 1 ? [firstVariant.id: initialVariantQuantity] : [:]
+}
+
+/// 商品バリアントの行を押した後の、選んである商品バリアントと個数を返す。
+///
+/// 選んでいなかった商品バリアントは個数 `initialVariantQuantity` で選び、選んであった商品バリアントは選ぶのをやめる (決めた個数は残さない)。ほかの商品バリアントは変えない。
+func toggledVariantQuantities(quantitiesByVariantID: [UInt64: Int], variantID: UInt64) -> [UInt64: Int] {
+    var toggledQuantitiesByVariantID = quantitiesByVariantID
+    toggledQuantitiesByVariantID[variantID] = quantitiesByVariantID[variantID] == nil ? initialVariantQuantity : nil
+    return toggledQuantitiesByVariantID
+}
+
+/// 確認の画面で選んだ商品バリアントごとに 1 件ずつ、保存するお気に入りを作って返す。保存はしない。
+///
+/// 並びは商品の商品バリアントの並び順で、`quantitiesByVariantID` に無い商品バリアントのお気に入りは作らない (1 つも選んでいなければ空の配列)。
+/// 名前はどれも `name` (確認の画面で利用者が確かめた商品の名前)、個数は `quantitiesByVariantID` の値にする。
+/// 商品バリアントの名前は、商品バリアントが 2 つ以上ある商品でだけ入れる (1 つだけの商品では、Shopify が付けた `Default Title` を見分けに使わないため nil)。
+/// 画像の URL は、`https` で、ホストが店のドメインか Shopify の CDN のものだけを入れる (`shopifyProductImageURL(text:shopDomain:)`)。
+/// 識別子は `favoriteIDsByVariantID` の、その商品バリアントの値にする。同じ引数で何度呼んでも同じ識別子のお気に入りを返すので、同じ追加が 2 回保存に渡っても増えない。
+/// `favoriteIDsByVariantID` に無い商品バリアントのお気に入りは作らない。
+func selectedVariantFavorites(
+    productPage: ShopifyProductPage,
+    product: ShopifyAjaxProduct,
+    name: String,
+    quantitiesByVariantID: [UInt64: Int],
+    favoriteIDsByVariantID: [UInt64: UUID]
+) -> [Favorite] {
+    product.variants.compactMap { variant in
+        guard let quantity = quantitiesByVariantID[variant.id], let favoriteID = favoriteIDsByVariantID[variant.id] else {
+            return nil
+        }
+        return Favorite(
+            id: favoriteID,
+            name: name,
+            variantName: product.variants.count >= 2 ? variant.title : nil,
+            imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) },
+            quantity: quantity,
+            product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
+            reminder: nil
+        )
+    }
+}
+
+/// 商品の商品バリアントごとに、お気に入りにする時の識別子を 1 つずつ作って、商品バリアントの ID ごとに返す。
+///
+/// 確認の画面を開いた時に 1 回だけ呼び、保存までその値を使う (保存の操作が 2 回動いても同じ識別子になり、二重に保存されない)。
+/// 識別子は、商品バリアントの並び順に `makeID` を 1 回ずつ呼んで得る。同じ ID の商品バリアントが並びに複数ある時は、最初のものの識別子を使う。
+func makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct, makeID: () -> UUID) -> [UInt64: UUID] {
+    Dictionary(product.variants.map { ($0.id, makeID()) }, uniquingKeysWith: { firstID, _ in firstID })
+}
+
+/// 確認の画面の、保存するボタンの文言を返す。
+///
+/// 商品バリアントが 2 つ以上ある商品で 1 つ以上選んでいる時は、選んだ数を入れる (例: `2 種類をお気に入りに追加`)。
+/// 商品バリアントが 1 つだけの商品と、1 つも選んでいない時は `お気に入りに追加`。
+func favoriteAdditionButtonTitle(variantCount: Int, selectedVariantCount: Int) -> String {
+    variantCount >= 2 && selectedVariantCount >= 1 ? "\(selectedVariantCount) 種類をお気に入りに追加" : "お気に入りに追加"
 }
 
 /// Shopify が商品の画像を配信する CDN のホスト。
@@ -186,7 +238,7 @@ func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
 }
 
 /// お気に入りの登録が、確認の画面に進まずに終わった理由。
-enum FavoriteDraftLoadError: Error, Equatable {
+enum FavoriteAdditionLoadError: Error, Equatable {
     /// 渡された文字列が、Shopify の店の商品ページの URL の形でない。
     case notProductPageURL
     /// 通信できなかった、または店が一時的に応答を制限している (HTTP 429)。待てば取得できる可能性がある。
@@ -195,47 +247,65 @@ enum FavoriteDraftLoadError: Error, Equatable {
     case notRegistrable
 }
 
-/// 渡された文字列 (前後の空白と改行は除く) から、確認の画面に出す登録前のお気に入りを作って返す。保存はしない。
+/// 同じ ID の商品バリアントが並びに複数ある商品を、ID ごとに最初の 1 つだけを店の並び順のまま残した商品にして返す。ほかの値は変えない。
 ///
-/// 文字列を `shopifyProductPage(text:)` で分解し、その店から商品の JSON を取得して `favoriteDraft(id:productPage:product:)` に渡す。
+/// 確認の画面は商品バリアントの ID で行・選択・個数を見分けるため、同じ ID が 2 行あると、選んだ行と違う名前で保存される。
+func productWithUniqueVariants(product: ShopifyAjaxProduct) -> ShopifyAjaxProduct {
+    ShopifyAjaxProduct(
+        title: product.title,
+        featuredImage: product.featuredImage,
+        variants: product.variants.reduce(into: []) { uniqueVariants, variant in
+            if !uniqueVariants.contains(where: { $0.id == variant.id }) {
+                uniqueVariants.append(variant)
+            }
+        }
+    )
+}
+
+/// 渡された文字列 (前後の空白と改行は除く) から、確認の画面に出す商品と、最初に選んである商品バリアントと個数を返す。保存はしない。
+///
+/// 返すのは、文字列を `shopifyProductPage(text:)` で分解した値、その店から取得した商品の JSON (`productWithUniqueVariants(product:)` を通したもの)、`initialVariantQuantities(productPage:product:)` の値。
 /// 通信するのは、分解できた時の `shopifyAjaxProductURL(productPage:)` の URL への GET の 1 回だけ。
-/// 失敗した時は `FavoriteDraftLoadError` を投げる (HTTP 200 以外・JSON として読めない応答は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
-func loadFavoriteDraft(text: String, id: UUID, urlSession: URLSession) async throws -> Favorite {
+/// 失敗した時は `FavoriteAdditionLoadError` を投げる (HTTP 200 以外・JSON として読めない応答・`initialVariantQuantities(productPage:product:)` が nil の商品は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
+func loadFavoriteAddition(
+    text: String,
+    urlSession: URLSession
+) async throws -> (productPage: ShopifyProductPage, product: ShopifyAjaxProduct, quantitiesByVariantID: [UInt64: Int]) {
     guard let productPage = shopifyProductPage(text: text.trimmingCharacters(in: .whitespacesAndNewlines)),
           let ajaxProductURL = shopifyAjaxProductURL(productPage: productPage)
     else {
-        throw FavoriteDraftLoadError.notProductPageURL
+        throw FavoriteAdditionLoadError.notProductPageURL
     }
     guard let (data, response) = try? await urlSession.data(from: ajaxProductURL) else {
-        throw FavoriteDraftLoadError.temporarilyUnavailable
+        throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode != 429 else {
-        throw FavoriteDraftLoadError.temporarilyUnavailable
+        throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode == 200,
-          let favorite = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data))
-          .flatMap({ favoriteDraft(id: id, productPage: productPage, product: $0) })
+          let product = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data)).map(productWithUniqueVariants(product:)),
+          let quantitiesByVariantID = initialVariantQuantities(productPage: productPage, product: product)
     else {
-        throw FavoriteDraftLoadError.notRegistrable
+        throw FavoriteAdditionLoadError.notRegistrable
     }
-    return favorite
+    return (productPage, product, quantitiesByVariantID)
 }
 
 /// 確認の画面で利用者が選んだ操作。
 enum FavoriteAdditionChoice {
-    /// 「お気に入りに入れる」を押した。
+    /// 「お気に入りに追加」を押した。
     case add
     /// 「やめる」を押した。
     case cancel
 }
 
-/// 確認の画面の操作を保存に反映する。`add` の時だけお気に入りを並びの末尾に足し、`cancel` の時は保存先に何も書かない。
+/// 確認の画面の操作を保存に反映する。`add` の時だけ、選んだ商品バリアントごとのお気に入りを並びの末尾に足し、`cancel` の時は保存先に何も書かない。
 ///
-/// 登録前のお気に入りを保存する経路はこの関数の `add` だけにする (確認の画面を通さずに保存しない。documents/adr/0003)。
-func finishFavoriteAddition(choice: FavoriteAdditionChoice, favorite: Favorite, fileURL: URL) throws {
+/// 確認の画面のお気に入りを保存する経路はこの関数の `add` だけにする (確認の画面を通さずに保存しない。documents/adr/0003)。
+func finishFavoriteAddition(choice: FavoriteAdditionChoice, favorites: [Favorite], fileURL: URL) throws {
     switch choice {
     case .add:
-        try addFavorite(favorite: favorite, fileURL: fileURL)
+        try addFavorites(favorites: favorites, fileURL: fileURL)
     case .cancel:
         break
     }

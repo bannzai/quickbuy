@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// お気に入りの追加の画面。商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面を経て、利用者が「お気に入りに入れる」を押した時だけ保存する。
+/// お気に入りの追加の画面。商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面で種類 (商品バリアント) と個数を選んでもらい、利用者が「お気に入りに追加」を押した時だけ保存する。
 ///
 /// アプリの中 (貼り付け) と共有メニューの拡張の両方がこの画面を使うため、どちらから渡した URL も同じ確認の画面を通る (documents/adr/0003)。
 struct AddFavoriteView: View {
@@ -8,6 +8,8 @@ struct AddFavoriteView: View {
     let initialText: String
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
+    /// 商品の情報を取得する通信。
+    let urlSession: URLSession
     /// この画面を閉じる処理。保存した後と、やめた時に呼ぶ。
     let onFinish: () -> Void
 
@@ -15,8 +17,14 @@ struct AddFavoriteView: View {
     @State private var text = ""
     /// 商品の情報を取得している間は true。
     @State private var isLoading = false
-    /// 確認の画面に出している登録前のお気に入り。まだ URL を受け取っていない間は nil。
-    @State private var favoriteDraft: Favorite?
+    /// 確認の画面に出している商品 (商品ページの URL から取り出した値と、店から取得した商品の JSON)。まだ URL を受け取っていない間は nil。
+    @State private var loadedProduct: (productPage: ShopifyProductPage, product: ShopifyAjaxProduct)?
+    /// 確認の画面の名前の欄の文字列。商品の情報を取得した時に商品の名前を入れる。
+    @State private var name = ""
+    /// 確認の画面で選んである商品バリアントの、商品バリアントの ID ごとの個数。選んでいない商品バリアントは入らない。
+    @State private var quantitiesByVariantID: [UInt64: Int] = [:]
+    /// 確認の画面の商品の商品バリアントをお気に入りにする時の識別子。商品の情報を取得した時に 1 回だけ作り、保存まで変えない。
+    @State private var favoriteIDsByVariantID: [UInt64: UUID] = [:]
     /// 入力欄の下に出す、登録できなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 保存に失敗したことを知らせる表示を出している間は true。
@@ -26,13 +34,13 @@ struct AddFavoriteView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let favoriteDraftBinding = Binding($favoriteDraft) {
-                    confirmationForm(favorite: favoriteDraftBinding)
+                if let loadedProduct {
+                    confirmationForm(productPage: loadedProduct.productPage, product: loadedProduct.product)
                 } else {
                     inputForm
                 }
             }
-            .navigationTitle("お気に入りに入れる")
+            .navigationTitle("お気に入りに追加")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -49,7 +57,7 @@ struct AddFavoriteView: View {
                 return
             }
             text = initialText
-            await loadDraft()
+            await loadAddition()
         }
     }
 
@@ -81,7 +89,7 @@ struct AddFavoriteView: View {
             Section {
                 Button {
                     Task {
-                        await loadDraft()
+                        await loadAddition()
                     }
                 } label: {
                     HStack {
@@ -97,15 +105,17 @@ struct AddFavoriteView: View {
         }
     }
 
-    /// 店のドメイン・名前・個数を確かめる画面。
-    private func confirmationForm(favorite: Binding<Favorite>) -> some View {
+    /// 店のドメインと名前を確かめ、種類 (商品バリアント) と個数を選ぶ画面。
+    ///
+    /// 商品バリアントが 2 つ以上ある商品では商品バリアントを並べ、選んだものにだけ個数の行を出す。1 つだけの商品では、選ぶ操作を挟まず個数の行だけを出す。
+    private func confirmationForm(productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> some View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("この店の商品です")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text(shopDomainText(favorite: favorite.wrappedValue))
+                    Text(productPage.shopDomain)
                         .font(.title2.bold())
                         .accessibilityIdentifier("shopDomain")
                     Text("いつも買っている店か確かめてください")
@@ -121,17 +131,48 @@ struct AddFavoriteView: View {
             }
             Section {
                 HStack(spacing: 12) {
-                    FavoriteThumbnail(imageURL: favorite.wrappedValue.imageURL)
-                    TextField("名前", text: favorite.name, axis: .vertical)
+                    FavoriteThumbnail(imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) })
+                    TextField("名前", text: $name, axis: .vertical)
                         .accessibilityIdentifier("favoriteNameField")
                 }
-                QuantityStepperRow(quantity: favorite.quantity)
+                if product.variants.count == 1, let variant = product.variants.first, let quantity = quantitiesByVariantID[variant.id] {
+                    QuantityStepperRow(quantity: quantityBinding(variantID: variant.id, quantity: quantity))
+                }
+            }
+            if product.variants.count >= 2 {
+                Section {
+                    ForEach(product.variants, id: \.id) { variant in
+                        Button {
+                            quantitiesByVariantID = toggledVariantQuantities(quantitiesByVariantID: quantitiesByVariantID, variantID: variant.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: quantitiesByVariantID[variant.id] == nil ? "square" : "checkmark.square.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(quantitiesByVariantID[variant.id] == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                                Text(variant.title)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(quantitiesByVariantID[variant.id] == nil ? [] : .isSelected)
+                        .accessibilityIdentifier("variantRow-\(variant.id)")
+                        if let quantity = quantitiesByVariantID[variant.id] {
+                            QuantityStepperRow(quantity: quantityBinding(variantID: variant.id, quantity: quantity))
+                        }
+                    }
+                } header: {
+                    Text("種類と個数を選ぶ")
+                } footer: {
+                    Text("選んだ種類ごとにお気に入りの行が 1 つできます")
+                }
             }
             Section {
                 Button {
                     finish(choice: .add)
                 } label: {
-                    Text("お気に入りに入れる")
+                    Text(favoriteAdditionButtonTitle(variantCount: product.variants.count, selectedVariantCount: quantitiesByVariantID.count))
                         .bold()
                         .frame(maxWidth: .infinity)
                 }
@@ -139,22 +180,32 @@ struct AddFavoriteView: View {
                 .controlSize(.large)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                .disabled(!isFavoriteNameSavable(name: favorite.wrappedValue.name))
+                .disabled(!isFavoriteAdditionSavable(name: name, selectedVariantCount: quantitiesByVariantID.count))
+                .accessibilityIdentifier("addFavoritesButton")
             } footer: {
-                Text("入れただけでは購入されません")
+                Text("追加しただけでは購入されません")
             }
         }
     }
 
-    /// 入力欄の文字列から登録前のお気に入りを作り、確認の画面に進む。作れなかった時は理由を入力欄の下に出す。
-    private func loadDraft() async {
+    /// 選んである商品バリアントの個数を、個数の行が読み書きするための値にして返す。`quantity` はその商品バリアントの今の個数。
+    private func quantityBinding(variantID: UInt64, quantity: Int) -> Binding<Int> {
+        Binding(get: { quantity }, set: { quantitiesByVariantID[variantID] = $0 })
+    }
+
+    /// 入力欄の文字列から商品の情報を取得し、確認の画面に進む。取得できなかった時は理由を入力欄の下に出す。
+    private func loadAddition() async {
         isLoading = true
         errorMessage = nil
         do {
-            favoriteDraft = try await loadFavoriteDraft(text: text, id: UUID(), urlSession: .shared)
+            let favoriteAddition = try await loadFavoriteAddition(text: text, urlSession: urlSession)
+            name = favoriteAddition.product.title
+            quantitiesByVariantID = favoriteAddition.quantitiesByVariantID
+            favoriteIDsByVariantID = makeFavoriteIDsByVariantID(product: favoriteAddition.product, makeID: { UUID() })
+            loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {
-            // `loadFavoriteDraft` が投げるのは `FavoriteDraftLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
-            errorMessage = favoriteDraftLoadErrorMessage(error: error as? FavoriteDraftLoadError ?? .notRegistrable)
+            // `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
+            errorMessage = favoriteAdditionLoadErrorMessage(error: error as? FavoriteAdditionLoadError ?? .notRegistrable)
         }
         isLoading = false
     }
@@ -162,8 +213,18 @@ struct AddFavoriteView: View {
     /// 利用者が選んだ操作を保存に反映して画面を閉じる。確認の画面に進む前の「やめる」は、保存するものが無いので閉じるだけ。
     private func finish(choice: FavoriteAdditionChoice) {
         do {
-            if let favoriteDraft {
-                try finishFavoriteAddition(choice: choice, favorite: favoriteDraft, fileURL: favoritesFileURL)
+            if let loadedProduct {
+                try finishFavoriteAddition(
+                    choice: choice,
+                    favorites: selectedVariantFavorites(
+                        productPage: loadedProduct.productPage,
+                        product: loadedProduct.product,
+                        name: name,
+                        quantitiesByVariantID: quantitiesByVariantID,
+                        favoriteIDsByVariantID: favoriteIDsByVariantID
+                    ),
+                    fileURL: favoritesFileURL
+                )
             }
             onFinish()
         } catch {
@@ -180,6 +241,11 @@ private let shopDomainBoxShape = RoundedRectangle(cornerRadius: 26, style: .cont
 /// お気に入りの名前として保存できるかを返す。空文字と、空白・改行だけの名前は保存できない (一覧で見分けられないため)。
 func isFavoriteNameSavable(name: String) -> Bool {
     !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+}
+
+/// 確認の画面の保存するボタンを押せるかを返す。名前が保存できて (`isFavoriteNameSavable(name:)`)、商品バリアントを 1 つ以上選んでいる時だけ押せる。
+func isFavoriteAdditionSavable(name: String, selectedVariantCount: Int) -> Bool {
+    isFavoriteNameSavable(name: name) && selectedVariantCount >= 1
 }
 
 /// 個数を 1 つ減らした値を返す。1 より小さくはならない (`Favorite.quantity` は 1 以上)。
@@ -209,7 +275,7 @@ func sharedText(itemProviders: [NSItemProvider]) async -> String? {
 }
 
 /// 登録できなかった理由を、入力欄の下に出す文言にして返す。
-func favoriteDraftLoadErrorMessage(error: FavoriteDraftLoadError) -> String {
+func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError) -> String {
     switch error {
     case .notProductPageURL:
         "この URL は登録できません\nShopify の店の商品ページの URL を入れてください"

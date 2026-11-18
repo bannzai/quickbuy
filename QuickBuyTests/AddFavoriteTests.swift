@@ -70,11 +70,8 @@ final class StubURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-/// 商品ページの URL から登録前のお気に入りを作る流れと、確認の画面の「お気に入りに入れる」「やめる」が保存に与える結果を確かめる。
+/// 商品ページの URL から確認の画面に出す商品を取得する流れと、確認の画面の「お気に入りに追加」「やめる」が保存に与える結果を確かめる。
 struct AddFavoriteTests {
-    /// 登録前のお気に入りの確認に使う識別子。
-    private let draftID = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
-
     /// テストごとに別の店のドメインを返す (テストどうしが同じ URL の応答を取り合わないため)。
     private func uniqueShopDomain() -> String {
         "shop-\(UUID().uuidString.lowercased()).example"
@@ -90,32 +87,60 @@ struct AddFavoriteTests {
         FileManager.default.temporaryDirectory.appending(path: "favorites-\(UUID().uuidString).json")
     }
 
-    // MARK: - 登録前のお気に入りの取得
+    // MARK: - 確認の画面に出す商品の取得
 
-    /// 前後に空白と改行が付いた商品ページの URL から、その店の `/products/{商品のハンドル}.js` だけを取得して、登録前のお気に入りを作る。
-    @Test func 商品ページのURLから登録前のお気に入りを作る() async throws {
+    /// 前後に空白と改行が付いた商品ページの URL から、その店の `/products/{商品のハンドル}.js` だけを取得して、確認の画面に出す商品を返す。
+    /// 商品バリアントが 1 つの商品は、その 1 つを個数 1 で選んだ状態から始まる。
+    @Test func 商品ページのURLから確認の画面に出す商品を取得する() async throws {
         let shopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(statusCode: 200, body: productJSON) }
-        #expect(
-            try await loadFavoriteDraft(text: "  https://\(shopDomain)/products/coffee-beans?variant=70881412\n", id: draftID, urlSession: StubURLProtocol.urlSession())
-                == Favorite(
-                    id: draftID,
-                    name: "コーヒー豆 200g",
-                    imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
-                    quantity: 1,
-                    product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: "70881412")),
-                    reminder: nil
-                )
+        let favoriteAddition = try await loadFavoriteAddition(
+            text: "  https://\(shopDomain)/products/coffee-beans?variant=70881412\n",
+            urlSession: StubURLProtocol.urlSession()
         )
+        #expect(
+            favoriteAddition.productPage
+                == ShopifyProductPage(shopDomain: shopDomain, localePathComponent: nil, percentEncodedProductHandle: "coffee-beans", variantID: "70881412")
+        )
+        #expect(
+            favoriteAddition.product == ShopifyAjaxProduct(
+                title: "コーヒー豆 200g",
+                featuredImage: "//cdn.shopify.com/beans.png",
+                variants: [.init(id: 70_881_412, title: "Default Title", available: true)]
+            )
+        )
+        #expect(favoriteAddition.quantitiesByVariantID == [70_881_412: 1])
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == ["https://\(shopDomain)/products/coffee-beans.js"])
+    }
+
+    /// 商品バリアントが複数ある商品の商品ページの URL (`?variant=` なし) からは、商品バリアントが店の並び順のまま全部返り、どれも選んでいない状態から始まる。
+    @Test func 商品バリアントが複数ある商品は全部の商品バリアントを未選択で返す() async throws {
+        let shopDomain = uniqueShopDomain()
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(
+                statusCode: 200,
+                body: Data(
+                    #"{"title":"コーヒー豆","featured_image":null,"variants":[{"id":101,"title":"200g / 豆のまま","available":true},{"id":102,"title":"500g / 中挽き","available":false}]}"#
+                        .utf8
+                )
+            )
+        }
+        let favoriteAddition = try await loadFavoriteAddition(text: "https://\(shopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
+        #expect(
+            favoriteAddition.product.variants == [
+                .init(id: 101, title: "200g / 豆のまま", available: true),
+                .init(id: 102, title: "500g / 中挽き", available: false),
+            ]
+        )
+        #expect(favoriteAddition.quantitiesByVariantID == [:])
     }
 
     /// 商品ページの URL の形でない入力 (Amazon の商品ページ・`http`・カートの URL) は、通信せずに「URL の形でない」で終わる。
     @Test(arguments: ["/dp/B00EXAMPLE", "/cart/70881412:1", "/"])
     func 商品ページのURLでない入力は通信せずに断る(path: String) async {
         let shopDomain = uniqueShopDomain()
-        await #expect(throws: FavoriteDraftLoadError.notProductPageURL) {
-            try await loadFavoriteDraft(text: "https://\(shopDomain)\(path)", id: draftID, urlSession: StubURLProtocol.urlSession())
+        await #expect(throws: FavoriteAdditionLoadError.notProductPageURL) {
+            try await loadFavoriteAddition(text: "https://\(shopDomain)\(path)", urlSession: StubURLProtocol.urlSession())
         }
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == [])
     }
@@ -123,8 +148,8 @@ struct AddFavoriteTests {
     /// `http` の商品ページの URL は、通信せずに「URL の形でない」で終わる。
     @Test func httpのURLは通信せずに断る() async {
         let shopDomain = uniqueShopDomain()
-        await #expect(throws: FavoriteDraftLoadError.notProductPageURL) {
-            try await loadFavoriteDraft(text: "http://\(shopDomain)/products/coffee-beans", id: draftID, urlSession: StubURLProtocol.urlSession())
+        await #expect(throws: FavoriteAdditionLoadError.notProductPageURL) {
+            try await loadFavoriteAddition(text: "http://\(shopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == [])
     }
@@ -139,8 +164,8 @@ struct AddFavoriteTests {
     func 商品の情報を取得できない時は登録できないで終わる(statusCode: Int, body: String, pathAndQuery: String) async {
         let shopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(statusCode: statusCode, body: Data(body.utf8)) }
-        await #expect(throws: FavoriteDraftLoadError.notRegistrable) {
-            try await loadFavoriteDraft(text: "https://\(shopDomain)\(pathAndQuery)", id: draftID, urlSession: StubURLProtocol.urlSession())
+        await #expect(throws: FavoriteAdditionLoadError.notRegistrable) {
+            try await loadFavoriteAddition(text: "https://\(shopDomain)\(pathAndQuery)", urlSession: StubURLProtocol.urlSession())
         }
     }
 
@@ -148,32 +173,44 @@ struct AddFavoriteTests {
     @Test func 応答の制限と通信の失敗は一時的に取得できないで終わる() async {
         let rateLimitedShopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(rateLimitedShopDomain)/products/coffee-beans.js"] = .http(statusCode: 429, body: productJSON) }
-        await #expect(throws: FavoriteDraftLoadError.temporarilyUnavailable) {
-            try await loadFavoriteDraft(text: "https://\(rateLimitedShopDomain)/products/coffee-beans", id: draftID, urlSession: StubURLProtocol.urlSession())
+        await #expect(throws: FavoriteAdditionLoadError.temporarilyUnavailable) {
+            try await loadFavoriteAddition(text: "https://\(rateLimitedShopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
         let unreachableShopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(unreachableShopDomain)/products/coffee-beans.js"] = .connectionFailure }
-        await #expect(throws: FavoriteDraftLoadError.temporarilyUnavailable) {
-            try await loadFavoriteDraft(text: "https://\(unreachableShopDomain)/products/coffee-beans", id: draftID, urlSession: StubURLProtocol.urlSession())
+        await #expect(throws: FavoriteAdditionLoadError.temporarilyUnavailable) {
+            try await loadFavoriteAddition(text: "https://\(unreachableShopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
     }
 
     // MARK: - 確認の画面の操作
 
-    /// 名前と個数を確認の画面で変えた後の、登録前のお気に入り。
-    private var confirmedFavorite: Favorite {
-        Favorite(
-            id: draftID,
-            name: "いつもの豆",
-            imageURL: nil,
-            quantity: 3,
-            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
-            reminder: nil
-        )
+    /// 確認の画面で 2 つの商品バリアント (「200g / 豆のまま」を 3 個・「500g / 中挽き」を 1 個) を選んだ時の、保存するお気に入り。
+    private var confirmedFavorites: [Favorite] {
+        [
+            Favorite(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
+                name: "いつもの豆",
+                variantName: "200g / 豆のまま",
+                imageURL: nil,
+                quantity: 3,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                reminder: nil
+            ),
+            Favorite(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000000D")!,
+                name: "いつもの豆",
+                variantName: "500g / 中挽き",
+                imageURL: nil,
+                quantity: 1,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")),
+                reminder: nil
+            ),
+        ]
     }
 
-    /// 「お気に入りに入れる」を押すと、保存済みの並びの末尾に、確認の画面の値のまま足される。
-    @Test func お気に入りに入れるを押すと末尾に保存される() throws {
+    /// 「お気に入りに追加」を押すと、保存済みの並びの末尾に、選んだ商品バリアントごとのお気に入りが、選んだ個数と商品バリアントの名前のまま足される。
+    @Test func お気に入りに追加を押すと選んだ商品バリアントごとに末尾に保存される() throws {
         let fileURL = temporaryFavoritesFileURL()
         let existingFavorite = Favorite(
             id: UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!,
@@ -184,19 +221,131 @@ struct AddFavoriteTests {
             reminder: nil
         )
         try saveFavorites(favorites: [existingFavorite], fileURL: fileURL)
-        try finishFavoriteAddition(choice: .add, favorite: confirmedFavorite, fileURL: fileURL)
-        #expect(try loadFavorites(fileURL: fileURL) == [existingFavorite, confirmedFavorite])
+        try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [existingFavorite] + confirmedFavorites)
     }
 
-    /// 「やめる」を押すと、保存先のファイルは作られず、お気に入りは 0 件のまま。
+    /// 「やめる」を押すと、商品バリアントを選んだ後でも、保存先のファイルは作られず、お気に入りは 0 件のまま。
     @Test func やめるを押すと保存されない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        try finishFavoriteAddition(choice: .cancel, favorite: confirmedFavorite, fileURL: fileURL)
+        try finishFavoriteAddition(choice: .cancel, favorites: confirmedFavorites, fileURL: fileURL)
         #expect(!FileManager.default.fileExists(atPath: fileURL.path()))
         #expect(try loadFavorites(fileURL: fileURL) == [])
     }
 
+    /// 1 つも選んでいないお気に入りの追加は、保存先のファイルを作らない。
+    @Test func 選んだものが無い追加は保存先に書かない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try finishFavoriteAddition(choice: .add, favorites: [], fileURL: fileURL)
+        #expect(!FileManager.default.fileExists(atPath: fileURL.path()))
+    }
+
+    /// 選んだうちの 1 件でも個数が 1 未満なら、ほかの 1 件も保存されず、保存済みの並びが残る。
+    @Test func 個数が1未満のものが混ざる追加は1件も保存しない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try addFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        var zeroQuantityFavorite = confirmedFavorites[1]
+        zeroQuantityFavorite.quantity = 0
+        #expect(throws: FavoriteStoreError.quantityLessThanOne) {
+            try finishFavoriteAddition(
+                choice: .add,
+                favorites: [
+                    Favorite(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-00000000000E")!,
+                        name: "いつもの豆",
+                        variantName: "1kg / 豆のまま",
+                        imageURL: nil,
+                        quantity: 1,
+                        product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881414")),
+                        reminder: nil
+                    ),
+                    zeroQuantityFavorite,
+                ],
+                fileURL: fileURL
+            )
+        }
+        #expect(try loadFavorites(fileURL: fileURL) == [confirmedFavorites[0]])
+    }
+
+    /// 同じ追加をもう一度呼んでも、同じ識別子のお気に入りは増えない。
+    @Test func 同じ追加を繰り返しても増えない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
+        try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
+    }
+
+    /// 選んだうちの 1 件が保存済みの時は、保存済みの 1 件 (名前と個数を後から変えたもの) を変えず、まだ無い 1 件だけを末尾に足す。
+    @Test func 一部が保存済みの追加は無いものだけを足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try addFavorites(favorites: [confirmedFavorites[1]], fileURL: fileURL)
+        try updateFavorite(id: confirmedFavorites[1].id, name: "名前を変えた豆", quantity: 5, fileURL: fileURL)
+        try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL).map(\.id) == [confirmedFavorites[1].id, confirmedFavorites[0].id])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["名前を変えた豆", "いつもの豆"])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.quantity) == [5, 3])
+    }
+
+    /// 渡した並びの中に同じ識別子のお気に入りが 2 つある時 (店の商品の情報に同じ商品バリアントが 2 回並んでいた時) は、最初の 1 件だけを保存する。
+    @Test func 同じ識別子が並びに複数ある追加は最初の1件だけを足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var laterDuplicate = confirmedFavorites[0]
+        laterDuplicate.quantity = 9
+        try finishFavoriteAddition(choice: .add, favorites: [confirmedFavorites[0], confirmedFavorites[1], laterDuplicate], fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
+    }
+
+    /// 個数が 1 未満のものが、保存済みと同じ識別子のもの・並びの中で 2 回目に出てくるものであっても、追加はエラーになり、新しい 1 件も保存されない。
+    @Test func 個数が1未満のものは重複として除かれる時でも追加を止める() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try addFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        var zeroQuantitySavedFavorite = confirmedFavorites[0]
+        zeroQuantitySavedFavorite.quantity = 0
+        #expect(throws: FavoriteStoreError.quantityLessThanOne) {
+            try finishFavoriteAddition(choice: .add, favorites: [zeroQuantitySavedFavorite, confirmedFavorites[1]], fileURL: fileURL)
+        }
+        var zeroQuantityLaterDuplicate = confirmedFavorites[1]
+        zeroQuantityLaterDuplicate.quantity = 0
+        #expect(throws: FavoriteStoreError.quantityLessThanOne) {
+            try finishFavoriteAddition(choice: .add, favorites: [confirmedFavorites[1], zeroQuantityLaterDuplicate], fileURL: fileURL)
+        }
+        #expect(try loadFavorites(fileURL: fileURL) == [confirmedFavorites[0]])
+    }
+
+    /// 店の商品の情報に同じ ID の商品バリアントが 2 回並んでいる時は、ID ごとに最初の 1 つだけを店の並び順のまま返す。
+    @Test func 同じIDの商品バリアントが並ぶ商品は最初の1つだけを返す() async throws {
+        let shopDomain = uniqueShopDomain()
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(
+                statusCode: 200,
+                body: Data(
+                    #"{"title":"コーヒー豆","featured_image":null,"variants":[{"id":101,"title":"小","available":true},{"id":102,"title":"中","available":true},{"id":101,"title":"大","available":true}]}"#
+                        .utf8
+                )
+            )
+        }
+        #expect(
+            try await loadFavoriteAddition(text: "https://\(shopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession()).product.variants == [
+                .init(id: 101, title: "小", available: true),
+                .init(id: 102, title: "中", available: true),
+            ]
+        )
+    }
+
     // MARK: - 名前と個数の入力
+
+    /// 保存するボタンは、名前に字があり、商品バリアントを 1 つ以上選んでいる時だけ押せる。どちらかが欠けると押せない。
+    @Test(arguments: [
+        ("豆", 1, true),
+        ("豆", 3, true),
+        ("豆", 0, false),
+        ("", 1, false),
+        (" ", 2, false),
+        ("", 0, false),
+    ])
+    func 名前があり1つ以上選んでいる時だけ保存できる(name: String, selectedVariantCount: Int, expectedSavable: Bool) {
+        #expect(isFavoriteAdditionSavable(name: name, selectedVariantCount: selectedVariantCount) == expectedSavable)
+    }
 
     /// 1 文字でも字があれば保存でき、空文字・空白だけ・改行だけの名前は保存できない。
     @Test(arguments: [
@@ -335,8 +484,8 @@ struct AddFavoriteTests {
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
-        #expect(favoriteDraftLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))
-        #expect(favoriteDraftLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
-        #expect(favoriteDraftLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
     }
 }
