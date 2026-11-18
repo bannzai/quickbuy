@@ -173,27 +173,37 @@ func toggledVariantQuantities(quantitiesByVariantID: [UInt64: Int], variantID: U
 /// 名前はどれも `name` (確認の画面で利用者が確かめた商品の名前)、個数は `quantitiesByVariantID` の値にする。
 /// 商品バリアントの名前は、商品バリアントが 2 つ以上ある商品でだけ入れる (1 つだけの商品では、Shopify が付けた `Default Title` を見分けに使わないため nil)。
 /// 画像の URL は、`https` で、ホストが店のドメインか Shopify の CDN のものだけを入れる (`shopifyProductImageURL(text:shopDomain:)`)。
-/// 識別子は、お気に入りを 1 件作るたびに `makeID` を 1 回呼んで得る。
+/// 識別子は `favoriteIDsByVariantID` の、その商品バリアントの値にする。同じ引数で何度呼んでも同じ識別子のお気に入りを返すので、同じ追加が 2 回保存に渡っても増えない。
+/// `favoriteIDsByVariantID` に無い商品バリアントのお気に入りは作らない。
 func selectedVariantFavorites(
     productPage: ShopifyProductPage,
     product: ShopifyAjaxProduct,
     name: String,
     quantitiesByVariantID: [UInt64: Int],
-    makeID: () -> UUID
+    favoriteIDsByVariantID: [UInt64: UUID]
 ) -> [Favorite] {
     product.variants.compactMap { variant in
-        quantitiesByVariantID[variant.id].map { quantity in
-            Favorite(
-                id: makeID(),
-                name: name,
-                variantName: product.variants.count >= 2 ? variant.title : nil,
-                imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) },
-                quantity: quantity,
-                product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
-                reminder: nil
-            )
+        guard let quantity = quantitiesByVariantID[variant.id], let favoriteID = favoriteIDsByVariantID[variant.id] else {
+            return nil
         }
+        return Favorite(
+            id: favoriteID,
+            name: name,
+            variantName: product.variants.count >= 2 ? variant.title : nil,
+            imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) },
+            quantity: quantity,
+            product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
+            reminder: nil
+        )
     }
+}
+
+/// 商品の商品バリアントごとに、お気に入りにする時の識別子を 1 つずつ作って、商品バリアントの ID ごとに返す。
+///
+/// 確認の画面を開いた時に 1 回だけ呼び、保存までその値を使う (保存の操作が 2 回動いても同じ識別子になり、二重に保存されない)。
+/// 識別子は、商品バリアントの並び順に `makeID` を 1 回ずつ呼んで得る。同じ ID の商品バリアントが並びに複数ある時は、最初のものの識別子を使う。
+func makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct, makeID: () -> UUID) -> [UInt64: UUID] {
+    Dictionary(product.variants.map { ($0.id, makeID()) }, uniquingKeysWith: { firstID, _ in firstID })
 }
 
 /// 確認の画面の、保存するボタンの文言を返す。

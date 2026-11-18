@@ -141,6 +141,8 @@ struct ShopifyProductPageTests {
     private let firstID = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
     /// 作るお気に入りの確認に使う 2 つ目の識別子。
     private let secondID = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
+    /// 作るお気に入りの確認に使う 3 つ目の識別子。
+    private let thirdID = UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!
 
     /// 店のドメインが `mori-coffee.example` の商品ページ (商品バリアントの ID は引数のとおり) を返す。
     private func productPage(variantID: String?) -> ShopifyProductPage {
@@ -217,15 +219,13 @@ struct ShopifyProductPageTests {
     /// 3 つのうち「500g」を 1 個・「100g」を 2 個選ぶと、商品の並び順 (100g・500g) で 2 件でき、それぞれが選んだ個数・商品バリアントの名前・商品バリアントの ID を持つ。
     /// 名前はどちらも確認の画面の名前、選んでいない「200g」のお気に入りはできない。
     @Test func 選んだ商品バリアントごとに1件ずつお気に入りを作る() {
-        // 識別子を作る処理が呼ばれるたびに、先頭から 1 つずつ渡す。
-        let remainingIDs = OSAllocatedUnfairLock(initialState: [firstID, secondID])
         #expect(
             selectedVariantFavorites(
                 productPage: productPage(variantID: nil),
                 product: productWithThreeVariants(featuredImage: "//cdn.shopify.com/beans.png"),
                 name: "いつもの豆",
                 quantitiesByVariantID: [103: 1, 101: 2],
-                makeID: { remainingIDs.withLock { $0.removeFirst() } }
+                favoriteIDsByVariantID: [101: firstID, 102: thirdID, 103: secondID]
             ) == [
                 Favorite(
                     id: firstID,
@@ -249,6 +249,40 @@ struct ShopifyProductPageTests {
         )
     }
 
+    /// 識別子が決まっていない商品バリアントは、選んでいてもお気に入りを作らない。
+    @Test func 識別子の無い商品バリアントのお気に入りは作らない() {
+        #expect(
+            selectedVariantFavorites(
+                productPage: productPage(variantID: nil),
+                product: productWithThreeVariants(featuredImage: nil),
+                name: "いつもの豆",
+                quantitiesByVariantID: [101: 1, 103: 1],
+                favoriteIDsByVariantID: [103: secondID]
+            ).map(\.id) == [secondID]
+        )
+    }
+
+    /// 商品バリアントごとの識別子は、並び順に 1 つずつ作られる。同じ ID の商品バリアントが 2 回並ぶ商品では、最初に作った識別子を使う。
+    @Test func 商品バリアントごとに識別子を1つずつ作る() {
+        // 識別子を作る処理が呼ばれるたびに、先頭から 1 つずつ渡す。
+        let remainingIDs = OSAllocatedUnfairLock(initialState: [firstID, secondID, thirdID])
+        #expect(
+            makeFavoriteIDsByVariantID(
+                product: ShopifyAjaxProduct(
+                    title: "コーヒー豆",
+                    featuredImage: nil,
+                    variants: [
+                        .init(id: 101, title: "100g", available: true),
+                        .init(id: 102, title: "200g", available: true),
+                        .init(id: 101, title: "100g", available: true),
+                    ]
+                ),
+                makeID: { remainingIDs.withLock { $0.removeFirst() } }
+            ) == [101: firstID, 102: secondID]
+        )
+        #expect(makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct(title: "コーヒー豆", featuredImage: nil, variants: []), makeID: { firstID }) == [:])
+    }
+
     /// 1 つも選んでいない時は、お気に入りを 1 件も作らない。
     @Test func 選んでいない時はお気に入りを作らない() {
         #expect(
@@ -257,7 +291,7 @@ struct ShopifyProductPageTests {
                 product: productWithThreeVariants(featuredImage: nil),
                 name: "いつもの豆",
                 quantitiesByVariantID: [:],
-                makeID: { firstID }
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
             ) == []
         )
     }
@@ -270,7 +304,7 @@ struct ShopifyProductPageTests {
                 product: productWithOneVariant(),
                 name: "せっけん",
                 quantitiesByVariantID: [201: 3],
-                makeID: { firstID }
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
             ) == [
                 Favorite(
                     id: firstID,
@@ -316,7 +350,7 @@ struct ShopifyProductPageTests {
                 product: productWithThreeVariants(featuredImage: featuredImage),
                 name: "コーヒー豆",
                 quantitiesByVariantID: [102: 1],
-                makeID: { firstID }
+                favoriteIDsByVariantID: [101: firstID, 102: firstID, 103: firstID, 201: firstID]
             ).map { $0.imageURL?.absoluteString } == [expectedImageURLText]
         )
     }

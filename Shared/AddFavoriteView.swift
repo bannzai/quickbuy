@@ -23,6 +23,8 @@ struct AddFavoriteView: View {
     @State private var name = ""
     /// 確認の画面で選んである商品バリアントの、商品バリアントの ID ごとの個数。選んでいない商品バリアントは入らない。
     @State private var quantitiesByVariantID: [UInt64: Int] = [:]
+    /// 確認の画面の商品の商品バリアントをお気に入りにする時の識別子。商品の情報を取得した時に 1 回だけ作り、保存まで変えない。
+    @State private var favoriteIDsByVariantID: [UInt64: UUID] = [:]
     /// 入力欄の下に出す、登録できなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 保存に失敗したことを知らせる表示を出している間は true。
@@ -199,6 +201,7 @@ struct AddFavoriteView: View {
             let favoriteAddition = try await loadFavoriteAddition(text: text, urlSession: urlSession)
             name = favoriteAddition.product.title
             quantitiesByVariantID = favoriteAddition.quantitiesByVariantID
+            favoriteIDsByVariantID = makeFavoriteIDsByVariantID(product: favoriteAddition.product, makeID: { UUID() })
             loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {
             // `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
@@ -218,7 +221,7 @@ struct AddFavoriteView: View {
                         product: loadedProduct.product,
                         name: name,
                         quantitiesByVariantID: quantitiesByVariantID,
-                        makeID: { UUID() }
+                        favoriteIDsByVariantID: favoriteIDsByVariantID
                     ),
                     fileURL: favoritesFileURL
                 )
