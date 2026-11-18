@@ -76,7 +76,7 @@ struct FavoritesListTests {
     }
 
     /// 同じ商品の商品バリアント違いの 2 行と別の商品の 1 行で、「カートイン」を押した行のお気に入りを確認が指す。
-    /// 先頭・途中・末尾のどの行でも同じで、別の行を押した時はその行のお気に入りに替わる。
+    /// 先頭・途中・末尾のどの行でも、確認が持つ識別子の行のお気に入りを指す (別の行を押すと確認が持つ識別子がその行のものに替わるので、その行を指す)。
     @Test(arguments: [0, 1, 2])
     func 確認はカートインを押した行のお気に入りを指す(pressedIndex: Int) {
         let favorites = [
@@ -207,17 +207,19 @@ struct FavoritesListTests {
 
         // 数え始めてから 10 日後 (10 × 86400 秒)。
         let openedAt = countedFrom.addingTimeInterval(864_000)
-        let confirmingFavoriteID = try #require(
-            cartInConfirmationFavorite(
-                confirmation: (favoriteID: pressedFavorite.id, shownAt: openedAt),
-                favorites: try loadFavorites(fileURL: fileURL),
-                now: openedAt
-            )
-        ).id
-
         try updateFavorite(id: pressedFavorite.id, name: pressedFavorite.name, quantity: 3, fileURL: fileURL)
         #expect(
-            try purchaseURLForOpening(favoriteID: confirmingFavoriteID, now: openedAt, fileURL: fileURL)?.absoluteString
+            try purchaseURLForOpening(
+                favoriteID: try #require(
+                    cartInConfirmationFavorite(
+                        confirmation: (favoriteID: pressedFavorite.id, shownAt: openedAt),
+                        favorites: try loadFavorites(fileURL: fileURL),
+                        now: openedAt
+                    )
+                ).id,
+                now: openedAt,
+                fileURL: fileURL
+            )?.absoluteString
                 == "https://mori-coffee.example/cart/70881413:3"
         )
         #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [
