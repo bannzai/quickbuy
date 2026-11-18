@@ -15,6 +15,9 @@ struct EditFavoriteView: View {
     @State private var isSaveFailed = false
     /// 端末の設定で Quick Buy の通知が拒否されている時は true。
     @State private var isNotificationDenied = false
+    /// この画面でリマインドのオン・オフか日数を操作した時は true。操作していない保存では、保存先のリマインドを書き換えない
+    /// (画面を開いている間に保存先のリマインドが数え直されていても、名前だけの保存で数え直さず、通知も予約し直さないため)。
+    @State private var isReminderEdited = false
 
     /// 店のドメイン・名前と個数の入力・リマインドの設定・お気に入りから外すボタン。
     var body: some View {
@@ -68,7 +71,9 @@ struct EditFavoriteView: View {
                     Button("保存") {
                         finish {
                             try updateFavorite(id: favorite.id, name: favorite.name, quantity: favorite.quantity, fileURL: favoritesFileURL)
-                            try setFavoriteReminder(id: favorite.id, reminder: favorite.reminder, now: .now, fileURL: favoritesFileURL)
+                            if isReminderEdited {
+                                try setFavoriteReminder(id: favorite.id, reminder: favorite.reminder, now: .now, fileURL: favoritesFileURL)
+                            }
                         }
                     }
                     .disabled(!isFavoriteNameSavable(name: favorite.name))
@@ -96,6 +101,7 @@ struct EditFavoriteView: View {
         } set: { isOn in
             // 既定の 30 日は、画面の見本 (documents/design/mock-2026-11-17/ の「お気に入りの編集とリマインド」) の値。
             favorite.reminder = isOn ? Reminder(intervalDays: 30, countedFrom: .now) : nil
+            isReminderEdited = true
             if isOn {
                 Task {
                     _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
@@ -111,6 +117,7 @@ struct EditFavoriteView: View {
             reminder.intervalDays
         } set: { intervalDays in
             favorite.reminder = Reminder(intervalDays: intervalDays, countedFrom: .now)
+            isReminderEdited = true
         }
     }
 
