@@ -30,9 +30,9 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 最初の版 (iOS。検索 → お気に入り → カートイン (アプリとウィジェット) → 購入画面):
 
 - [x] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
-- [ ] トップページ: 通常の EC のように、検索窓と画像つきの商品を並べる。検索した商品から「お気に入り追加」に進む (何を並べるかと、Shopify・Amazon の商品を検索する API は実装の issue で決める。API キーの発行は bannzai が行う)
-- [ ] お気に入りの追加: 種類 (商品バリアント) と個数を選ぶ。種類ごとにお気に入りの行を 1 つ作る。商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡すこともできる。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)。このうち、商品ページの URL の貼り付けと共有メニューからの登録 (個数を選ぶ・店のドメインを確かめる) は実装済み (https://github.com/bannzai/quickbuy/issues/11 )。検索からの追加・種類を選ぶ画面・店が配る追加リンクは未実装
-- [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon は最初の版に入れる (アソシエイトのアカウントは bannzai が持っている。アプリにリンクを置くための承認の条件は `documents/research/2026-11-17/monetization.md`)。Amazon で「カートイン」の後に何を開くか (カートに入れる URL か商品ページか) と、Amazon の商品を検索して並べる画面が承認の条件「Amazon のショッピングアプリの機能を模倣しない」に当たらないかは決まっておらず、実装の issue で規約の調査と突き合わせて決める。一覧の「カートイン」を押すと「購入画面を開きますか？」のトーストを出し、利用者が開く操作をした時に購入画面を開く。今の一覧は、2026-11-18 の判断より前の形 (「買う」を押すと確認を挟まずに Shopify の店の購入画面を開く。https://github.com/bannzai/quickbuy/issues/12 ) で実装してあり、「カートイン」と確認には未対応
+- [ ] トップページ: 通常の EC のように、検索窓と画像つきの商品を並べる。検索した商品から「お気に入り追加」に進む。検索するのは Shopify の店の商品で、Shopify の Catalog (店をまたぐ検索は Global Catalog `https://catalog.shopify.com/api/ucp/mcp` の `search_catalog`。選んだ商品の種類は、店ごとの入口 `https://{店のドメイン}/api/ucp/mcp` の `get_product` を、種類を選ぶたびに呼び直して取る) を、鍵なしでアプリから直接呼ぶ。最初の版では API キーの発行は要らない。Shopify は Global Catalog の鍵なしの呼び出しを本番に使わないよう書いており (「Don't use unauthenticated requests for production traffic」)、鍵なしでは上限を上げられない。鍵ありにするには鍵を置く自分のサーバーが要るため、サーバーを持たない最初の版は鍵なしにする。実測は Shopify の見本のプロフィールで行い、自分で置いたプロフィールで通るかは未確認。Amazon の商品は、最初の版では検索にもトップページにも出さない (Amazon の検索の API の Creators API は、Amazon が承認したモバイルアプリと、鍵を置く自分のサーバーが要り、公開の前には満たせない)。検索の前に並べる物の候補は、買い直す物の検索語・選んだ店の商品・決まった検索語の結果・利用者が前に検索した語で、人気の順を返す API は Shopify の Catalog の文書に見つからなかった。どれを並べるかはトップページの実装の issue で決める (出典・実測・未確認の点: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`)
+- [ ] お気に入りの追加: 種類 (商品バリアント) と個数を選ぶ。種類ごとにお気に入りの行を 1 つ作る。商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡すこともできる。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)
+- [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon は最初の版に入れる (アソシエイトのアカウントは bannzai が持っている。アプリにリンクを置くための承認の条件は `documents/research/2026-11-17/monetization.md`)。Amazon で「カートイン」の確認の後に開くのは商品ページ `https://www.amazon.co.jp/dp/{ASIN}` で、アプリの中の WebView を使わず、アプリの外 (Safari か Amazon のアプリ) で開く。開いた時に商品はカートに入っておらず、利用者が Amazon の画面でカートに入れる。最初の版では、カートに入れる URL (`/gp/aws/cart/add.html`) を使わない (現行の公式文書に無く、アソシエイトの ID を付けないと空のカートへ送られる)。アソシエイトの ID は、Amazon がアプリを承認するまで付けない (承認の申請にはストアの URL が要り、申請は公開の後になる)。Amazon の商品は、商品ページの URL を貼り付けるか共有メニューから渡して登録する。Amazon の商品を検索して画像つきで並べる画面は、承認の条件「Amazonのショッピングアプリの機能をエミュレート、偽装またはその機能と競合しないこと」に当たる読みが強く、検索の API も公開の前には使えないため、最初の版に入れない。承認の前のアプリに Amazon へのリンクを置いてよいかは Amazon に確かめておらず、bannzai が公開の前に問い合わせる (出典・未確認の点・問い合わせる内容: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`)。一覧の「カートイン」を押すと「購入画面を開きますか？」のトーストを出し、利用者が開く操作をした時に購入画面を開く
 - [ ] ホーム画面のウィジェット: お気に入りを種類ごとの行で並べ、行の「カートイン」を押すと「購入画面を開きますか？」の通知を出す。通知をタップすると購入画面を開く
 - [ ] 通知の許可: 最初のお気に入りを追加した後に、なぜ通知が要るのか (ウィジェットからの確認・買う頃の知らせ) を説明してから許可を求める (出す時機は agent の案)
 - [ ] リマインド: お気に入りごとに「何日ごとに知らせるか」を設定し、端末の通知で知らせる。通知をタップすると、その商品の購入画面が開く。日数は購入画面を開いた時刻から数え直す (数え方と通知をタップした時の動きは agent の案)
@@ -48,6 +48,7 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 - [ ] 店向けの無料 Shopify アプリ (「Quick Buy に入れる」ボタン・追加リンク・QR)
 - [ ] Android 版 (Kotlin・Glance)
 - [ ] 楽天の商品 (アフィリエイトのリンクで商品ページを開くところまで)
+- [ ] Amazon の商品の検索 (Creators API) と、Amazon のリンクに付けるアソシエイトの ID。Amazon によるアプリの承認の後。検索には、過去 30 日に 10 件の適格販売と、鍵を置く自分のサーバーも要る (`documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`)
 
 ## デザインの方向
 
@@ -80,6 +81,8 @@ bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#iss
 | 2026-11-18 | 作るかの判断 (計測) | 計測に Firebase を使い、agent が Firebase のプロジェクトを作る。agent の問いは「計測に Firebase を使い、agent が Firebase のプロジェクトを作ってよいか」で、同じ返答の「入れる」を、Amazon と並べて聞いたこの問いにもかかると agent が読んだ (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai (Firebase にもかかるという読みは agent) |
 | 2026-11-18 | 見た目と体験の方向の判断 | トップページは通常の EC のようにし、検索窓を置く。検索から「お気に入り追加」、お気に入り一覧に「カートイン」ボタン、トーストの「購入画面を開きますか？」の後に購入画面。ウィジェットからは通知で確かめる。通知の許可をこの流れの中で求め、なぜ要るのかを説明する。お気に入りは個数と種類 (商品バリアント) を決められ、種類ごとに行を分ける (https://github.com/bannzai/quickbuy/issues/8#issuecomment-6966345862 ) | bannzai |
 | 2026-11-18 | 見た目と体験の方向の判断 (ウィジェット) | 「Widgetからならプッシュ通知」は、ウィジェットからはトーストを出せないため、同じ確認を通知で出すことと読む。通知の許可の説明は、最初のお気に入りを追加した後に出す | agent |
+| 2026-11-18 | 検索の API と Amazon で開く URL の調査 (https://github.com/bannzai/quickbuy/issues/27 ) | Shopify の商品の検索は、Shopify の Catalog を鍵なしでアプリから直接呼ぶ。最初の版はサーバーを持たず、client secret はアプリに埋め込めないため。Shopify は Global Catalog の鍵なしの呼び出しを本番に使わないよう書いており、鍵なしでは上限を上げられない。それを承知で選んでおり、鍵なしの上限に当たった時は、自分のサーバーに鍵を置く形へ移る。鍵なしで通ることは Shopify の見本のプロフィールで確かめただけで、自分で置いたプロフィールでは未確認 (根拠: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`) | agent |
+| 2026-11-18 | 検索の API と Amazon で開く URL の調査 (https://github.com/bannzai/quickbuy/issues/27 ) | 最初の版の Amazon は、商品ページの URL から登録し、「カートイン」の確認の後に商品ページ `https://www.amazon.co.jp/dp/{ASIN}` をアプリの外で開く。開いた時に商品はカートに入っていない。カートに入れる URL と、Amazon の商品の検索・Amazon が持つ名前・画像・価格の表示は入れない。アソシエイトの ID は、Amazon がアプリを承認するまで付けない。承認の前のアプリにリンクを置けないと Amazon が答えた時は、Amazon を入れる時期を bannzai が決め直す (根拠: 同じ文書) | agent (変えにくい面) |
 
 ## agent に任せること
 
