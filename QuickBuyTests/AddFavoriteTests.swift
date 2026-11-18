@@ -286,6 +286,15 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.quantity) == [5, 3])
     }
 
+    /// 渡した並びの中に同じ識別子のお気に入りが 2 つある時 (店の商品の情報に同じ商品バリアントが 2 回並んでいた時) は、最初の 1 件だけを保存する。
+    @Test func 同じ識別子が並びに複数ある追加は最初の1件だけを足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var laterDuplicate = confirmedFavorites[0]
+        laterDuplicate.quantity = 9
+        try finishFavoriteAddition(choice: .add, favorites: [confirmedFavorites[0], confirmedFavorites[1], laterDuplicate], fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
+    }
+
     // MARK: - 名前と個数の入力
 
     /// 保存するボタンは、名前に字があり、商品バリアントを 1 つ以上選んでいる時だけ押せる。どちらかが欠けると押せない。

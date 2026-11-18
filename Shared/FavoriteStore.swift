@@ -67,10 +67,15 @@ func addFavorite(favorite: Favorite, fileURL: URL) throws {
 /// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。
 ///
 /// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる (個数が 1 未満のお気に入りが 1 つでもあれば、どれも保存せずにエラーを投げる)。
-/// 同じ識別子のお気に入りが保存済みのものは足さない (同じ追加を 2 回呼んでも件数は変わらない)。足すものが無い時は何も書かない。
+/// 同じ識別子のお気に入りが保存済みのものは足さない (同じ追加を 2 回呼んでも件数は変わらない)。
+/// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを足す (保存する並びに同じ識別子を 2 つ置かない)。足すものが無い時は何も書かない。
 func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
     let savedFavorites = try loadFavorites(fileURL: fileURL)
-    let newFavorites = addedFavorites.filter { addedFavorite in !savedFavorites.contains { $0.id == addedFavorite.id } }
+    let newFavorites = addedFavorites.reduce(into: [Favorite]()) { newFavorites, addedFavorite in
+        if !(savedFavorites + newFavorites).contains(where: { $0.id == addedFavorite.id }) {
+            newFavorites.append(addedFavorite)
+        }
+    }
     guard !newFavorites.isEmpty else {
         return
     }
