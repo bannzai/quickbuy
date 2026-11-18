@@ -31,6 +31,11 @@ Shopify と Amazon のいつもの商品を、ウィジェットからワンタ�
     4. お気に入りが入った状態は、アプリの開発者メニューの「見本のお気に入りを入れる」で作る。ホーム画面に戻るとウィジェットに並ぶ
     5. ウィジェットのお気に入りを `tap` し、`shot` で Safari の URL 欄の店のドメインを見る。Safari を開いた直後の `elements` は 60 秒で時間切れになったので、タップの結果は `shot` で確かめる
 - ブラウザの動作確認 (`docs/` の紹介ページ・法務ページ、購入画面の URL の遷移): `/webtunnel` skill (GitHub Actions の Linux Runner 上の Chromium) で行う。ローカルのブラウザを起動しない
+  - 起動: 検証対象のブランチを push してから `WEBTUNNEL_REPO=bannzai/quickbuy bash ~/.agents/skills/webtunnel/scripts/webtunnel-cli.sh up <セッション名> --ref <ブランチ> --wait` で起動する (`--ref` を省略すると main の HTML が配信される)。caller workflow は `.github/workflows/browser-session.yml`、セッション名は `quickbuy-<worktree 名>` (例: `quickbuy-issue-10`)。対象のブランチが `browser-session.yml` を含まない時は、先に main を取り込む
+  - 開く URL: Runner がリポジトリのルートを `http://localhost:8080/` で配信する。紹介ページは `http://localhost:8080/docs/index.html`、デザインのモックは `http://localhost:8080/documents/design/<モックのディレクトリ>/index.html`。`WEBTUNNEL_REPO=bannzai/quickbuy bash ~/.agents/skills/webtunnel/scripts/webtunnel-cli.sh cdp <セッション名>` が出す CDP の URL に `agent-browser --cdp <CDP の URL> open <開く URL>` で接続して開き、`agent-browser --cdp <CDP の URL> screenshot ./tmp/<名前>.png` で撮って Read で見る
+  - 閉じる: `WEBTUNNEL_REPO=bannzai/quickbuy bash ~/.agents/skills/webtunnel/scripts/webtunnel-cli.sh down <セッション名>` (確認が終わったら閉じる)
+  - 法務ページ (`docs/Terms-ja.md`・`docs/PrivacyPolicy-ja.md`) は GitHub Pages が Markdown から HTML にするため、この配信では HTML にならない。GitHub Pages で公開した後に、公開された URL を同じセッションで開いて確かめる
+  - public リポジトリのため、Actions のログと録画は公開される。公開できない内容は開かない
 - Android: 未着手。着手する時は、ビルド・ユニットテストを GitHub Actions の Linux runner で行い、emulator での確認も外部のマシンで行う方法を先に確立してこの項に書く (2026-11-17 時点で、`~/.claude/scripts/skill-lookup` で Android の emulator を扱う skill は見つからなかった)
 - 外部のマシンがどれも使えない時は、作業用の Mac での実行に黙って切り替えない。その検証を未検証として、何にブロックされたかを完了報告 (PR があれば PR body) に書く。作業用の Mac で実行するのは owner が明示した時だけにする
 - `make` (既定 target `ios`) は、人が手元で触って確かめるための入口として残す。agent は実行しない

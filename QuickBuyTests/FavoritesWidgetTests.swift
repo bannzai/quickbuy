@@ -10,6 +10,11 @@ struct FavoritesWidgetTests {
         FileManager.default.temporaryDirectory.appending(path: "favorites-\(UUID().uuidString).json")
     }
 
+    /// テストでリマインドの日数を数え始めた日時として使う、決まった日時 (2026-11-01 00:00:00 UTC)。
+    private let countedFrom = Date(timeIntervalSince1970: 1_793_491_200)
+    /// テストでウィジェットをタップした時刻として使う、`countedFrom` の 40 日後。
+    private let tappedAt = Date(timeIntervalSince1970: 1_793_491_200 + 40 * 86400)
+
     /// 名前・店のドメイン・商品バリアントの ID・個数を指定した Shopify の商品のお気に入りを返す。
     private func favorite(name: String, shopDomain: String, variantID: String, quantity: Int) -> Favorite {
         Favorite(
@@ -59,11 +64,11 @@ struct FavoritesWidgetTests {
         let soapFavorite = favorite(name: "せっけん", shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 5)
         try saveFavorites(favorites: [coffeeFavorite, soapFavorite], fileURL: fileURL)
         #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: coffeeFavorite.id), fileURL: fileURL)?.absoluteString
+            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: coffeeFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
                 == "https://mori-coffee.example/cart/70881412:2"
         )
         #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: soapFavorite.id), fileURL: fileURL)?.absoluteString
+            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: soapFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
                 == "https://sukoyaka-soap.example/cart/70881382:5"
         )
     }
@@ -101,7 +106,7 @@ struct FavoritesWidgetTests {
             ],
             fileURL: fileURL
         )
-        #expect(try tappedFavoritePurchaseURL(tapURL: #require(URL(string: tapURLText)), fileURL: fileURL) == nil)
+        #expect(try tappedFavoritePurchaseURL(tapURL: #require(URL(string: tapURLText)), now: tappedAt, fileURL: fileURL) == nil)
     }
 
     /// 削除した後のお気に入りのタップ (ウィジェットの表示が更新される前のタップ) では、購入画面を開かない。
@@ -113,11 +118,11 @@ struct FavoritesWidgetTests {
             fileURL: fileURL
         )
         #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), fileURL: fileURL)?.absoluteString
+            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
                 == "https://mori-coffee.example/cart/70881412:2"
         )
         try deleteFavorite(id: deletedFavorite.id, fileURL: fileURL)
-        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), fileURL: fileURL) == nil)
+        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), now: tappedAt, fileURL: fileURL) == nil)
     }
 
     /// 購入画面の URL を組み立てない Amazon の商品のお気に入りのタップでは、購入画面を開かない。
@@ -125,7 +130,40 @@ struct FavoritesWidgetTests {
         let fileURL = temporaryFavoritesFileURL()
         let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
         try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
-        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: amazonFavorite.id), fileURL: fileURL) == nil)
+        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: amazonFavorite.id), now: tappedAt, fileURL: fileURL) == nil)
+    }
+
+    /// タップしたお気に入りだけを、タップした時刻から数え直す。ほかのお気に入りのリマインドは変えない。
+    @Test func タップしたお気に入りのリマインドをタップした時刻から数え直す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var tappedFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+        tappedFavorite.reminder = Reminder(intervalDays: 30, countedFrom: countedFrom)
+        var otherFavorite = favorite(name: "せっけん", shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
+        otherFavorite.reminder = Reminder(intervalDays: 7, countedFrom: countedFrom)
+        try saveFavorites(favorites: [tappedFavorite, otherFavorite], fileURL: fileURL)
+
+        #expect(
+            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: tappedFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
+                == "https://mori-coffee.example/cart/70881412:2"
+        )
+        #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [Reminder(intervalDays: 30, countedFrom: tappedAt), otherFavorite.reminder])
+    }
+
+    /// 決まった形と違う URL では、URL が含む識別子のお気に入りのリマインドを数え直さない。
+    @Test func 決まった形と違うURLではリマインドを数え直さない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var savedFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+        savedFavorite.reminder = Reminder(intervalDays: 30, countedFrom: countedFrom)
+        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
+
+        #expect(
+            try tappedFavoritePurchaseURL(
+                tapURL: #require(URL(string: "quickbuy://favorite/\(savedFavorite.id.uuidString)?url=https://evil.example/cart/1:1")),
+                now: tappedAt,
+                fileURL: fileURL
+            ) == nil
+        )
+        #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
     }
 
     /// 保存先のファイルを読めない時は、購入画面の URL を返さずエラーを投げる。
@@ -133,7 +171,7 @@ struct FavoritesWidgetTests {
         let fileURL = temporaryFavoritesFileURL()
         try Data("壊れたファイル".utf8).write(to: fileURL)
         #expect(throws: (any Error).self) {
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: UUID()), fileURL: fileURL)
+            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: UUID()), now: tappedAt, fileURL: fileURL)
         }
     }
 }

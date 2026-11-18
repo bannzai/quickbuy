@@ -1,5 +1,6 @@
 #if DEBUG
     import SwiftUI
+    import UserNotifications
 
     /// 開発者メニューが入れる見本のお気に入り 3 件を返す。
     ///
@@ -41,9 +42,44 @@
         }
     }
 
-    /// 保存済みのお気に入りを、見本かどうかを問わずすべて消す (お気に入りが無い状態の確認に使う)。
-    func deleteAllFavorites(fileURL: URL) throws {
-        try saveFavorites(favorites: [], fileURL: fileURL)
+    /// 保存済みのお気に入りから、見本のお気に入り (名前や個数を変えたものを含む) だけを消す。利用者が自分で入れたお気に入りと、その並びは変えない。
+    func deleteSampleFavorites(fileURL: URL) throws {
+        try saveFavorites(
+            favorites: loadFavorites(fileURL: fileURL).filter { favorite in !sampleFavorites().contains { $0.id == favorite.id } },
+            fileURL: fileURL
+        )
+    }
+
+    /// リマインドを設定しているお気に入りすべてを、日数がちょうど過ぎた状態にする (日数を数え始めた日時を、`now` から設定した日数だけ前へずらす)。
+    ///
+    /// 時計を進めないと作れない「そろそろ買う頃」の表示を確かめるために使う。通知の予約は変えない。
+    func makeFavoriteRemindersDue(now: Date, fileURL: URL) throws {
+        try saveFavorites(
+            favorites: loadFavorites(fileURL: fileURL).map { favorite in
+                var dueFavorite = favorite
+                if let reminder = favorite.reminder {
+                    dueFavorite.reminder?.countedFrom = now.addingTimeInterval(-reminderTimeInterval(reminder: reminder))
+                }
+                return dueFavorite
+            },
+            fileURL: fileURL
+        )
+    }
+
+    /// お気に入りのリマインドと同じ内容の通知を 5 秒後に 1 回だけ出す予約をする (通知の見た目と、タップした時の動きを確かめるために使う)。
+    ///
+    /// 通知の識別子はお気に入りの識別子と別にしているので、そのお気に入りの本物の予約を置き換えない。
+    /// 5 秒は、ボタンを押してからホーム画面へ移る操作が間に合う長さ。
+    func scheduleReminderNotificationPreview(favorite: Favorite, center: UNUserNotificationCenter) {
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in
+            center.add(
+                UNNotificationRequest(
+                    identifier: "developerMenuReminderPreview",
+                    content: reminderNotificationContent(favorite: favorite),
+                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+                )
+            )
+        }
     }
 
     /// 開発者メニュー (DEBUG ビルドだけ)。画面の操作では作りにくい状態を作る。
@@ -56,7 +92,7 @@
         /// 操作に失敗したことを知らせる表示を出している間は true。
         @State private var isOperationFailed = false
 
-        /// 見本のお気に入りを入れる・すべて消すのボタン。
+        /// 見本のお気に入りを入れる・消すのボタンと、リマインドの状態と通知を作るボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -66,13 +102,47 @@
                                 try insertSampleFavorites(fileURL: favoritesFileURL)
                             }
                         }
-                        Button("お気に入りをすべて消す", role: .destructive) {
+                        Button("見本のお気に入りを消す", role: .destructive) {
                             finish {
-                                try deleteAllFavorites(fileURL: favoritesFileURL)
+                                try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current()) {
+                                    try deleteSampleFavorites(fileURL: favoritesFileURL)
+                                }
                             }
                         }
                     } header: {
                         Text("お気に入り")
+                    }
+                    Section {
+                        Button("リマインドの日数が過ぎた状態にする") {
+                            finish {
+                                try makeFavoriteRemindersDue(now: .now, fileURL: favoritesFileURL)
+                            }
+                        }
+                        Button("先頭のお気に入りの通知を 5 秒後に出す") {
+                            finish {
+                                guard let firstFavorite = try loadFavorites(fileURL: favoritesFileURL).first else {
+                                    throw FavoriteStoreError.favoriteNotFound
+                                }
+                                scheduleReminderNotificationPreview(favorite: firstFavorite, center: .current())
+                            }
+                        }
+                        Button("保存されていないお気に入りの通知を 5 秒後に出す") {
+                            finish {
+                                scheduleReminderNotificationPreview(
+                                    favorite: Favorite(
+                                        id: UUID(),
+                                        name: "保存されていないお気に入り",
+                                        imageURL: nil,
+                                        quantity: 1,
+                                        product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                                        reminder: nil
+                                    ),
+                                    center: .current()
+                                )
+                            }
+                        }
+                    } header: {
+                        Text("リマインド")
                     }
                 }
                 .navigationTitle("開発者メニュー")

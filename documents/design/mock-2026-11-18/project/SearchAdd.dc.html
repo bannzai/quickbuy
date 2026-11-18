@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>検索とお気に入り追加</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F5F7; color: #111318; font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <div style="background: {{accent}}; padding: 56px 16px 14px">
+    <div style="height: 46px; background: #FFFFFF; border-radius: 12px; display: flex; align-items: center; gap: 8px; padding: 0 12px; color: #5B6270">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <div style="flex-grow: 1; font-size: 16px; color: #111318">コーヒー豆</div>
+    </div>
+  </div>
+  <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 13px; font-weight: 700; color: #5B6270">「コーヒー豆」の検索結果</div>
+    <div style="background: #FFFFFF; border-radius: 14px; padding: 12px; display: flex; gap: 12px; align-items: center">
+      <div style="width: 72px; height: 72px; border-radius: 10px; background: #F1E4D6; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="40" height="50" viewBox="0 0 72 88" fill="none"><path d="M14 20h44l-4 60H18L14 20z" fill="#6B4226"></path><rect x="12" y="10" width="48" height="12" rx="4" fill="#8A5A36"></rect></svg>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+        <div style="font-size: 11px; font-weight: 700; color: #5B6270">mori-coffee.example</div>
+        <div style="font-size: 15px; font-weight: 700; line-height: 1.35">[商品名] コーヒー豆 中煎り</div>
+        <div style="font-size: 15px; font-weight: 900">[価格]</div>
+      </div>
+    </div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(17, 19, 24, 0.45)"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 22px 22px 0 0; padding: 20px 16px 28px; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; gap: 12px; align-items: center">
+      <div style="width: 84px; height: 84px; border-radius: 12px; background: #F1E4D6; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="46" height="58" viewBox="0 0 72 88" fill="none"><path d="M14 20h44l-4 60H18L14 20z" fill="#6B4226"></path><rect x="12" y="10" width="48" height="12" rx="4" fill="#8A5A36"></rect><rect x="24" y="40" width="24" height="22" rx="4" fill="#F1E4D6"></rect></svg>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <div style="font-size: 12px; font-weight: 700; color: #5B6270">mori-coffee.example の商品</div>
+        <h1 style="margin: 0; font-size: 19px; font-weight: 900; line-height: 1.3">[商品名] コーヒー豆 中煎り</h1>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 700">種類と個数を選ぶ</h2>
+      <div style="font-size: 12px; color: #5B6270; line-height: 1.5">選んだ種類ごとにお気に入りの行が 1 つできます</div>
+      <div style="border: 2px solid {{accent}}; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+        <div style="width: 24px; height: 24px; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></div>
+        <div style="flex-grow: 1; font-size: 15px; font-weight: 700">200g / 豆のまま</div>
+        <button aria-label="200g 豆のままを減らす" style="width: 44px; height: 44px; border: 1px solid #C4C9D2; border-radius: 10px; background: #FFFFFF; font-size: 20px; font-family: inherit; color: #111318">−</button>
+        <div style="min-width: 20px; text-align: center; font-size: 17px; font-weight: 900">2</div>
+        <button aria-label="200g 豆のままを増やす" style="width: 44px; height: 44px; border: 1px solid #C4C9D2; border-radius: 10px; background: #FFFFFF; font-size: 20px; font-family: inherit; color: #111318">+</button>
+      </div>
+      <div style="border: 2px solid {{accent}}; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+        <div style="width: 24px; height: 24px; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></div>
+        <div style="flex-grow: 1; font-size: 15px; font-weight: 700">500g / 中挽き</div>
+        <button aria-label="500g 中挽きを減らす" style="width: 44px; height: 44px; border: 1px solid #C4C9D2; border-radius: 10px; background: #FFFFFF; font-size: 20px; font-family: inherit; color: #111318">−</button>
+        <div style="min-width: 20px; text-align: center; font-size: 17px; font-weight: 900">1</div>
+        <button aria-label="500g 中挽きを増やす" style="width: 44px; height: 44px; border: 1px solid #C4C9D2; border-radius: 10px; background: #FFFFFF; font-size: 20px; font-family: inherit; color: #111318">+</button>
+      </div>
+      <div style="border: 1px solid #C4C9D2; border-radius: 12px; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; gap: 10px">
+        <div style="width: 24px; height: 24px; border-radius: 6px; border: 2px solid #8A909C; box-sizing: border-box; flex-shrink: 0"></div>
+        <div style="flex-grow: 1; font-size: 15px; font-weight: 500; color: #3A404B">1kg / 豆のまま</div>
+      </div>
+    </div>
+    <button style="height: 52px; border: 0; border-radius: 14px; background: {{accent}}; color: #FFFFFF; font-size: 17px; font-weight: 900; font-family: inherit">2 種類をお気に入りに追加</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#0B6E4F","options":["#0B6E4F","#1D4ED8","#C2410C"]},"$preview":{"width":390,"height":844}}'>
+/** 検索結果から商品を選び、種類 (バリアント) と個数を決めてお気に入りに追加するシートを開いた状態の見本を描く。 */
+class Component extends DCLogic {
+  /** テンプレートへ渡す値。色の調整 (accent) だけを返す。 */
+  renderVals() {
+    return {
+      // 既定の #0B6E4F は、白の文字を載せてコントラスト比 4.5:1 以上になる緑。商品の画像の色と並べても見出しとボタンが埋もれない濃さにした
+      accent: this.props.accent ?? '#0B6E4F'
+    };
+  }
+}
+</script>
+</body>
+</html>

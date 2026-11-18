@@ -143,7 +143,7 @@ struct ShopifyAjaxProduct: Decodable, Equatable {
 /// (店の商品ページが最初に選ぶ商品バリアントと同じ決め方。出典: https://shopify.dev/docs/api/liquid/objects/product の `selected_or_first_available_variant`)。
 /// 名前は商品の名前にし、商品バリアントが 2 つ以上ある商品では、どれを登録するかが分かるよう商品バリアントの名前を後ろに足す。
 /// `?variant=` の ID が商品バリアントの並びに無い時と、商品バリアントが 1 つも無い時は nil を返す。
-/// 画像の URL は `https` のものだけを入れる (スキームを省いた形は `https` を補う)。
+/// 画像の URL は、`https` で、ホストが店のドメインか Shopify の CDN のものだけを入れる (`shopifyProductImageURL(text:shopDomain:)`)。
 func favoriteDraft(id: UUID, productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> Favorite? {
     guard let variant = productPage.variantID == nil
         ? product.variants.first(where: \.available) ?? product.variants.first
@@ -154,7 +154,7 @@ func favoriteDraft(id: UUID, productPage: ShopifyProductPage, product: ShopifyAj
     return Favorite(
         id: id,
         name: product.variants.count >= 2 ? "\(product.title) \(variant.title)" : product.title,
-        imageURL: product.featuredImage.flatMap(httpsImageURL(text:)),
+        imageURL: product.featuredImage.flatMap { shopifyProductImageURL(text: $0, shopDomain: productPage.shopDomain) },
         // 1 回に買う個数の下限 (`Favorite.quantity` は 1 以上)。確認の画面で利用者が変えられる。
         quantity: 1,
         product: .shopify(ShopifyProduct(shopDomain: productPage.shopDomain, variantID: String(variant.id))),
@@ -162,12 +162,27 @@ func favoriteDraft(id: UUID, productPage: ShopifyProductPage, product: ShopifyAj
     )
 }
 
-/// 画像の URL の文字列が `https://` で始まるか、スキームを省いた形 (`//`) なら、`https` の URL にして返す。それ以外は nil を返す。
-private func httpsImageURL(text: String) -> URL? {
-    if text.hasPrefix("//") {
-        return URL(string: "https:\(text)")
+/// Shopify が商品の画像を配信する CDN のホスト。
+///
+/// 出典: https://shopify.dev/docs/api/ajax/reference/product の応答の例の `featured_image` (`//cdn.shopify.com/s/files/…`)。
+/// 2026-11-17 に実在の Shopify の店 2 つの `/products.json` を取得した時も、5 つの商品の画像のホストはすべてこの値だった。
+let shopifyCDNHost = "cdn.shopify.com"
+
+/// 商品の JSON が返した画像の URL の文字列を、アプリが読み込んでよい URL にして返す。読み込まない URL では nil を返す。
+///
+/// 返すのは、`https` (スキームを省いた形 `//…` は `https` を補う) で、認証情報 (`user@`) とポートを含まず、ホストが店のドメインか `shopifyCDNHost` の URL だけ (商品ページの URL の検査 `shopifyProductPage(text:)` と同じ条件)。ホストの大文字と小文字は区別しない。
+/// 画像は一覧を表示するたびに読み込まれるため、店が JSON で指した無関係なホストへ利用者の端末から通信させない。
+func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
+    guard let urlComponents = URLComponents(string: text.hasPrefix("//") ? "https:\(text)" : text),
+          urlComponents.scheme?.lowercased() == "https",
+          urlComponents.user == nil,
+          urlComponents.password == nil,
+          urlComponents.port == nil,
+          [shopDomain, shopifyCDNHost].contains(urlComponents.host?.lowercased())
+    else {
+        return nil
     }
-    return text.hasPrefix("https://") ? URL(string: text) : nil
+    return urlComponents.url
 }
 
 /// お気に入りの登録が、確認の画面に進まずに終わった理由。

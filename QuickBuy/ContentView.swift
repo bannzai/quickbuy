@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
 struct ContentView: View {
@@ -12,7 +13,7 @@ struct ContentView: View {
     }
 }
 
-/// お気に入りの一覧の画面。保存した並びで表示し、「買う」で店の購入画面を開く。追加・名前と個数の変更・並べ替え・削除の入口を持つ。
+/// お気に入りの一覧の画面。保存した並びで表示し、「買う」で店の購入画面を開く。追加・名前と個数の変更・並べ替え・削除・設定画面の入口を持つ。
 struct FavoritesListView: View {
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
@@ -31,29 +32,25 @@ struct FavoritesListView: View {
     @State private var editingFavorite: Favorite?
     /// お気に入りの追加の画面を出している間は true。
     @State private var isAddingFavorite = false
-    #if DEBUG
-        /// 開発者メニューを出している間は true。
-        @State private var isDeveloperMenuPresented = false
-    #endif
+    /// 設定画面を出している間は true。
+    @State private var isSettingsPresented = false
 
-    /// 一覧と、追加・編集・開発者メニューの画面への入口。
+    /// 一覧と、追加・編集・設定の画面への入口。
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("お気に入り")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isSettingsPresented = true
+                        } label: {
+                            Label("設定", systemImage: "gearshape")
+                        }
+                    }
+                    ToolbarItem(placement: .topBarLeading) {
                         EditButton()
                     }
-                    #if DEBUG
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                isDeveloperMenuPresented = true
-                            } label: {
-                                Label("開発者メニュー", systemImage: "wrench.and.screwdriver")
-                            }
-                        }
-                    #endif
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isAddingFavorite = true
@@ -66,15 +63,26 @@ struct FavoritesListView: View {
         .tint(quickBuyAccentColor)
         .onAppear(perform: reload)
         .onOpenURL { tapURL in
-            // 購入画面を開けない時 (お気に入りが消されている・保存先を読めない等) は、この一覧をそのまま見せる。保存先を読めないことは reload が表示する。
-            if let tappedPurchaseURL = try? tappedFavoritePurchaseURL(tapURL: tapURL, fileURL: favoritesFileURL) {
-                openURL(tappedPurchaseURL)
+            // 購入画面を開けない時 (お気に入りが消されている・購入画面の URL を組み立てられない等) は、この一覧をそのまま見せる。
+            // 一覧の「買う」と同じ経路で、リマインドの数え直しと通知の予約のし直しを行う。
+            save {
+                if let tappedPurchaseURL = try tappedFavoritePurchaseURL(tapURL: tapURL, now: .now, fileURL: favoritesFileURL) {
+                    openURL(tappedPurchaseURL)
+                }
             }
         }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
                 reload()
             }
+        }
+        // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
+        .task(id: scenePhase) {
+            guard scenePhase == .active else {
+                return
+            }
+            await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+            reload()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
@@ -86,13 +94,11 @@ struct FavoritesListView: View {
                 isAddingFavorite = false
             }
         }
-        #if DEBUG
-        .sheet(isPresented: $isDeveloperMenuPresented, onDismiss: reload) {
-            DeveloperMenuView(favoritesFileURL: favoritesFileURL) {
-                isDeveloperMenuPresented = false
+        .sheet(isPresented: $isSettingsPresented, onDismiss: reload) {
+            SettingsView(favoritesFileURL: favoritesFileURL) {
+                isSettingsPresented = false
             }
         }
-        #endif
         .alert("保存できませんでした", isPresented: $isSaveFailed) {}
     }
 
@@ -127,9 +133,7 @@ struct FavoritesListView: View {
                     }
                     .onDelete { deletedIndexes in
                         save {
-                            for deletedFavoriteID in deletedIndexes.map({ favorites[$0].id }) {
-                                try deleteFavorite(id: deletedFavoriteID, fileURL: favoritesFileURL)
-                            }
+                            try deleteFavorites(indexes: deletedIndexes, favorites: favorites, fileURL: favoritesFileURL)
                         }
                     }
                 } footer: {
@@ -153,18 +157,32 @@ struct FavoritesListView: View {
                         Text(shopDomainText(favorite: favorite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        Text("\(favorite.quantity) 個")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        // 一覧を開いたまま日数が過ぎた時にも文言が切り替わるよう、1 分ごとに描き直す。
+                        // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
+                        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                            if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: timeline.date) {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: timeline.date))")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(reminderDueColor)
+                            } else {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: timeline.date))")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if let favoritePurchaseURL = purchaseURL(favorite: favorite) {
+            if purchaseURL(favorite: favorite) != nil {
                 Button("買う") {
-                    openURL(favoritePurchaseURL)
+                    save {
+                        if let openingURL = try purchaseURLForOpening(favoriteID: favorite.id, now: .now, fileURL: favoritesFileURL) {
+                            openURL(openingURL)
+                        }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -182,9 +200,10 @@ struct FavoritesListView: View {
     }
 
     /// 保存の操作を実行し、失敗した時はその旨を知らせる。成否にかかわらず、保存先の今の並びを表示に反映する。
+    /// 操作で変わったリマインドに合わせて、通知の予約も取り消す・予約し直す。
     private func save(operation: () throws -> Void) {
         do {
-            try operation()
+            try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current(), operation: operation)
         } catch {
             isSaveFailed = true
         }
@@ -192,12 +211,26 @@ struct FavoritesListView: View {
     }
 }
 
+/// 一覧の行で、リマインドの日数が過ぎたこと (「そろそろ買う頃」) を示す文字の色。
+///
+/// 画面の見本 (documents/design/mock-2026-11-17/project/Main.dc.html) の「そろそろ買う頃」の色 `#9A3412`。
+let reminderDueColor = Color(red: 0x9A / 255, green: 0x34 / 255, blue: 0x12 / 255)
+
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。
 ///
 /// `onMove` の移動先は、移動する前の並びで「この位置の要素の前に差し込む」を表す (末尾の後ろは件数と同じ値)。
 /// 元の位置より後ろへ移す時は、移すお気に入り自身が抜ける分だけ 1 つ前にずれる。
 func destinationIndexAfterMove(sourceIndex: Int, destinationOffset: Int) -> Int {
     destinationOffset > sourceIndex ? destinationOffset - 1 : destinationOffset
+}
+
+/// 一覧の削除 (`onDelete`) が渡す位置 (表示している並び `favorites` の中の位置。複数のこともある) のお気に入りを、保存先から消す。
+///
+/// 位置を先に識別子へ直してから消す (1 件消すたびに後ろの位置がずれるため、位置のまま順に消すと別のお気に入りを消してしまう)。
+func deleteFavorites(indexes: IndexSet, favorites: [Favorite], fileURL: URL) throws {
+    for deletedFavoriteID in indexes.map({ favorites[$0].id }) {
+        try deleteFavorite(id: deletedFavoriteID, fileURL: fileURL)
+    }
 }
 
 #Preview {
