@@ -1,0 +1,61 @@
+name: CI Release Build (xcode)
+
+# Release ビルドが通ることと、DEBUG ビルドだけの開発者メニューが Release ビルドのアプリに入っていないことを確かめる。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-build:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Release ビルドを作る
+        run: |
+          xcodebuild build -project "QuickBuy.xcodeproj" -scheme "QuickBuy" -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+      - name: 開発者メニューが Release ビルドに入っていないことを確かめる
+        run: |
+          python3 - "build/DerivedData/Build/Products/Release-iphonesimulator/QuickBuy.app" <<'PY'
+          """Release ビルドのアプリのどのファイルにも、開発者メニューの文言が入っていないことを確かめる。"""
+          import pathlib
+          import sys
+
+          app_files = [path for path in pathlib.Path(sys.argv[1]).rglob("*") if path.is_file()]
+
+
+          def files_containing(text: str) -> list:
+              """文言を UTF-8 か UTF-16 のバイト列として含むファイルと、その符号化の名前の組を返す。"""
+              return [
+                  (str(path), encoding)
+                  for path in app_files
+                  for encoding in ("utf-8", "utf-16-le")
+                  if text.encode(encoding) in path.read_bytes()
+              ]
+
+
+          # 検査が文言を見つけられることを、Release にも入る編集の画面の文言で先に確かめる
+          # (見つけられない検査は、開発者メニューが入っていても通ってしまうため)。
+          found_control = files_containing("お気に入りから外す")
+          print(f"編集の画面の文言を含むファイル: {found_control}")
+          if not found_control:
+              sys.exit("::error::Release ビルドのアプリから、編集の画面の文言を見つけられない。検査の方法が合っていない")
+          for text in ["開発者メニュー", "見本のお気に入りを入れる", "見本のお気に入りを消す", "sukoyaka-soap.example"]:
+              found = files_containing(text)
+              if found:
+                  sys.exit(f"::error::Release ビルドのアプリに開発者メニューの文言が入っている: {text} {found}")
+          print("開発者メニューの文言は Release ビルドのアプリに入っていない")
+          PY

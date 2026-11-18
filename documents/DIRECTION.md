@@ -29,7 +29,7 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 最初の版 (iOS。検索 → お気に入り → カートイン (アプリとウィジェット) → 購入画面):
 
-- [ ] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
+- [x] お気に入りを端末内に保存する。一覧・名前と個数の変更・並べ替え・削除。型は `documents/data-structure/favorite-2026-11-17.html`
 - [ ] トップページ: 通常の EC のように、検索窓と画像つきの商品を並べる。検索した商品から「お気に入り追加」に進む。検索するのは Shopify の店の商品で、Shopify の Catalog (店をまたぐ検索は Global Catalog `https://catalog.shopify.com/api/ucp/mcp` の `search_catalog`。選んだ商品の種類は、店ごとの入口 `https://{店のドメイン}/api/ucp/mcp` の `get_product` を、種類を選ぶたびに呼び直して取る) を、鍵なしでアプリから直接呼ぶ。最初の版では API キーの発行は要らない。Shopify は Global Catalog の鍵なしの呼び出しを本番に使わないよう書いており (「Don't use unauthenticated requests for production traffic」)、鍵なしでは上限を上げられない。鍵ありにするには鍵を置く自分のサーバーが要るため、サーバーを持たない最初の版は鍵なしにする。実測は Shopify の見本のプロフィールで行い、自分で置いたプロフィールで通るかは未確認。Amazon の商品は、最初の版では検索にもトップページにも出さない (Amazon の検索の API の Creators API は、Amazon が承認したモバイルアプリと、鍵を置く自分のサーバーが要り、公開の前には満たせない)。検索の前に並べる物の候補は、買い直す物の検索語・選んだ店の商品・決まった検索語の結果・利用者が前に検索した語で、人気の順を返す API は Shopify の Catalog の文書に見つからなかった。どれを並べるかはトップページの実装の issue で決める (出典・実測・未確認の点: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`)
 - [ ] お気に入りの追加: 種類 (商品バリアント) と個数を選ぶ。種類ごとにお気に入りの行を 1 つ作る。商品ページの URL か店が配る追加リンクを、貼り付けるか共有メニューから渡すこともできる。登録の画面で店のドメインを目立つ形で見せ、利用者が確かめて登録の操作をしたものだけを保存する (ADR 0003)
 - [ ] 購入画面を開く: Shopify の店は cart permalink。組み立ての関数 (`Shared/ShopifyCartPermalink.swift`) は商品バリアントの ID を文字列で受け取り、数字だけでない ID では URL を組み立てない。Amazon は最初の版に入れる (アソシエイトのアカウントは bannzai が持っている。アプリにリンクを置くための承認の条件は `documents/research/2026-11-17/monetization.md`)。Amazon で「カートイン」の確認の後に開くのは商品ページ `https://www.amazon.co.jp/dp/{ASIN}` で、アプリの中の WebView を使わず、アプリの外 (Safari か Amazon のアプリ) で開く。開いた時に商品はカートに入っておらず、利用者が Amazon の画面でカートに入れる。最初の版では、カートに入れる URL (`/gp/aws/cart/add.html`) を使わない (現行の公式文書に無く、アソシエイトの ID を付けないと空のカートへ送られる)。アソシエイトの ID は、Amazon がアプリを承認するまで付けない (承認の申請にはストアの URL が要り、申請は公開の後になる)。Amazon の商品は、商品ページの URL を貼り付けるか共有メニューから渡して登録する。Amazon の商品を検索して画像つきで並べる画面は、承認の条件「Amazonのショッピングアプリの機能をエミュレート、偽装またはその機能と競合しないこと」に当たる読みが強く、検索の API も公開の前には使えないため、最初の版に入れない。承認の前のアプリに Amazon へのリンクを置いてよいかは Amazon に確かめておらず、bannzai が公開の前に問い合わせる (出典・未確認の点・問い合わせる内容: `documents/research/2026-11-18/search-api-and-amazon-purchase-url.md`)。一覧の「カートイン」を押すと「購入画面を開きますか？」のトーストを出し、利用者が開く操作をした時に購入画面を開く
@@ -37,7 +37,7 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 - [ ] 通知の許可: 最初のお気に入りを追加した後に、なぜ通知が要るのか (ウィジェットからの確認・買う頃の知らせ) を説明してから許可を求める (出す時機は agent の案)
 - [ ] リマインド: お気に入りごとに「何日ごとに知らせるか」を設定し、端末の通知で知らせる。通知をタップすると、その商品の購入画面が開く。日数は購入画面を開いた時刻から数え直す (数え方と通知をタップした時の動きは agent の案)
 - [ ] 設定画面: お問い合わせ・利用規約・プライバシーポリシー・アフィリエイトのリンクを含むことの表示
-- [ ] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
+- [x] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
 - [ ] 計測とクラッシュ収集: 購入画面を開いた・ウィジェットを置いた、を数える (Firebase Analytics・Crashlytics・bannzai/dashboard への収集)
 - [ ] 多言語化 (日本語・英語) とストアの素材
 
@@ -71,6 +71,11 @@ bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#iss
 | 2026-11-17 | 作るかの判断 (リマインドの型) | リマインドは「何日ごと」と「日数を数え始めた日時」を持ち、購入画面を開いた時刻から数え直す。通知をタップすると購入画面を直接開く。通知は端末の中だけで予約する | agent (変えにくい面) |
 | 2026-11-17 | 作るかの判断 | 作る (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6947809876 ) | bannzai |
 | 2026-11-17 | お気に入りの保存の実装 (https://github.com/bannzai/quickbuy/issues/9 ) | お気に入りは App Group `group.com.bannzai.QuickBuy` の領域の `favorites.json` に、`[Favorite]` を Swift の `Codable` の自動合成の形の JSON で保存する (`Product` は `{"shopify":{"_0":{…}}}` の入れ子、日時は 2001-01-01 00:00:00 UTC からの秒数)。形は `QuickBuyTests/FavoriteStoreTests.swift` の「保存済みのJSONの形を読める」で固定する。公開前なので、形を変える時は移行を書かずに変えられる | agent (変えにくい面) |
+| 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 商品の名前・画像・商品バリアントの ID は、商品ページの URL の店から Shopify の Ajax Product API (`/products/{商品のハンドル}.js`) で取る。取れない店 (Shopify でない・パスワードで保護されている) の商品は登録できないと表示する。`?variant=` の無い URL は、店の商品ページが最初に選ぶのと同じ「最初の今買える商品バリアント」を登録し、商品バリアントを選ぶ画面は作らない (どれを登録するかは名前に商品バリアントの名前を付けて確認の画面で見せる)。商品バリアントを選ぶ画面を作らない点は、下の 2026-11-18 の判断 (種類を決められる) で変わる | agent |
+| 2026-11-17 | お気に入りの追加の実装 (https://github.com/bannzai/quickbuy/issues/11 ) | 共有メニューから渡された URL は、アプリ本体を開かず、共有メニューの拡張 (`QuickBuyShare`) の中でアプリと同じ確認の画面を出して保存する | agent |
+| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 一覧の行を押すと編集の画面を開く。並べ替えは一覧の「編集」、削除は行のスワイプ・一覧の「編集」・編集の画面の「お気に入りから外す」で行う (iOS の標準の一覧の操作)。名前が空 (空白だけを含む) の間は保存できない。ボタンと強調の色は、デザインの方向が決まるまで主要画面のモックの色 (`#0F5E6B`) を `quickBuyAccentColor` の 1 か所に置く | agent |
+| 2026-11-17 | お気に入りの一覧と追加の実装 (https://github.com/bannzai/quickbuy/issues/12 、https://github.com/bannzai/quickbuy/issues/11 ) | お気に入りの保存先を開けない時・読めない時は、空の一覧を出さずに「お気に入りの保存先を開けません」「お気に入りを読み込めません」と表示する (読めない状態を 0 件と見分けるため)。保存・削除・並べ替えに失敗した時は「保存できませんでした」と知らせ、画面は保存先の今の中身に戻す。一覧は、開いた時とアプリが前面に戻った時に保存先を読み直す (共有メニューで足したお気に入りを出すため)。共有メニューは URL と文字列を受け取り、URL を優先する。どちらも取り出せない時は、空の入力欄から始める。入力欄と共有メニューから受け取った文字列は、前後の空白と改行を除いてから分解する (貼り付けた文字列の前後に空白や改行が付いていても登録できるようにするため)。途中に空白や改行を含む文字列は、URL の形でないものとして登録できない | agent |
+| 2026-11-17 | お気に入りの一覧の実装 (https://github.com/bannzai/quickbuy/issues/12 ) | 「買う」は店の購入画面を端末の既定のブラウザで開く。Amazon の商品のお気に入りは、扱いが決まるまで一覧に「買う」を出さない。ボタンの名前と確認を挟まない点は、下の 2026-11-18 の判断 (「カートイン」と「購入画面を開きますか？」の確認) で変わる | agent |
 | 2026-11-18 | 作るかの判断 (上の 2026-11-17 の 4 つの確認) | お気に入りの型・「いつものセット」を作らない・リマインドを入れる・対象の人の言い方でよい (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966340254 ) | bannzai |
 | 2026-11-18 | 作るかの判断 (Amazon の扱い) | Amazon を最初の版に入れる。アソシエイトのアカウントは持っている (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai |
 | 2026-11-18 | 作るかの判断 (計測) | 計測に Firebase を使い、agent が Firebase のプロジェクトを作る。agent の問いは「計測に Firebase を使い、agent が Firebase のプロジェクトを作ってよいか」で、同じ返答の「入れる」を、Amazon と並べて聞いたこの問いにもかかると agent が読んだ (https://github.com/bannzai/quickbuy/issues/2#issuecomment-6966342865 ) | bannzai (Firebase にもかかるという読みは agent) |
