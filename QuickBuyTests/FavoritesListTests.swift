@@ -67,6 +67,9 @@ struct FavoritesListTests {
 
     // MARK: - 「カートイン」の確認
 
+    /// 「カートイン」を押した時刻。2026-11-18 00:00:00 UTC。
+    private let pressedAt = Date(timeIntervalSince1970: 1_794_960_000)
+
     /// 名前・商品バリアントの名前・個数・商品・リマインドを指定したお気に入りを返す。
     private func favorite(name: String, variantName: String?, quantity: Int, product: Favorite.Product, reminder: Reminder?) -> Favorite {
         Favorite(id: UUID(), name: name, variantName: variantName, imageURL: nil, quantity: quantity, product: product, reminder: reminder)
@@ -99,15 +102,49 @@ struct FavoritesListTests {
                 reminder: nil
             ),
         ]
-        #expect(cartInConfirmationFavorite(favoriteID: favorites[pressedIndex].id, favorites: favorites) == favorites[pressedIndex])
+        #expect(
+            cartInConfirmationFavorite(confirmation: (favoriteID: favorites[pressedIndex].id, shownAt: pressedAt), favorites: favorites, now: pressedAt)
+                == favorites[pressedIndex]
+        )
     }
 
     /// 確認を出していない時・確認が指すお気に入りが一覧から消えた時・お気に入りが 1 件も無い時は、確認が指すお気に入りは無い (先頭のお気に入りなど別のものを指さない)。
     @Test func 確認を出していない時と指すお気に入りが消えた時は確認を出さない() {
         let savedFavorite = favorite(name: "コーヒー豆")
-        #expect(cartInConfirmationFavorite(favoriteID: nil, favorites: [savedFavorite]) == nil)
-        #expect(cartInConfirmationFavorite(favoriteID: UUID(), favorites: [savedFavorite]) == nil)
-        #expect(cartInConfirmationFavorite(favoriteID: savedFavorite.id, favorites: []) == nil)
+        #expect(cartInConfirmationFavorite(confirmation: nil, favorites: [savedFavorite], now: pressedAt) == nil)
+        #expect(cartInConfirmationFavorite(confirmation: (favoriteID: UUID(), shownAt: pressedAt), favorites: [savedFavorite], now: pressedAt) == nil)
+        #expect(cartInConfirmationFavorite(confirmation: (favoriteID: savedFavorite.id, shownAt: pressedAt), favorites: [], now: pressedAt) == nil)
+    }
+
+    /// 確認は押した時刻から 8 秒未満の間だけ出て、8 秒ちょうどからは出ない。
+    @Test(arguments: [
+        (elapsedSeconds: 0.0, isShown: true),
+        (elapsedSeconds: 7.999, isShown: true),
+        (elapsedSeconds: 8.0, isShown: false),
+        (elapsedSeconds: 60.0, isShown: false),
+    ])
+    func 確認は押してから8秒で消える(elapsedSeconds: Double, isShown: Bool) {
+        let savedFavorite = favorite(name: "コーヒー豆")
+        #expect(
+            (cartInConfirmationFavorite(
+                confirmation: (favoriteID: savedFavorite.id, shownAt: pressedAt),
+                favorites: [savedFavorite],
+                now: pressedAt.addingTimeInterval(elapsedSeconds)
+            ) != nil) == isShown
+        )
+    }
+
+    /// 同じ行を押し直すと押し直した時刻から 8 秒を数え直すので、最初に押してから 8 秒を過ぎても、押し直してから 8 秒未満なら確認が出ている。
+    @Test func 同じ行を押し直すと8秒を数え直す() {
+        let savedFavorite = favorite(name: "コーヒー豆")
+        // 最初に押してから 5 秒後に押し直し、最初に押してから 10 秒後 (押し直してから 5 秒後) に見る。
+        #expect(
+            cartInConfirmationFavorite(
+                confirmation: (favoriteID: savedFavorite.id, shownAt: pressedAt.addingTimeInterval(5)),
+                favorites: [savedFavorite],
+                now: pressedAt.addingTimeInterval(10)
+            ) == savedFavorite
+        )
     }
 
     /// 購入画面の URL を組み立てられないお気に入り (Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
@@ -117,7 +154,7 @@ struct FavoritesListTests {
     ])
     func 購入画面を開けないお気に入りには確認を出さない(product: Favorite.Product) {
         let unopenableFavorite = favorite(name: "電池", variantName: nil, quantity: 1, product: product, reminder: nil)
-        #expect(cartInConfirmationFavorite(favoriteID: unopenableFavorite.id, favorites: [unopenableFavorite]) == nil)
+        #expect(cartInConfirmationFavorite(confirmation: (favoriteID: unopenableFavorite.id, shownAt: pressedAt), favorites: [unopenableFavorite], now: pressedAt) == nil)
     }
 
     /// 確認の 2 行目は、名前・商品バリアントの名前 (持つお気に入りだけ)・個数からなる。
@@ -146,10 +183,9 @@ struct FavoritesListTests {
         )
     }
 
-    /// 「カートイン」で確認が指すお気に入りを決めただけでは、リマインドの数え始めた日時は変わらない。
     /// 確認の「開く」で、確認が指すお気に入りの店のドメイン・商品バリアントの ID・保存済みの個数 (確認を出した後に変えた個数を含む) から組み立てた URL が返り、
     /// そのお気に入りのリマインドだけが開いた時刻から数え直される。
-    @Test func 開くを押した時にだけ確認が指すお気に入りのURLが返りリマインドが数え直される() throws {
+    @Test func 開くは確認を出した後に変えた個数で確認が指すお気に入りのURLを返す() throws {
         let fileURL = temporaryFavoritesFileURL()
         // 2026-11-17 00:00:00 UTC。
         let countedFrom = Date(timeIntervalSince1970: 1_794_873_600)
@@ -169,14 +205,19 @@ struct FavoritesListTests {
         )
         try saveFavorites(favorites: [otherFavorite, pressedFavorite], fileURL: fileURL)
 
-        let confirmingFavorite = try #require(cartInConfirmationFavorite(favoriteID: pressedFavorite.id, favorites: try loadFavorites(fileURL: fileURL)))
-        #expect(try loadFavorites(fileURL: fileURL) == [otherFavorite, pressedFavorite])
-
-        try updateFavorite(id: pressedFavorite.id, name: pressedFavorite.name, quantity: 3, fileURL: fileURL)
         // 数え始めてから 10 日後 (10 × 86400 秒)。
         let openedAt = countedFrom.addingTimeInterval(864_000)
+        let confirmingFavoriteID = try #require(
+            cartInConfirmationFavorite(
+                confirmation: (favoriteID: pressedFavorite.id, shownAt: openedAt),
+                favorites: try loadFavorites(fileURL: fileURL),
+                now: openedAt
+            )
+        ).id
+
+        try updateFavorite(id: pressedFavorite.id, name: pressedFavorite.name, quantity: 3, fileURL: fileURL)
         #expect(
-            try purchaseURLForOpening(favoriteID: confirmingFavorite.id, now: openedAt, fileURL: fileURL)?.absoluteString
+            try purchaseURLForOpening(favoriteID: confirmingFavoriteID, now: openedAt, fileURL: fileURL)?.absoluteString
                 == "https://mori-coffee.example/cart/70881413:3"
         )
         #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [

@@ -179,7 +179,7 @@ struct FavoritesListView: View {
     /// 「カートイン」を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面を開く。
     /// 確認が指すお気に入りが保存先から消えた時と、購入画面を開けなくなった時は出さない。
     @ViewBuilder private var cartInConfirmationView: some View {
-        if let confirmingFavorite = cartInConfirmationFavorite(favoriteID: cartInConfirmation?.favoriteID, favorites: favorites) {
+        if let confirmingFavorite = cartInConfirmationFavorite(confirmation: cartInConfirmation, favorites: favorites, now: .now) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("購入画面を開きますか？")
@@ -312,10 +312,14 @@ let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 
 
 /// 「カートイン」の確認が指すお気に入りを、表示している並び (保存先から読んだもの) から返す。
 ///
-/// `favoriteID` は最後に「カートイン」を押した行のお気に入りの識別子 (確認を出していない時は nil)。
-/// その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等) と、購入画面の URL を組み立てられない時は nil を返す (確認を出さない)。
-func cartInConfirmationFavorite(favoriteID: UUID?, favorites: [Favorite]) -> Favorite? {
-    favorites.first { $0.id == favoriteID && purchaseURL(favorite: $0) != nil }
+/// `confirmation` は最後に「カートイン」を押した行のお気に入りの識別子と押した時刻 (確認を出していない時は nil)。`now` は表示する時刻。
+/// 押した時刻から `cartInConfirmationSeconds` 秒たった時、その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等)、
+/// 購入画面の URL を組み立てられない時は nil を返す (確認を出さない)。
+func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?, favorites: [Favorite], now: Date) -> Favorite? {
+    guard let confirmation, now.timeIntervalSince(confirmation.shownAt) < cartInConfirmationSeconds else {
+        return nil
+    }
+    return favorites.first { $0.id == confirmation.favoriteID && purchaseURL(favorite: $0) != nil }
 }
 
 /// 「カートイン」の確認の 2 行目に出す、何を何個カートに入れて開くかの文を返す。商品バリアントの名前を持つお気に入りでは、名前の後ろに足す。
