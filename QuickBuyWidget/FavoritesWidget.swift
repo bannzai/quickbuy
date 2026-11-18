@@ -1,62 +1,81 @@
+import AppIntents
 import SwiftUI
+import UserNotifications
 import WidgetKit
 
-/// ホーム画面に置く、お気に入りを保存した並びで出すウィジェット。お気に入りをタップすると、アプリを通ってその商品の店の購入画面が開く。
+/// ホーム画面に置く、お気に入りを保存した並びで 1 件 1 行に出すウィジェット。行の「カートイン」を押すと「購入画面を開きますか？」の確認の通知が届き、通知をタップした時に店の購入画面が開く。
 struct FavoritesWidget: Widget {
     /// ウィジェットの構成 (種類の識別子・表示名・対応するサイズ)。
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: favoritesWidgetKind, provider: FavoritesTimelineProvider()) { favoritesTimelineEntry in
-            FavoritesWidgetView(favorites: favoritesTimelineEntry.favorites)
+            FavoritesWidgetView(entry: favoritesTimelineEntry)
                 .containerBackground(.background, for: .widget)
         }
         .configurationDisplayName("お気に入り")
-        .description("いつもの商品をホーム画面から買い直す")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .description("いつもの商品をホーム画面からカートイン")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
 /// ウィジェットの 1 回分の表示内容。
 struct FavoritesTimelineEntry: TimelineEntry {
-    /// この内容を表示し始める時刻。
+    /// この内容を表示し始める時刻。行の「そろそろ買う頃」は、この時刻でリマインドの日数が過ぎたかで決める。
     let date: Date
     /// 保存済みのお気に入りの並び。保存先を読めなかった時は nil。
     let favorites: [Favorite]?
+    /// 通知が許可されているか。許可されていない時は「カートイン」で確認の通知を出せないため、ボタンを出さない。
+    let isNotificationAuthorized: Bool
 }
 
-/// ウィジェットに表示内容を渡す。保存済みのお気に入りの今の並びを 1 件だけ返し、時刻での更新を予約しない (表示が変わるのは `saveFavorites(favorites:fileURL:)` が更新を頼んだ時)。
+/// ウィジェットに表示内容を渡す。保存済みのお気に入りの今の並びを、今と、リマインドの日数が過ぎる各時刻の分だけ返す。
+///
+/// 並びが変わった時の表示の更新は、`saveFavorites(favorites:fileURL:)` とアプリが前面に来た時の更新の依頼で行う。
 struct FavoritesTimelineProvider: TimelineProvider {
     /// 読み込み中に出す仮の表示内容を返す。お気に入りが無い時の表示を仮の表示にする。
     func placeholder(in _: Context) -> FavoritesTimelineEntry {
-        FavoritesTimelineEntry(date: .now, favorites: [])
+        FavoritesTimelineEntry(date: .now, favorites: [], isNotificationAuthorized: true)
     }
 
     /// ウィジェットの一覧などに出す表示内容を completion に渡す。
     func getSnapshot(in _: Context, completion: @escaping (FavoritesTimelineEntry) -> Void) {
-        completion(savedFavoritesTimelineEntry())
+        Task {
+            await completion(savedFavoritesTimelineEntries(now: .now)[0])
+        }
     }
 
     /// 表示内容の並びを completion に渡す。
     func getTimeline(in _: Context, completion: @escaping (Timeline<FavoritesTimelineEntry>) -> Void) {
-        completion(Timeline(entries: [savedFavoritesTimelineEntry()], policy: .never))
+        Task {
+            await completion(Timeline(entries: savedFavoritesTimelineEntries(now: .now), policy: .never))
+        }
     }
 
-    /// 保存先から今のお気に入りを読んだ表示内容を返す。保存先を得られない・読めない時は、お気に入りを nil にする。
-    private func savedFavoritesTimelineEntry() -> FavoritesTimelineEntry {
-        FavoritesTimelineEntry(date: .now, favorites: sharedFavoritesFileURL().flatMap { try? loadFavorites(fileURL: $0) })
+    /// 保存先から今のお気に入りを読み、通知の許可の状態と合わせた表示内容を、`favoritesWidgetTimelineDates(favorites:now:)` の時刻ごとに返す。先頭は `now` の表示内容。
+    ///
+    /// 保存先を得られない・読めない時は、お気に入りを nil にした `now` の表示内容 1 つを返す。
+    private func savedFavoritesTimelineEntries(now: Date) async -> [FavoritesTimelineEntry] {
+        let favorites = sharedFavoritesFileURL().flatMap { try? loadFavorites(fileURL: $0) }
+        // 仮の許可 (provisional) の通知はバナーを出さず、押した直後に確認を見られないため、許可 (authorized) の時だけ「カートイン」を出す。
+        let isNotificationAuthorized = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
+        return favoritesWidgetTimelineDates(favorites: favorites ?? [], now: now).map {
+            FavoritesTimelineEntry(date: $0, favorites: favorites, isNotificationAuthorized: isNotificationAuthorized)
+        }
     }
 }
 
-/// ウィジェットの見た目。お気に入りを大きさに入る数だけ並べる。お気に入りが無い時は登録を促し、保存先を読めなかった時はその旨を出す。
+/// ウィジェットの見た目。お気に入りを大きさに入る数だけ 1 件 1 行で並べる。お気に入りが無い時は登録を促し、保存先を読めなかった時はその旨を出す。
+///
+/// 行の「カートイン」以外の場所をタップした時は、アプリのお気に入りの一覧が開く (ウィジェットのタップの既定の動き)。
 struct FavoritesWidgetView: View {
-    /// 保存済みのお気に入りの並び。保存先を読めなかった時は nil。
-    let favorites: [Favorite]?
+    /// 表示する内容。
+    let entry: FavoritesTimelineEntry
 
     /// ウィジェットの大きさ。
     @Environment(\.widgetFamily) private var widgetFamily
 
     /// 大きさと、お気に入りの有無ごとの表示。
     var body: some View {
-        if let favorites {
+        if let favorites = entry.favorites {
             if favorites.isEmpty {
                 FavoritesWidgetMessage(
                     systemImageName: "cart",
@@ -64,38 +83,32 @@ struct FavoritesWidgetView: View {
                     description: "アプリで商品を登録すると\nここに並びます"
                 )
             } else if widgetFamily == .systemSmall {
-                ForEach(widgetFavorites(favorites: favorites, widgetFamily: widgetFamily)) { favorite in
-                    FavoriteWidgetTile(favorite: favorite, iconSideLength: 52, nameFont: .subheadline.bold()) {
-                        // 購入画面を開けないお気に入り (Amazon の商品) のタップはアプリの一覧を見せるため、購入画面が開くとは案内しない。
-                        if purchaseURL(favorite: favorite) != nil {
-                            Text("タップで購入画面")
-                                .font(.footnote.bold())
-                                .foregroundStyle(quickBuyAccentColor)
-                        }
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(widgetFavorites(favorites: favorites, widgetFamily: widgetFamily)) { favorite in
+                        FavoriteWidgetSmallRow(favorite: favorite, now: entry.date, isNotificationAuthorized: entry.isNotificationAuthorized)
                     }
-                    .widgetURL(favoriteTapURL(favoriteID: favorite.id))
                 }
             } else {
-                HStack(spacing: 10) {
-                    ForEach(widgetFavorites(favorites: favorites, widgetFamily: widgetFamily)) { favorite in
-                        Link(destination: favoriteTapURL(favoriteID: favorite.id)) {
-                            FavoriteWidgetTile(favorite: favorite, iconSideLength: 44, nameFont: .footnote.bold()) {
-                                Text("\(favorite.quantity) 個")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(10)
-                            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
+                VStack(alignment: .leading, spacing: widgetFamily == .systemLarge ? 10 : 8) {
+                    if widgetFamily == .systemLarge {
+                        Text("Quick Buy のお気に入り")
+                            .font(.footnote.weight(.heavy))
+                            .foregroundStyle(quickBuyAccentColor)
                     }
-                    // お気に入りが上限より少ない時も、1 件の幅を上限の数で割った幅のままにする。
-                    ForEach(
-                        min(favorites.count, favoritesWidgetCapacity(widgetFamily: widgetFamily)) ..< favoritesWidgetCapacity(widgetFamily: widgetFamily),
-                        id: \.self
-                    ) { _ in
-                        Color.clear
+                    ForEach(widgetFavorites(favorites: favorites, widgetFamily: widgetFamily)) { favorite in
+                        FavoriteWidgetRow(
+                            favorite: favorite,
+                            now: entry.date,
+                            isNotificationAuthorized: entry.isNotificationAuthorized,
+                            iconSideLength: widgetFamily == .systemLarge ? 48 : 40
+                        )
+                    }
+                    Spacer(minLength: 0)
+                    if !entry.isNotificationAuthorized {
+                        FavoritesWidgetNotificationRequiredText()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         } else {
             FavoritesWidgetMessage(systemImageName: "exclamationmark.triangle", title: "お気に入りを読み込めません", description: nil)
@@ -103,33 +116,131 @@ struct FavoritesWidgetView: View {
     }
 }
 
-/// ウィジェットのお気に入り 1 件の表示。買い物袋のアイコン・名前・その下の 1 行を、左上から縦に並べる。
-struct FavoriteWidgetTile<Caption: View>: View {
+/// 中サイズと大サイズのウィジェットの、お気に入り 1 件の行。左に買い物袋のアイコン、中に名前と「種類 ・ 個数」、右に「カートイン」を横に並べる。
+struct FavoriteWidgetRow: View {
     /// 表示するお気に入り。
     let favorite: Favorite
+    /// 表示している時刻。「そろそろ買う頃」を出すかを決める。
+    let now: Date
+    /// 通知が許可されているか。許可されていない時は「カートイン」を出さない。
+    let isNotificationAuthorized: Bool
     /// アイコンの枠の 1 辺の長さ。
     let iconSideLength: CGFloat
-    /// 名前の文字の大きさと太さ。
-    let nameFont: Font
-    /// 名前の下に出す 1 行 (個数や、タップで何が起きるかの案内)。
-    @ViewBuilder let caption: Caption
 
-    /// 上にアイコン、下に名前とその下の 1 行。
+    /// アイコン・名前と説明・「カートイン」。
+    var body: some View {
+        HStack(spacing: 10) {
+            FavoriteWidgetIcon(sideLength: iconSideLength)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(favorite.name)
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                FavoriteWidgetRowDetail(favorite: favorite, now: now)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            FavoriteWidgetCartInButton(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized)
+        }
+    }
+}
+
+/// 小サイズのウィジェットの、お気に入り 1 件の行。名前・「種類 ・ 個数」・「カートイン」を縦に並べる (横に並べるには幅が足りないため)。
+struct FavoriteWidgetSmallRow: View {
+    /// 表示するお気に入り。
+    let favorite: Favorite
+    /// 表示している時刻。「そろそろ買う頃」を出すかを決める。
+    let now: Date
+    /// 通知が許可されているか。許可されていない時は「カートイン」の代わりに、通知の許可が要ることを出す。
+    let isNotificationAuthorized: Bool
+
+    /// 名前と説明・「カートイン」(または通知の許可が要ること)。
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Image(systemName: "bag")
-                .font(.system(size: iconSideLength / 2))
-                .foregroundStyle(quickBuyAccentColor)
-                .frame(width: iconSideLength, height: iconSideLength)
-                .background(quickBuyAccentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            Spacer(minLength: 0)
             Text(favorite.name)
-                .font(nameFont)
-                .foregroundStyle(Color.primary)
+                .font(.subheadline.bold())
                 .lineLimit(2)
-            caption
+            FavoriteWidgetRowDetail(favorite: favorite, now: now)
+            Spacer(minLength: 0)
+            if isNotificationAuthorized {
+                FavoriteWidgetCartInButton(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                FavoritesWidgetNotificationRequiredText()
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// ウィジェットの行の、名前の下に出す「種類 ・ 個数」と、リマインドの日数が過ぎた時の「そろそろ買う頃」。
+struct FavoriteWidgetRowDetail: View {
+    /// 表示するお気に入り。
+    let favorite: Favorite
+    /// 表示している時刻。
+    let now: Date
+
+    /// 「種類 ・ 個数」と、日数が過ぎた時だけ「そろそろ買う頃」。
+    var body: some View {
+        Text(favoriteWidgetRowCaption(favorite: favorite))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: now) {
+            Text("そろそろ買う頃")
+                .font(.caption.bold())
+                .foregroundStyle(reminderDueColor)
+                .lineLimit(1)
+        }
+    }
+}
+
+/// ウィジェットの行の「カートイン」のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
+///
+/// 通知が許可されていない時と、購入画面の URL を組み立てられないお気に入り (Amazon の商品。開き方が決まるまで) では出さない。
+struct FavoriteWidgetCartInButton: View {
+    /// ボタンが指すお気に入り。
+    let favorite: Favorite
+    /// 通知が許可されているか。
+    let isNotificationAuthorized: Bool
+
+    /// 強調の色の地に白い文字の「カートイン」。
+    var body: some View {
+        if isNotificationAuthorized, purchaseURL(favorite: favorite) != nil {
+            Button(intent: CartInIntent(favoriteID: favorite.id)) {
+                Text("カートイン")
+                    .font(.footnote.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 36)
+                    .background(quickBuyAccentColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+/// 通知が許可されていない時に出す、「カートイン」には通知の許可が要ることの 1 行。
+struct FavoritesWidgetNotificationRequiredText: View {
+    /// 補足の色の小さい文字の 1 行。
+    var body: some View {
+        Text("カートインには通知の許可が要ります")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+    }
+}
+
+/// ウィジェットの行の左に出す買い物袋のアイコン。
+struct FavoriteWidgetIcon: View {
+    /// アイコンの枠の 1 辺の長さ。
+    let sideLength: CGFloat
+
+    /// 強調の色の薄い地に買い物袋。
+    var body: some View {
+        Image(systemName: "bag")
+            .font(.system(size: sideLength / 2))
+            .foregroundStyle(quickBuyAccentColor)
+            .frame(width: sideLength, height: sideLength)
+            .background(quickBuyAccentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

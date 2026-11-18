@@ -520,16 +520,16 @@ struct ReminderTests {
 
         #expect(content.title == "そろそろ買う頃です")
         #expect(content.body == "コーヒー豆 1\nタップすると購入画面が開きます")
-        #expect(reminderNotificationFavoriteID(userInfo: content.userInfo) == UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!)
+        #expect(favoriteNotificationFavoriteID(userInfo: content.userInfo) == UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!)
         #expect(content.userInfo.count == 1)
         #expect(!"\(content.title)\(content.subtitle)\(content.body)\(content.userInfo)".contains("mori-coffee.example"))
     }
 
     /// 付加情報が空・文字列が識別子の形でない・値が文字列でない時は nil を返す。
     @Test func 識別子の形でない通知の付加情報からは識別子を取り出さない() {
-        #expect(reminderNotificationFavoriteID(userInfo: [:]) == nil)
-        #expect(reminderNotificationFavoriteID(userInfo: ["favoriteID": "識別子ではない"]) == nil)
-        #expect(reminderNotificationFavoriteID(userInfo: ["favoriteID": 1]) == nil)
+        #expect(favoriteNotificationFavoriteID(userInfo: [:]) == nil)
+        #expect(favoriteNotificationFavoriteID(userInfo: ["favoriteID": "識別子ではない"]) == nil)
+        #expect(favoriteNotificationFavoriteID(userInfo: ["favoriteID": 1]) == nil)
     }
 
     /// 予約は、お気に入りの識別子を通知の識別子にし、設定した日数 (7 日 = 604800 秒) ごとに繰り返す。

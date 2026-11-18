@@ -17,7 +17,7 @@ func purchaseURL(favorite: Favorite) -> URL? {
     }
 }
 
-/// 指定した識別子の保存済みのお気に入りの購入画面を開く時に呼び、開く URL を返す。一覧の「買う」・リマインドの通知のタップ・ウィジェットのタップが使う。
+/// 指定した識別子の保存済みのお気に入りの購入画面を開く時に呼び、開く URL を返す。一覧の「買う」と、通知 (リマインドの通知・ウィジェットの「カートイン」の確認の通知) のタップが使う。
 ///
 /// リマインドを設定しているお気に入りでは、日数を数え始めた日時を `now` に書き換えて保存する (購入画面を開いた時刻から数え直す)。
 /// その識別子のお気に入りが保存されていない時と、購入画面の URL を組み立てられない時は、何も書かずに nil を返す (呼び出し側は購入画面を開かない)。
@@ -27,17 +27,4 @@ func purchaseURLForOpening(favoriteID: UUID, now: Date, fileURL: URL) throws -> 
     }
     try recountFavoriteReminder(id: favoriteID, now: now, fileURL: fileURL)
     return openingURL
-}
-
-/// ウィジェットのタップでアプリに渡された URL から、タップされたお気に入りの購入画面を開く時に呼び、開く URL を返す。
-///
-/// 渡された URL から読むのはお気に入りの識別子だけで、購入画面の URL は保存先にあるそのお気に入りから組み立てる (documents/adr/0003)。
-/// 一覧の「買う」と同じく、リマインドを設定しているお気に入りでは日数を数え始めた日時を `now` に書き換えて保存する (`purchaseURLForOpening(favoriteID:now:fileURL:)`)。
-/// `favoriteTapURL(favoriteID:)` の形でない URL、保存先に無い識別子、購入画面の URL を組み立てられないお気に入りでは、何も書かずに nil を返す。
-/// 保存先のファイルを読めない時はエラーを投げる。
-func tappedFavoritePurchaseURL(tapURL: URL, now: Date, fileURL: URL) throws -> URL? {
-    guard let favoriteID = tappedFavoriteID(tapURL: tapURL) else {
-        return nil
-    }
-    return try purchaseURLForOpening(favoriteID: favoriteID, now: now, fileURL: fileURL)
 }

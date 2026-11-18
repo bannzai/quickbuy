@@ -3,175 +3,103 @@ import Testing
 import WidgetKit
 @testable import QuickBuy
 
-/// ウィジェットに表示するお気に入りの選び方と、ウィジェットのタップで開く購入画面の URL を確かめる。
+/// ウィジェットに並べるお気に入りの選び方・行に出す説明・表示を切り替える時刻を確かめる。
 struct FavoritesWidgetTests {
-    /// テストごとに別の、まだ存在しない保存先のファイルの URL を返す。
-    private func temporaryFavoritesFileURL() -> URL {
-        FileManager.default.temporaryDirectory.appending(path: "favorites-\(UUID().uuidString).json")
-    }
-
     /// テストでリマインドの日数を数え始めた日時として使う、決まった日時 (2026-11-01 00:00:00 UTC)。
     private let countedFrom = Date(timeIntervalSince1970: 1_793_491_200)
-    /// テストでウィジェットをタップした時刻として使う、`countedFrom` の 40 日後。
-    private let tappedAt = Date(timeIntervalSince1970: 1_793_491_200 + 40 * 86400)
+    /// 1 日の秒数 (24 時間)。期待値を対象のコードの定数から作らないよう、テストの側に書いている。
+    private let daySeconds: TimeInterval = 86400
 
-    /// 名前・店のドメイン・商品バリアントの ID・個数を指定した Shopify の商品のお気に入りを返す。
-    private func favorite(name: String, shopDomain: String, variantID: String, quantity: Int) -> Favorite {
+    /// 名前・商品バリアントの名前・個数・リマインドを指定した Shopify の商品のお気に入りを返す。
+    private func favorite(name: String, variantName: String? = nil, quantity: Int = 1, reminder: Reminder? = nil) -> Favorite {
         Favorite(
             id: UUID(),
             name: name,
+            variantName: variantName,
             imageURL: nil,
             quantity: quantity,
-            product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: variantID)),
-            reminder: nil
+            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+            reminder: reminder
         )
     }
 
     /// 「洗剤」「電池」「水」「米」の順の 4 件のうち、先頭から `count` 件を返す。
     private func favorites(count: Int) -> [Favorite] {
-        ["洗剤", "電池", "水", "米"].prefix(count).map {
-            favorite(name: $0, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 1)
-        }
+        ["洗剤", "電池", "水", "米"].prefix(count).map { favorite(name: $0) }
     }
 
-    // MARK: - 表示する件数
+    // MARK: - 並べる行の数
 
-    /// 小サイズは先頭の 1 件、中サイズは先頭から 3 件までを、保存した並びのまま表示する。保存が上限より少ない時はある分だけ、0 件の時は何も表示しない。
+    /// 小サイズは先頭の 1 行、中サイズは先頭から 2 行、大サイズは先頭から 3 行までを、保存した並びのまま並べる。
+    /// 保存が上限より少ない時はある分だけ、0 件の時は何も並べない。
     @Test(arguments: [
         (WidgetFamily.systemSmall, 0, [String]()),
         (WidgetFamily.systemSmall, 1, ["洗剤"]),
         (WidgetFamily.systemSmall, 4, ["洗剤"]),
         (WidgetFamily.systemMedium, 0, [String]()),
+        (WidgetFamily.systemMedium, 1, ["洗剤"]),
         (WidgetFamily.systemMedium, 2, ["洗剤", "電池"]),
-        (WidgetFamily.systemMedium, 3, ["洗剤", "電池", "水"]),
-        (WidgetFamily.systemMedium, 4, ["洗剤", "電池", "水"]),
+        (WidgetFamily.systemMedium, 3, ["洗剤", "電池"]),
+        (WidgetFamily.systemLarge, 0, [String]()),
+        (WidgetFamily.systemLarge, 2, ["洗剤", "電池"]),
+        (WidgetFamily.systemLarge, 3, ["洗剤", "電池", "水"]),
+        (WidgetFamily.systemLarge, 4, ["洗剤", "電池", "水"]),
     ])
-    func ウィジェットの大きさごとに先頭から表示する(widgetFamily: WidgetFamily, savedCount: Int, expectedNames: [String]) {
+    func ウィジェットの大きさごとに先頭から並べる(widgetFamily: WidgetFamily, savedCount: Int, expectedNames: [String]) {
         #expect(widgetFavorites(favorites: favorites(count: savedCount), widgetFamily: widgetFamily).map(\.name) == expectedNames)
     }
 
-    /// ウィジェットが対応していない大サイズには、お気に入りを表示しない。
-    @Test func 対応していない大きさには表示しない() {
-        #expect(widgetFavorites(favorites: favorites(count: 4), widgetFamily: .systemLarge) == [])
+    /// ウィジェットが対応していない特大サイズには、お気に入りを並べない。
+    @Test func 対応していない大きさには並べない() {
+        #expect(widgetFavorites(favorites: favorites(count: 4), widgetFamily: .systemExtraLarge) == [])
     }
 
-    // MARK: - タップで開く URL
+    // MARK: - 行の説明
 
-    /// 2 件を保存した状態で、それぞれのタップが、タップした方の店のドメイン・商品バリアントの ID・個数の購入画面の URL になる。
-    @Test func タップしたお気に入りの購入画面のURLになる() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let coffeeFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        let soapFavorite = favorite(name: "せっけん", shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 5)
-        try saveFavorites(favorites: [coffeeFavorite, soapFavorite], fileURL: fileURL)
+    /// 商品バリアントの名前を持つお気に入りの行は「種類 ・ N 個」(画面の見本 WidgetPush.dc.html の行)。
+    @Test func 種類の名前を持つ行は種類と個数() {
+        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "コーヒー豆", variantName: "200g / 豆のまま", quantity: 2)) == "200g / 豆のまま ・ 2 個")
+    }
+
+    /// 商品バリアントの名前を持たないお気に入りの行は「N 個」だけで、前に区切りを付けない。
+    @Test func 種類の名前の無い行は個数だけ() {
+        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1)) == "1 個")
+    }
+
+    // MARK: - 表示を切り替える時刻
+
+    /// 先頭は今の時刻で、続けてまだ日数が過ぎていないリマインドの、日数が過ぎる時刻を早い順に並べる。
+    /// 既に過ぎたリマインドと、リマインドの無いお気に入りの時刻は入れない。同じ時刻は 1 つにまとめる。
+    @Test func 今とリマインドの日数が過ぎる時刻を早い順に返す() {
+        let now = countedFrom.addingTimeInterval(10 * daySeconds)
         #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: coffeeFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
+            favoritesWidgetTimelineDates(
+                favorites: [
+                    favorite(name: "30日ごと", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)),
+                    favorite(name: "7日ごと (過ぎた)", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)),
+                    favorite(name: "14日ごと", reminder: Reminder(intervalDays: 14, countedFrom: countedFrom)),
+                    favorite(name: "知らせなし"),
+                    favorite(name: "30日ごと (同じ時刻)", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)),
+                ],
+                now: now
+            ) == [
+                now,
+                countedFrom.addingTimeInterval(14 * daySeconds),
+                countedFrom.addingTimeInterval(30 * daySeconds),
+            ]
         )
+    }
+
+    /// ちょうど今リマインドの日数が過ぎる時刻は、今の時刻と重ねて入れない (今の表示内容で既に「そろそろ買う頃」を出すため)。
+    @Test func ちょうど今過ぎる時刻は重ねて入れない() {
+        let now = countedFrom.addingTimeInterval(30 * daySeconds)
         #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: soapFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
-                == "https://sukoyaka-soap.example/cart/70881382:5"
+            favoritesWidgetTimelineDates(favorites: [favorite(name: "30日ごと", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))], now: now) == [now]
         )
     }
 
-    /// タップで渡る URL が載せるのはお気に入りの識別子だけで、形は `quickbuy://favorite/{識別子}`。
-    @Test func タップで渡るURLはお気に入りの識別子だけを載せる() throws {
-        let favoriteID = try #require(UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"))
-        #expect(favoriteTapURL(favoriteID: favoriteID).absoluteString == "quickbuy://favorite/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
-        #expect(tappedFavoriteID(tapURL: favoriteTapURL(favoriteID: favoriteID)) == favoriteID)
-    }
-
-    /// 保存済みのお気に入りの識別子を含んでいても、決まった形と違う URL では購入画面を開かない。外から渡された店の URL もそのまま開かない。
-    @Test(arguments: [
-        "https://favorite/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1",
-        "quickbuy://other/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1",
-        "quickbuy://favorite/extra/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1",
-        "quickbuy://favorite/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1?url=https://evil.example/cart/1:1",
-        "quickbuy://favorite/5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1#fragment",
-        "quickbuy://favorite/not-a-uuid",
-        "quickbuy://favorite/",
-        "https://evil.example/cart/70881412:2",
-    ])
-    func 決まった形と違うURLでは購入画面を開かない(tapURLText: String) throws {
-        let fileURL = temporaryFavoritesFileURL()
-        try saveFavorites(
-            favorites: [
-                Favorite(
-                    id: #require(UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")),
-                    name: "コーヒー豆",
-                    imageURL: nil,
-                    quantity: 2,
-                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
-                    reminder: nil
-                ),
-            ],
-            fileURL: fileURL
-        )
-        #expect(try tappedFavoritePurchaseURL(tapURL: #require(URL(string: tapURLText)), now: tappedAt, fileURL: fileURL) == nil)
-    }
-
-    /// 削除した後のお気に入りのタップ (ウィジェットの表示が更新される前のタップ) では、購入画面を開かない。
-    @Test func 保存先に無いお気に入りのタップでは購入画面を開かない() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let deletedFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        try saveFavorites(
-            favorites: [deletedFavorite, favorite(name: "せっけん", shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)],
-            fileURL: fileURL
-        )
-        #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
-        )
-        try deleteFavorite(id: deletedFavorite.id, fileURL: fileURL)
-        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: deletedFavorite.id), now: tappedAt, fileURL: fileURL) == nil)
-    }
-
-    /// 購入画面の URL を組み立てない Amazon の商品のお気に入りのタップでは、購入画面を開かない。
-    @Test func Amazonの商品のお気に入りのタップでは購入画面を開かない() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-        try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
-        #expect(try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: amazonFavorite.id), now: tappedAt, fileURL: fileURL) == nil)
-    }
-
-    /// タップしたお気に入りだけを、タップした時刻から数え直す。ほかのお気に入りのリマインドは変えない。
-    @Test func タップしたお気に入りのリマインドをタップした時刻から数え直す() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        var tappedFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        tappedFavorite.reminder = Reminder(intervalDays: 30, countedFrom: countedFrom)
-        var otherFavorite = favorite(name: "せっけん", shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
-        otherFavorite.reminder = Reminder(intervalDays: 7, countedFrom: countedFrom)
-        try saveFavorites(favorites: [tappedFavorite, otherFavorite], fileURL: fileURL)
-
-        #expect(
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: tappedFavorite.id), now: tappedAt, fileURL: fileURL)?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
-        )
-        #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [Reminder(intervalDays: 30, countedFrom: tappedAt), otherFavorite.reminder])
-    }
-
-    /// 決まった形と違う URL では、URL が含む識別子のお気に入りのリマインドを数え直さない。
-    @Test func 決まった形と違うURLではリマインドを数え直さない() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        var savedFavorite = favorite(name: "コーヒー豆", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        savedFavorite.reminder = Reminder(intervalDays: 30, countedFrom: countedFrom)
-        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
-
-        #expect(
-            try tappedFavoritePurchaseURL(
-                tapURL: #require(URL(string: "quickbuy://favorite/\(savedFavorite.id.uuidString)?url=https://evil.example/cart/1:1")),
-                now: tappedAt,
-                fileURL: fileURL
-            ) == nil
-        )
-        #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
-    }
-
-    /// 保存先のファイルを読めない時は、購入画面の URL を返さずエラーを投げる。
-    @Test func 保存先を読めない時はエラーを投げる() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        try Data("壊れたファイル".utf8).write(to: fileURL)
-        #expect(throws: (any Error).self) {
-            try tappedFavoritePurchaseURL(tapURL: favoriteTapURL(favoriteID: UUID()), now: tappedAt, fileURL: fileURL)
-        }
+    /// お気に入りが無い時は今の時刻だけを返す。
+    @Test func お気に入りが無い時は今だけ() {
+        #expect(favoritesWidgetTimelineDates(favorites: [], now: countedFrom) == [countedFrom])
     }
 }
