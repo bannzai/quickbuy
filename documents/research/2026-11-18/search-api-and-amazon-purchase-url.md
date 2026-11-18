@@ -14,7 +14,7 @@ https://github.com/bannzai/quickbuy/issues/27 の調査。2026-11-17 の調査 (
 | 調べること | 結論 |
 | --- | --- |
 | Shopify の商品を検索する API | Shopify の Catalog を使う。店をまたぐ検索は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`)、1 つの店の中の検索は店ごとの Storefront Catalog (`https://{店のドメイン}/api/ucp/mcp`)。どちらも鍵なしで呼べ、商品バリアントの ID・名前・画像・価格・店のドメインが返る (実測)。日本の店の商品も出る (実測) |
-| Amazon の商品を検索する API | Creators API の SearchItems (Product Advertising API 5 は廃止)。使うには、アソシエイトのアカウントの最終の承認・過去 30 日に 10 件の適格販売・Amazon が承認したモバイルアプリ・鍵を置く自分のサーバー、の 4 つが要る。公開の前にはどれも満たせないため、最初の版では使えない |
+| Amazon の商品を検索する API | Creators API の SearchItems (Product Advertising API 5 は廃止)。使うには、アソシエイトのアカウントの最終の承認・過去 30 日に 10 件の適格販売・Amazon が承認したモバイルアプリ・鍵を置く自分のサーバー、の 4 つが要る。アプリの審査は公開の後で、最初の版はサーバーを持たないため、最初の版では使えない (アカウントの承認と適格販売の件数は bannzai のアカウントの状態に依り、未確認) |
 | Amazon のカートに入れる URL | 現行の公式文書に無い (2009 年版の文書だけが残る)。アソシエイトの ID を付けないと空のカートへ送られる (2026-11-15 の bannzai の実測)。最初の版では使わず、商品ページ `https://www.amazon.co.jp/dp/{ASIN}` を開く |
 | Amazon アソシエイトのアプリの承認 | ストアで公開したアプリを Amazon が審査する。ヘルプに「ショッピングや購買機能がメインとなっているアプリは、参加が承認されない可能性があります」とあり、検索した Amazon の商品を画像つきで並べる画面は、条件「Amazonのショッピングアプリの機能をエミュレート、偽装またはその機能と競合しないこと」に当たる読みが強い。「カートイン」の確認の後に外部のブラウザか Amazon のアプリで開く形は、開き方の禁止事項には当たらない読み |
 | 鍵をアプリに埋め込めるか | Amazon は埋め込めない (文書に「Never expose your clientid and clientsecret in client-side code」)。Shopify の client secret も埋め込めない読みだが、Catalog には鍵なしの入口があり、最初の版はサーバーなしで検索できる |
@@ -145,7 +145,7 @@ Partner の組織では本人確認を求められることがある (出典: ht
 
 ### 使わない方法
 
-- 店の予測検索 (`/search/suggest.json`。出典: https://shopify.dev/docs/api/ajax/reference/predictive-search ): 「Predictive search is supported when the customer's online store session (`buyer locale`) is in one of the following supported languages」の一覧に日本語が無い。HTTP 417 は「**Expectation failed** - The buyer isn't using one of the supported languages.」。実測でも、chimney-coffee.com は `Accept-Language` の有無にかかわらず HTTP 417 (`{"status":417,"message":"Expectation Failed","description":"Unsupported buyer locale"}`) を返した。日本語の店では使えない
+- 店の予測検索 (`/search/suggest.json`。出典: https://shopify.dev/docs/api/ajax/reference/predictive-search ): 「Predictive search is supported when the customer's online store session (`buyer locale`) is in one of the following supported languages」の一覧に日本語が無い。HTTP 417 は「**Expectation failed** - The buyer isn't using one of the supported languages.」。実測でも、chimney-coffee.com は `Accept-Language` の有無にかかわらず HTTP 417 (`{"status":417,"message":"Expectation Failed","description":"Unsupported buyer locale"}`) を返した。買い手の言語が日本語の店では使えない
 - 店の `/products.json`: 実測で chimney-coffee.com は商品の ID・名前・商品バリアントの ID・価格・画像を返した。検索語で絞る引数があるかと、第三者が使う時の条件は、この調査では確かめていない。Catalog で足りるため使わない
 - Global Catalog の Shopify の外の店の商品 (出典: https://shopify.dev/docs/agents/catalog/global-catalog-extension ): 既定では返らず、「External offers currently cover merchants selling to the United States.」
 - 個人に合わせた検索 (Shop の利用者のログインが要る)
@@ -163,7 +163,7 @@ Partner の組織では本人確認を求められることがある (出典: ht
 ### 未確認の点
 
 - 鍵なしの上限の数 (文書に無い)
-- 自分で置いたプロフィール (GitHub Pages か GitHub raw) で Catalog が通るか → 下の「4. 鍵をアプリに埋め込めるか」の実測
+- 自分で置いたプロフィール (GitHub Pages か GitHub raw) で Catalog が通るか (下の「4. 鍵をアプリに埋め込めるか」の「未確認の点」)
 - 鍵ありで返る値が鍵なしと同じか (流入元の引数が `shcgid`・`shclid` になるか)。鍵が無いので確かめていない
 - 利用者が保存した名前が「Caching limits」の対象か、決まった形で組み立てた URL が「Keep attribution intact」を満たすか (Shopify の判断)
 - 従来の cart permalink (`/cart/`) を、店の表のドメインと myshopify.com のドメインのどちらで開くべきか。店の入口が返した `checkout_url` は myshopify.com だった
@@ -241,7 +241,7 @@ Creators API の文書 ( https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/l
 ### この調査の読み
 
 - 検索して名前・画像・価格・ASIN を得る公式の API は Creators API の SearchItems で、4 つの値は文書の見本の応答にある
-- 最初の版の公開の時点では、Creators API を使えない。条件が 4 つ重なる: (1) アソシエイトのアカウントの最終の承認 (サインアップから 180 日以内に 3 回以上の適格販売)、(2) 過去 30 日に 10 件の適格販売 (30 日続けて売上が無いと失う)、(3) Amazon が承認したモバイルアプリ (審査はストアで公開した後)、(4) 鍵を置く自分のサーバー (下の「4.」)。運営者本人と近しい人の購入は適格販売に数えられない (`documents/research/2026-11-17/monetization.md`)
+- 最初の版の公開の時点では、Creators API を使えない。条件が 4 つ重なる: (1) アソシエイトのアカウントの最終の承認 (サインアップから 180 日以内に 3 回以上の適格販売)、(2) 過去 30 日に 10 件の適格販売 (30 日続けて売上が無いと失う)、(3) Amazon が承認したモバイルアプリ (審査はストアで公開した後)、(4) 鍵を置く自分のサーバー (下の「4.」)。(1) と (2) は bannzai のアカウントの状態に依る (未確認)。(3) と (4) は、公開の前には満たせない。運営者本人と近しい人の購入は適格販売に数えられない (`documents/research/2026-11-17/monetization.md`)
 - 上限はアソシエイトのアカウントごとで、最初の 30 日は 1 秒に 1 回・1 日に 8,640 回。アプリの全部の利用者の検索がこの枠を分け合う。上限は Creators API 経由の売上に応じて増える
 - 承認されたアプリでも、アプリは Amazon が返した名前・画像・価格を保存もキャッシュもできない。端末に保存できるのは ASIN と個数と、利用者が自分で付けた名前。お気に入りの型 (`Shared/Favorite.swift`) の `imageURL` に Amazon の画像の URL を保存し続ける形は、この条に触れる
 - カートに入れる URL は、最初の版では使わない。理由は 3 つ: アソシエイトの ID が無いと空のカートへ送られ、ID を付けたリンクは承認の前のアプリに置けない / 現行の公式文書に無く、予告なく止まりうる / 承認の後でも、Creators API か Amazon のリンクツールが出したリンクでないと紹介料の対象から外れる (2(h)) ため、自分で組み立てたこの URL は対象から外れる読みになる
@@ -340,3 +340,115 @@ Creators API の文書 ( https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/l
 - アソシエイトの ID の無いリンクを、承認の無いアプリに置いてよいか
 - ウィジェット・通知から開く形が、承認されたアプリの中のリンクとして扱われるか (`documents/research/2026-11-17/monetization.md` にも未確認として残っている)
 - お気に入りに保存して繰り返し開く形が「ブックマークの奨励」に当たるか
+
+## 4. 鍵をアプリに埋め込めるか
+
+最初の版は自分のサーバーを持たない (`documents/adr/0001-device-local-storage-and-no-backend-for-first-version.md`)。`documents/DIRECTION.md`「費用」の固定費の月額の上限は 0 USD で、サーバーを持つ時の上限は bannzai が決める。
+
+### Amazon (原文)
+
+- Creators API の文書 ( https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/get-started/using-curl ): 「Security: Never expose your clientid and clientsecret in client-side code or public repositories」
+- 「アソシエイト・プログラムIPライセンスおよび利用要件」( https://affiliate.amazon.co.jp/help/operating/policies ): 「秘密キーであるアカウント識別子は、乙自身の個人利用のためものであり、乙は、これらの秘密およびセキュリティを維持しなければなりません。乙は、乙の秘密キーを、他の個人または事業体に販売、譲渡、サブライセンスまたは開示してはなりません。」
+- 同じライセンス: 「乙がCreators APIもしくはPA APIにリクエスト送信を行うアプリケーションを作成し公開した場合、上記の制限は、エンドユーザがインストールした当該アプリケーションの各コピーにも適用されます。」
+
+### Shopify (原文)
+
+- client secret で得るトークンの段階 (出典: https://shopify.dev/docs/apps/build/dev-dashboard/catalogs ): 「Your agents authenticate to the Catalogs API with the **Client ID** and **Client secret** from an **API key** created here, which they exchange for an access token.」
+- API の規約 ( https://www.shopify.com/legal/api-terms ) の 2.1: 「(A) you must keep the API Credentials and all login information for your Shopify Account and Partner Account secure, (B) you may not share the API Credentials with any third party other than a third party that is a service provider acting on your behalf」
+- 鍵なしの段階 (出典: https://shopify.dev/docs/agents/profiles/auth-and-rate-limiting ): 「No credentials or signatures provided. Send the request without an `Authorization` header or signature headers.」「Access catalog and cart tools at the lowest rate limits.」
+- 署名の段階 (同じページ): 「Agents that haven't created an API key but have implemented HTTP signatures per the UCP specification.」公開鍵を自分のプロフィールに置き、秘密鍵で署名する
+- 鍵ありで店ごとの入口を呼ぶ時 (同じページ): `Shopify-Buyer-IP` (購入者の IP アドレス) のヘッダーが要る。「Global Catalog requests don't need the header.」
+
+### この調査の読み
+
+- Amazon の鍵はアプリに埋め込めない。文書が名指しで禁じている。Creators API を使うには、鍵を置いてアプリの代わりに呼ぶ自分のサーバーが要る
+- Shopify の client secret もアプリに埋め込めない。配ったアプリからは値を取り出せるので、規約の「secure に保つ」「第三者に共有しない」に反する。「アプリに埋め込むな」と名指しした文は、読んだ Shopify の文書に見つからなかった。企画 ( https://github.com/bannzai/IdeaMemo/issues/398 ) も「client secret が要るため、発行は自分のサーバーで行う」としている。署名の段階も、署名の秘密鍵をアプリに持つことになり同じ
+- Shopify は、鍵なしの入口 (プロフィールの URL だけ) があるので、サーバーなしで検索できる。プロフィールは静的な JSON で、公開の URL に置けば足りる (上の「1.」の「エージェントのプロフィール」)。Quick Buy は `docs/` を GitHub Pages で公開する予定なので、そこに置ける。Catalog に要る宣言だけを残した見本を `documents/research/2026-11-18/agent-profile.sample.json` に置いた (Shopify の見本から、検索・ID からの引き直し・Shopify の拡張 2 つ、の 4 つの宣言を残したもの)
+- サーバーを持った後 (`documents/DIRECTION.md`「その後」の「自分のサーバーを経由する URL」の時) は、Shopify を鍵ありへ移せる。その時、Global Catalog の 1 秒 5 回の枠をアプリの全部の利用者で分け合う。店ごとの入口を鍵ありで呼ぶなら、利用者の IP アドレスを自分のサーバーが受けて Shopify に渡すことになり、個人情報を扱う
+- まとめ: 最初の版は、Shopify の検索をサーバーなしで作れる。Amazon の検索は、サーバーが無い間は作れない
+
+### 未確認の点
+
+- 自分で置いたプロフィールで Catalog が通るか。今回の実測は全部 Shopify の見本のプロフィールで行った。`agent-profile.sample.json` の宣言で足りるかも確かめていない。実装の issue で、アプリのプロフィールを置いた時に最初に確かめる
+- 鍵なしの上限の数と、利用者が増えた時に HTTP 429 がどの程度出るか
+
+## 5. トップページに並べる商品の候補
+
+2026-11-18 のモック (`documents/design/mock-2026-11-18/project/Home.dc.html`) のトップページは、検索窓の下に「人気の商品」の見出しで、店のドメイン・名前・価格・「お気に入り追加」のカードを並べ、Amazon の商品のカードも置いている。
+
+| 候補 | 何を出すか | 要るもの | 最初の版 (サーバーなし・鍵なし) で出せるか |
+| --- | --- | --- | --- |
+| 買い直す物の検索語 | 「コーヒー豆」「洗剤」のような語を並べ、押すとその語で検索する。語の出どころは、企画のコメントの「定期購入の可能性がある日本の商品 50 項目」( https://github.com/bannzai/IdeaMemo/issues/398#issuecomment-6889826908 ) | Catalog の `search_catalog` だけ | 出せる |
+| 選んだ店の商品 | 店を決めて、その店の商品を並べる | Global Catalog の `search_catalog` を検索語なしで `filters.shops` (店の ID) つきで呼ぶ。アプリに店の ID の一覧を持つ | 出せる。下の実測のとおり、返るのは見本で、人気の順とは書かれていない |
+| 決まった検索語の結果 | アプリが決めた語 (例: 「コーヒー豆」) の検索の結果を、開いた時に並べる | Catalog の `search_catalog` | 出せる。並びは Shopify が決め、定期購入の商品も混ざる |
+| 利用者が前に検索した語 | 端末に保存した検索語を並べる | 端末内の保存だけ。Catalog が返した名前と画像は 24 時間を超えて持てない (上の「1.」) ので、保存するのは語 | 出せる |
+| Amazon の商品 | Amazon の検索の結果や売れ筋 | Creators API (`sortBy` に `Featured`、`browseNodeId` で分類、`browseNodeInfo.browseNodes.salesRank` で順位) と、その条件 (上の「2.」) | 出せない |
+| 相性の良い商品の一覧・店の表示枠 | Quick Buy に合う店が登録した商品 | 店向けの Shopify アプリと自分のサーバー (`documents/DIRECTION.md`「その後」)。広告であることの表示 | 出せない |
+| 多くの利用者がお気に入りにした商品 | お気に入りに入れられた回数の順 | 回数を集める自分のサーバー | 出せない |
+
+実測:
+
+- Global Catalog の `search_catalog` を、検索語なしで `filters.ships_to` と `filters.ships_from` だけで呼ぶと、JSON-RPC のエラー `-32602`「Browsing without a query requires a bounded scope: pass at least one shop in 'filters.shops'.」(`data.code` は `browse_scope_required`) が返った。検索語なしで店をまたいだ一覧は取れない
+- 検索語なしで `filters.shops` に `gid://shopify/Shop/58016923826` (chimney-coffee.com) を入れて呼ぶと、`success` で 5 件 (`total_count` は 7) が返り、`messages` に「Without a query, results are a sample of the products matching the filters and may not include all of them.」(`code` は `browse_partial`) が付いた。5 件のうち 2 件は定期購入の商品だった
+- Catalog の文書 ( https://shopify.dev/docs/agents/catalog ・ https://shopify.dev/docs/agents/catalog/global-catalog ・ https://shopify.dev/docs/agents/catalog/storefront-catalog ・ https://shopify.dev/docs/apps/build/dev-dashboard/catalogs ) に、並びの順を指定する引数と、人気や売れ筋の順を返す tool は見つからなかった
+
+### この調査の読み
+
+- 「人気の商品」の見出しは、最初の版では裏付けが無い。人気の順を返す API が Shopify に無く、自分で数える手段 (サーバー) も無い。見出しを変えるか、並べる物を変える
+- 最初の版で出せて、検索への入口にもなるのは「買い直す物の検索語」。画像つきの商品を並べる (`documents/DIRECTION.md`「デザインの方向」の 2026-11-18 の bannzai の返答) には、「選んだ店の商品」か「決まった検索語の結果」を合わせる
+- Amazon の商品のカードは、最初の版のトップページに出せない (上の「2.」「3.」)
+- どれを並べるか、「選んだ店の商品」でどの店を選ぶかは、トップページの実装の issue で決める
+
+### 未確認の点
+
+- 検索語なしで返る見本が、どの順で選ばれるか
+- Dev Dashboard で保存した検索の条件 (Saved Catalogs。`catalog.catalog_id` で使う) を、鍵なしで使えるか。使えれば、店の一覧をアプリの更新なしに変えられる
+
+## bannzai が行う作業
+
+鍵の発行・アカウントの確認・申請・問い合わせは bannzai が行う (`documents/DIRECTION.md`「agent に任せること」)。
+
+公開の前:
+
+1. Amazon アソシエイトのアカウントの状態を見る。アソシエイト・セントラル ( https://affiliate.amazon.co.jp/home ) にログインし、アカウントが最終の承認を受けているかと、過去 30 日の適格販売の件数を見る (どの画面に出るかは、ログインが要るので確かめていない)。Creators API を使える時期と、下の問い合わせの前提が決まる
+2. Amazon に問い合わせる。https://affiliate.amazon.co.jp/contact (Creators API の文書によるとログインは必須ではなく、件名で「Creators API」を選べる。出典: https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/contact-us )。聞くこと:
+   - お気に入りにした商品を「カートイン」の確認の後に Amazon で開く、買い直しが主な機能のアプリが、承認モバイル・アプリになり得るか。Amazon の商品を検索して画像と価格つきで並べる画面がある場合と無い場合のそれぞれ
+   - 承認の前のアプリに、アソシエイトの ID を付けない商品ページへのリンク (`https://www.amazon.co.jp/dp/{ASIN}`) を置いてよいか
+   - 承認されたアプリで、自分で組み立てた `https://www.amazon.co.jp/dp/{ASIN}?tag={アソシエイトの ID}` の形のリンクが紹介料の対象になるか。カートに入れる URL (`/gp/aws/cart/add.html`) を使ってよいか
+   - ホーム画面のウィジェットと通知から開く形が、承認されたアプリの中のリンクとして扱われるか
+
+公開の後:
+
+3. アプリの承認を申請する。アソシエイト・セントラル ( https://affiliate.amazon.co.jp/home ) の「アカウント管理」の「ウェブサイトとモバイルアプリの変更」から、App Store の URL を追加する (手順の出典: https://affiliate.amazon.co.jp/help/node/topic/GHBY6W8UPTEFD3ZX 。画面の URL はログインが要るので確かめていない)。一度却下された申請は再び審査されないので、2 の答えを得てから申請する
+4. Creators API の鍵を発行する (承認と、過去 30 日に 10 件の適格販売の後。自分のサーバーを持つ時)。アソシエイト・セントラル ( https://affiliate.amazon.co.jp/home ) にログインし、「Tools」→「Creators API」→「Create Application」で、Credential ID と Secret を得る。https://affiliate.amazon.co.jp/creatorsapi は、未ログインで開くと `https://www.amazon.co.jp/ax/claim` へ送られ、その先は確かめていない (手順の出典: https://affiliate.amazon.co.jp/creatorsapi/docs/en-us/onboarding/register-for-creators-api )
+
+Shopify:
+
+5. 最初の版では、鍵の発行は要らない (鍵なしで呼ぶ)。自分のサーバーを持つ時か、鍵なしの上限に当たった時に、https://dev.shopify.com/dashboard の「Catalogs」→「Get an API key」で client ID と client secret を発行する。Partner の組織では本人確認 (「Verify to unlock」) を求められることがある (手順の出典: https://shopify.dev/docs/agents/get-started/authentication ・ https://shopify.dev/docs/apps/build/dev-dashboard/catalogs )
+
+## 実装の issue に渡す点
+
+Shopify の検索:
+
+- 入口は Global Catalog (`https://catalog.shopify.com/api/ucp/mcp`) と、店ごとの入口 (`https://{店のドメイン}/api/ucp/mcp`)。鍵なしで、リクエストごとにプロフィールの URL を入れる。最初に、自分で置いたプロフィールで通ることを確かめる
+- 実測で通った引数: `filters.ships_to.country` = `JP`、`context` = `{"address_country":"JP","language":"ja","currency":"JPY"}`。日本の店に絞る時は `filters.ships_from` = `[{"country":"JP"}]`
+- 利用者に見せる店のドメインは `variants[].seller.url` のドメイン。価格は通貨の最小の単位
+- HTTP 429 の時は `Retry-After` を読む
+- 定期購入が必須の商品は購入画面を開けず、応答からは見分けられなかった
+- お気に入りに、Catalog が返した名前・画像の URL・価格を 24 時間 (価格は 10 分) を超えて持たない。今の型 (`Shared/Favorite.swift`・`documents/data-structure/favorite-2026-11-17.html`) は名前と画像の URL を保存するので、表示する時に `lookup_catalog` で取り直す形にするか、型を見直す。ウィジェットに画像を出す時も同じ
+- Catalog が返した `checkout_url` と、決まった形で組み立てる cart permalink の関係 (上の「1.」の「この調査の読み」)
+
+Amazon (最初の版):
+
+- アプリ内の検索と、Amazon が持つ名前・画像・価格の表示は入れない
+- お気に入りの追加は、商品ページの URL を貼り付けるか共有メニューから渡す形だけ。URL から ASIN を取り出し、名前は利用者が入れる。端末に保存するのは ASIN・個数・利用者が付けた名前
+- 「カートイン」の確認の後に開くのは `https://www.amazon.co.jp/dp/{ASIN}`。アソシエイトの ID は付けない。アプリの中の WebView とアプリの中のブラウザで開かず、アプリの外 (Safari か Amazon のアプリ) で開く。組み立ての関数とテストは `.claude/rules/purchase-url.md` に従う
+- 商品ページの URL から ASIN を取り出せる形 (`/dp/{ASIN}` 以外の形・短い URL) は、この調査では確かめていない
+- 商品ページの URL で個数を渡す方法は、この調査では確かめていない (個数の引数 `Quantity.1` があるのは、カートに入れる URL)。渡せなければ、Amazon では個数を利用者が Amazon の画面で選ぶことになる
+- Amazon では、開いた時に商品はカートに入っていない。利用者が Amazon の商品ページで「カートに入れる」を押す。Shopify の店 (商品がカートに入った状態の購入画面が開く) と動きが違うので、Amazon のお気に入りのボタンの文言を「カートイン」のままにするかを、実装の issue で決める
+- 上の「bannzai が行う作業」の 2 の答えで、承認の前のアプリにリンクを置けないと分かった時は、Amazon を最初の版に入れられない。入れる時期は bannzai が決め直す
+
+Amazon (承認の後):
+
+- アソシエイトの ID を付ける。設定画面の「アフィリエイトのリンクを含むことの表示」と合わせる
+- Creators API を入れる時に、返された `detailPageURL` を変えずに開く形と ADR 0003 の扱い、Amazon の商品と Shopify の店の商品を分けて並べること、価格の日時の注記と Amazon が提供したコンテンツであることの文言、を決める
