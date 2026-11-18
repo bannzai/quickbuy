@@ -2,8 +2,8 @@ import Foundation
 
 /// Shopify の店で、商品がカートに入った状態の購入画面を開く URL (cart permalink) の 1 商品分。
 struct ShopifyCartLine: Equatable {
-    /// 商品バリアントの ID。
-    let variantID: UInt64
+    /// 商品バリアントの ID。数字だけの文字列 (`ShopifyProduct.variantID` と同じ形)。
+    let variantID: String
     /// 個数。1 以上。
     let quantity: Int
 }
@@ -13,12 +13,22 @@ struct ShopifyCartLine: Equatable {
 /// URL の形式の出典: https://shopify.dev/docs/apps/build/checkout/create-cart-permalinks
 /// 外から渡された URL をそのまま開かず、決まった形だけを組み立てる (URL に入るのは店のドメイン・商品バリアントの ID・個数だけ)。
 /// 店のドメインは形だけを検査し、どの店かは見ない。渡してよいのは、お気に入りの登録の画面で利用者が確かめて保存したドメインだけ (documents/adr/0003)。
-/// 店のドメインがホスト名の形でない時、商品が空の時、個数が 1 未満の商品がある時は nil を返す。
+/// 店のドメインがホスト名の形でない時、商品が空の時、個数が 1 未満の商品がある時、商品バリアントの ID が ASCII の数字だけでない (空文字を含む) 商品がある時は nil を返す。
 func shopifyCartPermalinkURL(shopDomain: String, lines: [ShopifyCartLine]) -> URL? {
-    guard isHostName(text: shopDomain), !lines.isEmpty, lines.allSatisfy({ $0.quantity >= 1 }) else {
+    guard isHostName(text: shopDomain),
+          !lines.isEmpty,
+          lines.allSatisfy({ $0.quantity >= 1 && isASCIIDigits(text: $0.variantID) })
+    else {
         return nil
     }
     return URL(string: "https://\(shopDomain.lowercased())/cart/\(lines.map { "\($0.variantID):\($0.quantity)" }.joined(separator: ","))")
+}
+
+/// 1 文字以上で、ASCII の数字 (0〜9) だけからなる文字列なら true を返す。
+///
+/// 全角の数字・符号・空白・URL の区切りになる文字 (`:` `,` `/` `?` 等) を含む文字列は false。桁数の上限は設けない。
+func isASCIIDigits(text: String) -> Bool {
+    !text.isEmpty && text.utf8.allSatisfy { (UInt8(ascii: "0") ... UInt8(ascii: "9")).contains($0) }
 }
 
 /// 英数字とハイフンのラベルをドットで 2 つ以上つないだ、DNS の長さの上限に収まるドメイン名なら true を返す。

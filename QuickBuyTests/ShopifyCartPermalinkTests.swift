@@ -10,7 +10,7 @@ struct ShopifyCartPermalinkTests {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: "example.myshopify.com",
-                lines: [ShopifyCartLine(variantID: 70_881_412, quantity: 1)]
+                lines: [ShopifyCartLine(variantID: "70881412", quantity: 1)]
             )?.absoluteString == "https://example.myshopify.com/cart/70881412:1"
         )
     }
@@ -21,8 +21,8 @@ struct ShopifyCartPermalinkTests {
             shopifyCartPermalinkURL(
                 shopDomain: "my-shop.example.jp",
                 lines: [
-                    ShopifyCartLine(variantID: 70_881_412, quantity: 1),
-                    ShopifyCartLine(variantID: 70_881_382, quantity: 3),
+                    ShopifyCartLine(variantID: "70881412", quantity: 1),
+                    ShopifyCartLine(variantID: "70881382", quantity: 3),
                 ]
             )?.absoluteString == "https://my-shop.example.jp/cart/70881412:1,70881382:3"
         )
@@ -33,7 +33,7 @@ struct ShopifyCartPermalinkTests {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: "Example.MyShopify.com",
-                lines: [ShopifyCartLine(variantID: 1, quantity: 2)]
+                lines: [ShopifyCartLine(variantID: "1", quantity: 2)]
             )?.absoluteString == "https://example.myshopify.com/cart/1:2"
         )
     }
@@ -43,7 +43,7 @@ struct ShopifyCartPermalinkTests {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: "123.example.com",
-                lines: [ShopifyCartLine(variantID: 1, quantity: 1)]
+                lines: [ShopifyCartLine(variantID: "1", quantity: 1)]
             )?.absoluteString == "https://123.example.com/cart/1:1"
         )
     }
@@ -53,22 +53,60 @@ struct ShopifyCartPermalinkTests {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: [63, 63, 63, 61].map { String(repeating: "a", count: $0) }.joined(separator: "."),
-                lines: [ShopifyCartLine(variantID: 1, quantity: 1)]
+                lines: [ShopifyCartLine(variantID: "1", quantity: 1)]
             )?.host()?.count == 253
         )
     }
 
-    /// 商品バリアントの ID は、0 も UInt64 の最大値も、桁を落とさずそのまま URL に入る (ID が店に実在するかは見ない)。
+    /// 数字だけの商品バリアントの ID は、1 桁でも、先頭が 0 でも、UInt64 の最大値 (18446744073709551615) を超える桁数でも、
+    /// 文字列のまま URL に入る (ID が店に実在するかは見ない)。
     @Test(arguments: [
-        (UInt64.min, "https://example.myshopify.com/cart/0:1"),
-        (UInt64.max, "https://example.myshopify.com/cart/18446744073709551615:1"),
+        ("0", "https://example.myshopify.com/cart/0:1"),
+        ("007", "https://example.myshopify.com/cart/007:1"),
+        ("18446744073709551616", "https://example.myshopify.com/cart/18446744073709551616:1"),
+        ("1234567890123456789012345", "https://example.myshopify.com/cart/1234567890123456789012345:1"),
     ])
-    func 商品バリアントのIDは境界の値でもそのまま入る(variantID: UInt64, expectedURL: String) {
+    func 数字だけの商品バリアントのIDはそのまま入る(variantID: String, expectedURL: String) {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: "example.myshopify.com",
                 lines: [ShopifyCartLine(variantID: variantID, quantity: 1)]
             )?.absoluteString == expectedURL
+        )
+    }
+
+    /// 数字以外を含む商品バリアントの ID が 1 つでもあれば nil になる。
+    /// 空文字、URL の区切りになる文字 (`:` `,` `/` `?` `#` `%`)、英字、符号、小数点、空白・改行、全角の数字、ASCII でない数字 (アラビア・インド数字) を含む。
+    /// 似ているが通る側は、同じ形の呼び出しで ID が数字だけのもの (上の「数字だけの商品バリアントのIDはそのまま入る」)。
+    @Test(arguments: [
+        "",
+        "1:2",
+        "1,2",
+        "1/2",
+        "1?x",
+        "1#2",
+        "%31",
+        "1a",
+        "abc",
+        "-1",
+        "+1",
+        "1.0",
+        " 1",
+        "1 ",
+        "1\n",
+        "１２３",
+        "١٢٣",
+        "gid://shopify/ProductVariant/1",
+    ])
+    func 数字以外を含む商品バリアントのIDは通さない(variantID: String) {
+        #expect(
+            shopifyCartPermalinkURL(
+                shopDomain: "example.myshopify.com",
+                lines: [
+                    ShopifyCartLine(variantID: "1", quantity: 1),
+                    ShopifyCartLine(variantID: variantID, quantity: 1),
+                ]
+            ) == nil
         )
     }
 
@@ -101,7 +139,7 @@ struct ShopifyCartPermalinkTests {
         #expect(
             shopifyCartPermalinkURL(
                 shopDomain: shopDomain,
-                lines: [ShopifyCartLine(variantID: 1, quantity: 1)]
+                lines: [ShopifyCartLine(variantID: "1", quantity: 1)]
             ) == nil
         )
     }
@@ -131,8 +169,8 @@ struct ShopifyCartPermalinkTests {
             shopifyCartPermalinkURL(
                 shopDomain: "example.myshopify.com",
                 lines: [
-                    ShopifyCartLine(variantID: 1, quantity: 1),
-                    ShopifyCartLine(variantID: 2, quantity: quantity),
+                    ShopifyCartLine(variantID: "1", quantity: 1),
+                    ShopifyCartLine(variantID: "2", quantity: quantity),
                 ]
             ) == nil
         )
