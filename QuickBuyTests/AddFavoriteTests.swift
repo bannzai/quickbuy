@@ -13,6 +13,8 @@ final class StubURLProtocol: URLProtocol {
         case http(statusCode: Int, body: Data)
         /// 通信の失敗 (圏外など)。
         case connectionFailure
+        /// 指定した URL への転送 (HTTP 302)。
+        case redirect(locationURLText: String)
     }
 
     /// URL の文字列ごとの、返す応答。
@@ -50,6 +52,15 @@ final class StubURLProtocol: URLProtocol {
             )
             client?.urlProtocol(self, didLoad: body)
             client?.urlProtocolDidFinishLoading(self)
+        case let .redirect(locationURLText):
+            client?.urlProtocol(
+                self,
+                wasRedirectedTo: URLRequest(url: URL(string: locationURLText)!),
+                redirectResponse: HTTPURLResponse(url: request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": locationURLText])!
+            )
+            // 転送を伝えた後は、この読み込みを取り消しの失敗で終える (転送に従う時は、転送先を読む新しい読み込みが別に始まる)。
+            // 終えないと、転送に従わなかった通信が終わらない (https://github.com/bannzai/quickbuy/actions/runs/44241340789 で 60 秒の上限に達した)。
+            client?.urlProtocol(self, didFailWithError: CocoaError(.userCancelled))
         case .connectionFailure, nil:
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
         }
@@ -71,7 +82,7 @@ struct AddFavoriteTests {
 
     /// 商品バリアントが 1 つの商品「コーヒー豆 200g」(商品バリアントの ID は 70881412) の JSON。
     private let productJSON = Data(
-        #"{"title":"コーヒー豆 200g","featured_image":"//cdn.example/beans.png","variants":[{"id":70881412,"title":"Default Title","available":true}]}"#.utf8
+        #"{"title":"コーヒー豆 200g","featured_image":"//cdn.shopify.com/beans.png","variants":[{"id":70881412,"title":"Default Title","available":true}]}"#.utf8
     )
 
     /// テストごとに別の、まだ存在しない保存先のファイルの URL を返す。
@@ -90,7 +101,7 @@ struct AddFavoriteTests {
                 == Favorite(
                     id: draftID,
                     name: "コーヒー豆 200g",
-                    imageURL: URL(string: "https://cdn.example/beans.png"),
+                    imageURL: URL(string: "https://cdn.shopify.com/beans.png"),
                     quantity: 1,
                     product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: "70881412")),
                     reminder: nil
@@ -240,6 +251,86 @@ struct AddFavoriteTests {
     @Test func URLも文字列も無ければnilを返す() async {
         #expect(await sharedText(itemProviders: []) == nil)
         #expect(await sharedText(itemProviders: [NSItemProvider(item: Data([0x89, 0x50]) as NSData, typeIdentifier: "public.png")]) == nil)
+    }
+
+    // MARK: - 商品の画像の読み込み
+
+    /// 転送先が、同じホスト・Shopify の CDN (`https`) なら進み、無関係なホスト・`http`・ポート付き・認証情報付き・元の URL や転送先が無い時は進まない。
+    @Test(arguments: [
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example/cdn/b.png", true),
+        ("https://mori-coffee.example/cdn/a.png", "https://cdn.shopify.com/s/files/a.png", true),
+        ("https://cdn.shopify.com/s/files/a.png", "https://cdn.shopify.com/s/files/b.png", true),
+        ("https://Mori-Coffee.Example/cdn/a.png", "https://mori-coffee.example/cdn/b.png", true),
+        ("https://mori-coffee.example/cdn/a.png", "https://tracker.example/pixel", false),
+        ("https://cdn.shopify.com/s/files/a.png", "https://mori-coffee.example/cdn/a.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "http://mori-coffee.example/cdn/b.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example:8443/cdn/b.png", false),
+        ("https://mori-coffee.example/cdn/a.png", "https://mori-coffee.example@tracker.example/pixel", false),
+        ("https://mori-coffee.example/cdn/a.png", nil, false),
+        (nil, "https://cdn.shopify.com/s/files/a.png", false),
+    ] as [(String?, String?, Bool)])
+    func 画像の転送先は同じホストかShopifyのCDNだけに進む(originalURLText: String?, redirectedURLText: String?, expectedAllowed: Bool) {
+        #expect(
+            isAllowedProductImageRedirect(originalURL: originalURLText.flatMap(URL.init(string:)), redirectedURL: redirectedURLText.flatMap(URL.init(string:)))
+                == expectedAllowed
+        )
+    }
+
+    /// 画像を読み込む通信の delegate は、無関係なホストへの転送には従わず (nil)、Shopify の CDN への転送には転送先のリクエストをそのまま返す。
+    @Test func 画像の通信は無関係なホストへの転送に従わない() async throws {
+        let originalURL = try #require(URL(string: "https://mori-coffee.example/cdn/a.png"))
+        let task = URLSession.shared.dataTask(with: originalURL)
+        let redirectResponse = try #require(HTTPURLResponse(url: originalURL, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: nil))
+        let cdnRequest = URLRequest(url: try #require(URL(string: "https://cdn.shopify.com/s/files/a.png")))
+        #expect(
+            try await ProductImageRedirectGuard().urlSession(
+                .shared,
+                task: task,
+                willPerformHTTPRedirection: redirectResponse,
+                newRequest: URLRequest(url: #require(URL(string: "https://tracker.example/pixel")))
+            ) == nil
+        )
+        #expect(
+            await ProductImageRedirectGuard().urlSession(.shared, task: task, willPerformHTTPRedirection: redirectResponse, newRequest: cdnRequest) == cdnRequest
+        )
+    }
+
+    /// 画像の読み込みは、HTTP 200 で画像として読めるデータの時だけ画像を返し、200 以外 (従わなかった転送の応答 302 を含む)・画像でないデータ・通信の失敗では nil を返す。
+    @Test func 画像は200で画像として読める時だけ返す() async throws {
+        let shopDomain = uniqueShopDomain()
+        // 1x1 ピクセルの PNG。
+        let pngData = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/ok.png"] = .http(statusCode: 200, body: pngData)
+            $0["https://\(shopDomain)/redirect.png"] = .http(statusCode: 302, body: pngData)
+            $0["https://\(shopDomain)/not-image.png"] = .http(statusCode: 200, body: Data("<html></html>".utf8))
+            $0["https://\(shopDomain)/offline.png"] = .connectionFailure
+        }
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/ok.png")), urlSession: StubURLProtocol.urlSession()) != nil)
+        for path in ["redirect.png", "not-image.png", "offline.png"] {
+            #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/\(path)")), urlSession: StubURLProtocol.urlSession()) == nil)
+        }
+    }
+
+    /// 実際の通信で、無関係なホストへの転送を受けた時は転送先へリクエストを出さず画像も返さない。同じホストへの転送には従って画像を返す。
+    /// 時間の上限は、転送に従わなかった通信が終わらない場合に、テストを止めずに失敗させるために付けている。
+    @Test(.timeLimit(.minutes(1))) func 通信の途中の転送は同じホストにだけ従う() async throws {
+        let shopDomain = uniqueShopDomain()
+        let trackerURLText = "https://tracker-\(UUID().uuidString.lowercased()).example/pixel.png"
+        let pngData = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/to-tracker.png"] = .redirect(locationURLText: trackerURLText)
+            $0[trackerURLText] = .http(statusCode: 200, body: pngData)
+            $0["https://\(shopDomain)/to-same-host.png"] = .redirect(locationURLText: "https://\(shopDomain)/moved.png")
+            $0["https://\(shopDomain)/moved.png"] = .http(statusCode: 200, body: pngData)
+        }
+        let urlSessionConfiguration = URLSessionConfiguration.ephemeral
+        urlSessionConfiguration.protocolClasses = [StubURLProtocol.self]
+        let urlSession = URLSession(configuration: urlSessionConfiguration, delegate: ProductImageRedirectGuard(), delegateQueue: nil)
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/to-same-host.png")), urlSession: urlSession) != nil)
+        #expect(try await loadProductImage(url: #require(URL(string: "https://\(shopDomain)/to-tracker.png")), urlSession: urlSession) == nil)
+        #expect(StubURLProtocol.requestedURLTexts.withLock { $0.contains("https://\(shopDomain)/moved.png") })
+        #expect(StubURLProtocol.requestedURLTexts.withLock { !$0.contains(trackerURLText) })
     }
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。

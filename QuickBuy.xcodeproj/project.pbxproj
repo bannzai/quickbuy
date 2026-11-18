@@ -23,13 +23,15 @@
 		B10000000000000000000005 /* FavoriteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* FavoriteStoreTests.swift */; };
 		B10000000000000000000006 /* AppGroupEntitlementsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* AppGroupEntitlementsTests.swift */; };
 		B20000000000000000000001 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
-		B30000000000000000000001 /* ReminderSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000001 /* ReminderSchedule.swift */; };
-		B30000000000000000000002 /* ReminderNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* ReminderNotifications.swift */; };
-		B30000000000000000000003 /* ReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000003 /* ReminderTests.swift */; };
+		B40000000000000000000001 /* ReminderSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* ReminderSchedule.swift */; };
+		B40000000000000000000002 /* ReminderNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000002 /* ReminderNotifications.swift */; };
+		B40000000000000000000003 /* ReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000003 /* ReminderTests.swift */; };
 		B20000000000000000000002 /* ShopifyProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ShopifyProductPage.swift */; };
 		B20000000000000000000004 /* AddFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* AddFavoriteView.swift */; };
 		B20000000000000000000006 /* EditFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* EditFavoriteView.swift */; };
 		B20000000000000000000007 /* DeveloperMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* DeveloperMenuView.swift */; };
+		B30000000000000000000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000001 /* SettingsView.swift */; };
+		B30000000000000000000002 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* SettingsTests.swift */; };
 		B20000000000000000000003 /* ShopifyProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ShopifyProductPage.swift */; };
 		B20000000000000000000005 /* AddFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* AddFavoriteView.swift */; };
 		B20000000000000000000008 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ShareViewController.swift */; };
@@ -101,13 +103,15 @@
 		A10000000000000000000005 /* QuickBuy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuy.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000006 /* QuickBuyWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuyWidget.entitlements; sourceTree = "<group>"; };
 		A20000000000000000000001 /* FavoritePurchaseURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePurchaseURL.swift; sourceTree = "<group>"; };
-		A30000000000000000000001 /* ReminderSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderSchedule.swift; sourceTree = "<group>"; };
-		A30000000000000000000002 /* ReminderNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderNotifications.swift; sourceTree = "<group>"; };
-		A30000000000000000000003 /* ReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderTests.swift; sourceTree = "<group>"; };
+		A40000000000000000000001 /* ReminderSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderSchedule.swift; sourceTree = "<group>"; };
+		A40000000000000000000002 /* ReminderNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderNotifications.swift; sourceTree = "<group>"; };
+		A40000000000000000000003 /* ReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* ShopifyProductPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyProductPage.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* AddFavoriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFavoriteView.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* EditFavoriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFavoriteView.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* DeveloperMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperMenuView.swift; sourceTree = "<group>"; };
+		A30000000000000000000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A30000000000000000000002 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		A2000000000000000000000A /* FavoritePurchaseURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePurchaseURLTests.swift; sourceTree = "<group>"; };
 		A2000000000000000000000B /* ShopifyProductPageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyProductPageTests.swift; sourceTree = "<group>"; };
@@ -125,8 +129,9 @@
 				B5E40B1782B9401D57C38BBA /* Assets.xcassets */,
 				DB475B718CDC27643AF3FAA8 /* ContentView.swift */,
 				A20000000000000000000005 /* DeveloperMenuView.swift */,
-				A30000000000000000000002 /* ReminderNotifications.swift */,
+				A40000000000000000000002 /* ReminderNotifications.swift */,
 				A20000000000000000000004 /* EditFavoriteView.swift */,
+				A30000000000000000000001 /* SettingsView.swift */,
 				A10000000000000000000005 /* QuickBuy.entitlements */,
 				1ED3753C994B4E8ECC98A2C0 /* QuickBuyApp.swift */,
 			);
@@ -159,7 +164,7 @@
 			children = (
 				A20000000000000000000003 /* AddFavoriteView.swift */,
 				A20000000000000000000001 /* FavoritePurchaseURL.swift */,
-				A30000000000000000000001 /* ReminderSchedule.swift */,
+				A40000000000000000000001 /* ReminderSchedule.swift */,
 				A20000000000000000000002 /* ShopifyProductPage.swift */,
 				A10000000000000000000001 /* Favorite.swift */,
 				A10000000000000000000002 /* FavoriteStore.swift */,
@@ -185,8 +190,9 @@
 				A2000000000000000000000D /* AddFavoriteTests.swift */,
 				A2000000000000000000000A /* FavoritePurchaseURLTests.swift */,
 				A2000000000000000000000C /* FavoritesListTests.swift */,
-				A30000000000000000000003 /* ReminderTests.swift */,
+				A40000000000000000000003 /* ReminderTests.swift */,
 				A2000000000000000000000B /* ShopifyProductPageTests.swift */,
+				A30000000000000000000002 /* SettingsTests.swift */,
 				A10000000000000000000004 /* AppGroupEntitlementsTests.swift */,
 				A10000000000000000000003 /* FavoriteStoreTests.swift */,
 				C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */,
@@ -373,7 +379,8 @@
 				B2000000000000000000000D /* FavoritePurchaseURLTests.swift in Sources */,
 				B2000000000000000000000E /* ShopifyProductPageTests.swift in Sources */,
 				B2000000000000000000000F /* FavoritesListTests.swift in Sources */,
-				B30000000000000000000003 /* ReminderTests.swift in Sources */,
+				B40000000000000000000003 /* ReminderTests.swift in Sources */,
+				B30000000000000000000002 /* SettingsTests.swift in Sources */,
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
 			);
@@ -388,12 +395,13 @@
 				B10000000000000000000001 /* Favorite.swift in Sources */,
 				B10000000000000000000003 /* FavoriteStore.swift in Sources */,
 				B20000000000000000000001 /* FavoritePurchaseURL.swift in Sources */,
-				B30000000000000000000001 /* ReminderSchedule.swift in Sources */,
-				B30000000000000000000002 /* ReminderNotifications.swift in Sources */,
+				B40000000000000000000001 /* ReminderSchedule.swift in Sources */,
+				B40000000000000000000002 /* ReminderNotifications.swift in Sources */,
 				B20000000000000000000002 /* ShopifyProductPage.swift in Sources */,
 				B20000000000000000000004 /* AddFavoriteView.swift in Sources */,
 				B20000000000000000000006 /* EditFavoriteView.swift in Sources */,
 				B20000000000000000000007 /* DeveloperMenuView.swift in Sources */,
+				B30000000000000000000001 /* SettingsView.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

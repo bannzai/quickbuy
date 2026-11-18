@@ -13,7 +13,7 @@ struct ContentView: View {
     }
 }
 
-/// お気に入りの一覧の画面。保存した並びで表示し、「買う」で店の購入画面を開く。追加・名前と個数の変更・並べ替え・削除の入口を持つ。
+/// お気に入りの一覧の画面。保存した並びで表示し、「買う」で店の購入画面を開く。追加・名前と個数の変更・並べ替え・削除・設定画面の入口を持つ。
 struct FavoritesListView: View {
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
@@ -32,29 +32,25 @@ struct FavoritesListView: View {
     @State private var editingFavorite: Favorite?
     /// お気に入りの追加の画面を出している間は true。
     @State private var isAddingFavorite = false
-    #if DEBUG
-        /// 開発者メニューを出している間は true。
-        @State private var isDeveloperMenuPresented = false
-    #endif
+    /// 設定画面を出している間は true。
+    @State private var isSettingsPresented = false
 
-    /// 一覧と、追加・編集・開発者メニューの画面への入口。
+    /// 一覧と、追加・編集・設定の画面への入口。
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("お気に入り")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isSettingsPresented = true
+                        } label: {
+                            Label("設定", systemImage: "gearshape")
+                        }
+                    }
+                    ToolbarItem(placement: .topBarLeading) {
                         EditButton()
                     }
-                    #if DEBUG
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                isDeveloperMenuPresented = true
-                            } label: {
-                                Label("開発者メニュー", systemImage: "wrench.and.screwdriver")
-                            }
-                        }
-                    #endif
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isAddingFavorite = true
@@ -89,13 +85,11 @@ struct FavoritesListView: View {
                 isAddingFavorite = false
             }
         }
-        #if DEBUG
-        .sheet(isPresented: $isDeveloperMenuPresented, onDismiss: reload) {
-            DeveloperMenuView(favoritesFileURL: favoritesFileURL) {
-                isDeveloperMenuPresented = false
+        .sheet(isPresented: $isSettingsPresented, onDismiss: reload) {
+            SettingsView(favoritesFileURL: favoritesFileURL) {
+                isSettingsPresented = false
             }
         }
-        #endif
         .alert("保存できませんでした", isPresented: $isSaveFailed) {}
     }
 

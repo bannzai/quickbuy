@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ウィジェットと通知</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+body{margin:0}
+a{color:#111318}a:hover{color:#111318}
+</style>
+</helmet>
+<div style="width: 390px; height: 560px; box-sizing: border-box; background: #C9CED6; color: #111318; font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; display: flex; flex-direction: column; padding: 16px; gap: 16px">
+  <a href="#" style="text-decoration: none; background: #FFFFFF; border-radius: 22px; padding: 14px; display: flex; align-items: center; gap: 12px">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: {{accent}}; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 15px; font-weight: 900">QB</div>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+      <div style="display: flex; justify-content: space-between; gap: 8px">
+        <div style="font-size: 15px; font-weight: 900; line-height: 1.35">購入画面を開きますか？</div>
+        <div style="font-size: 13px; color: #5B6270; flex-shrink: 0">今</div>
+      </div>
+      <div style="font-size: 14px; line-height: 1.4">[商品名] コーヒー豆 200g / 豆のまま を 2 個</div>
+      <div style="font-size: 13px; color: #5B6270; line-height: 1.4">タップすると mori-coffee.example の購入画面が開きます</div>
+    </div>
+    <div style="width: 48px; height: 48px; border-radius: 8px; background: #F1E4D6; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="26" height="32" viewBox="0 0 72 88" fill="none"><path d="M14 20h44l-4 60H18L14 20z" fill="#6B4226"></path><rect x="12" y="10" width="48" height="12" rx="4" fill="#8A5A36"></rect></svg>
+    </div>
+  </a>
+  <div style="font-size: 12px; font-weight: 700; color: #3A404B; text-align: center">上: ウィジェットの「カートイン」を押した直後に届く通知</div>
+  <div style="background: #FFFFFF; border-radius: 24px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 13px; font-weight: 900; color: {{accent}}">Quick Buy のお気に入り</div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 48px; height: 48px; border-radius: 10px; background: #F1E4D6; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="26" height="32" viewBox="0 0 72 88" fill="none"><path d="M14 20h44l-4 60H18L14 20z" fill="#6B4226"></path><rect x="12" y="10" width="48" height="12" rx="4" fill="#8A5A36"></rect></svg>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+        <div style="font-size: 14px; font-weight: 700; line-height: 1.3">コーヒー豆 中煎り</div>
+        <div style="font-size: 12px; color: #5B6270">200g / 豆のまま ・ 2 個</div>
+      </div>
+      <button style="height: 44px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 900; font-family: inherit; padding: 0 12px; flex-shrink: 0">カートイン</button>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 48px; height: 48px; border-radius: 10px; background: #F1E4D6; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="26" height="32" viewBox="0 0 72 88" fill="none"><path d="M14 20h44l-4 60H18L14 20z" fill="#6B4226"></path><rect x="12" y="10" width="48" height="12" rx="4" fill="#8A5A36"></rect></svg>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+        <div style="font-size: 14px; font-weight: 700; line-height: 1.3">コーヒー豆 中煎り</div>
+        <div style="font-size: 12px; color: #5B6270">500g / 中挽き ・ 1 個</div>
+      </div>
+      <button style="height: 44px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 900; font-family: inherit; padding: 0 12px; flex-shrink: 0">カートイン</button>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 48px; height: 48px; border-radius: 10px; background: #DCEBF7; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="24" height="32" viewBox="0 0 64 88" fill="none"><rect x="12" y="26" width="40" height="56" rx="8" fill="#2F6FB0"></rect><rect x="24" y="8" width="16" height="20" rx="3" fill="#1F4E80"></rect></svg>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+        <div style="font-size: 14px; font-weight: 700; line-height: 1.3">洗濯用せっけん</div>
+        <div style="font-size: 12px; font-weight: 700; color: #9A3412">詰め替え 1L ・ そろそろ買う頃</div>
+      </div>
+      <button style="height: 44px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 900; font-family: inherit; padding: 0 12px; flex-shrink: 0">カートイン</button>
+    </div>
+  </div>
+  <div style="font-size: 12px; font-weight: 700; color: #3A404B; text-align: center">下: ホーム画面のウィジェット (大サイズ)。種類ごとに 1 行</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#0B6E4F","options":["#0B6E4F","#1D4ED8","#C2410C"]},"$preview":{"width":390,"height":560}}'>
+/** ホーム画面のウィジェットと、ウィジェットの「カートイン」を押した直後に届く「購入画面を開きますか？」の通知の見本を描く。 */
+class Component extends DCLogic {
+  /** テンプレートへ渡す値。色の調整 (accent) だけを返す。 */
+  renderVals() {
+    return {
+      // 既定の #0B6E4F は、白の文字を載せてコントラスト比 4.5:1 以上になる緑。商品の画像の色と並べても見出しとボタンが埋もれない濃さにした
+      accent: this.props.accent ?? '#0B6E4F'
+    };
+  }
+}
+</script>
+</body>
+</html>
