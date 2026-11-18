@@ -55,7 +55,7 @@ struct AddFavoriteView: View {
                 return
             }
             text = initialText
-            await loadDraft()
+            await loadAddition()
         }
     }
 
@@ -87,7 +87,7 @@ struct AddFavoriteView: View {
             Section {
                 Button {
                     Task {
-                        await loadDraft()
+                        await loadAddition()
                     }
                 } label: {
                     HStack {
@@ -178,7 +178,7 @@ struct AddFavoriteView: View {
                 .controlSize(.large)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                .disabled(!isFavoriteNameSavable(name: name) || quantitiesByVariantID.isEmpty)
+                .disabled(!isFavoriteAdditionSavable(name: name, selectedVariantCount: quantitiesByVariantID.count))
                 .accessibilityIdentifier("addFavoritesButton")
             } footer: {
                 Text("追加しただけでは購入されません")
@@ -192,7 +192,7 @@ struct AddFavoriteView: View {
     }
 
     /// 入力欄の文字列から商品の情報を取得し、確認の画面に進む。取得できなかった時は理由を入力欄の下に出す。
-    private func loadDraft() async {
+    private func loadAddition() async {
         isLoading = true
         errorMessage = nil
         do {
@@ -201,8 +201,8 @@ struct AddFavoriteView: View {
             quantitiesByVariantID = favoriteAddition.quantitiesByVariantID
             loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {
-            // `loadFavoriteAddition` が投げるのは `FavoriteDraftLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
-            errorMessage = favoriteDraftLoadErrorMessage(error: error as? FavoriteDraftLoadError ?? .notRegistrable)
+            // `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
+            errorMessage = favoriteAdditionLoadErrorMessage(error: error as? FavoriteAdditionLoadError ?? .notRegistrable)
         }
         isLoading = false
     }
@@ -240,6 +240,11 @@ func isFavoriteNameSavable(name: String) -> Bool {
     !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 }
 
+/// 確認の画面の保存するボタンを押せるかを返す。名前が保存できて (`isFavoriteNameSavable(name:)`)、商品バリアントを 1 つ以上選んでいる時だけ押せる。
+func isFavoriteAdditionSavable(name: String, selectedVariantCount: Int) -> Bool {
+    isFavoriteNameSavable(name: name) && selectedVariantCount >= 1
+}
+
 /// 個数を 1 つ減らした値を返す。1 より小さくはならない (`Favorite.quantity` は 1 以上)。
 func decrementedQuantity(quantity: Int) -> Int {
     max(quantity - 1, 1)
@@ -267,7 +272,7 @@ func sharedText(itemProviders: [NSItemProvider]) async -> String? {
 }
 
 /// 登録できなかった理由を、入力欄の下に出す文言にして返す。
-func favoriteDraftLoadErrorMessage(error: FavoriteDraftLoadError) -> String {
+func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError) -> String {
     switch error {
     case .notProductPageURL:
         "この URL は登録できません\nShopify の店の商品ページの URL を入れてください"

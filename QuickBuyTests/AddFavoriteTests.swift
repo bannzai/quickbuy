@@ -139,7 +139,7 @@ struct AddFavoriteTests {
     @Test(arguments: ["/dp/B00EXAMPLE", "/cart/70881412:1", "/"])
     func 商品ページのURLでない入力は通信せずに断る(path: String) async {
         let shopDomain = uniqueShopDomain()
-        await #expect(throws: FavoriteDraftLoadError.notProductPageURL) {
+        await #expect(throws: FavoriteAdditionLoadError.notProductPageURL) {
             try await loadFavoriteAddition(text: "https://\(shopDomain)\(path)", urlSession: StubURLProtocol.urlSession())
         }
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == [])
@@ -148,7 +148,7 @@ struct AddFavoriteTests {
     /// `http` の商品ページの URL は、通信せずに「URL の形でない」で終わる。
     @Test func httpのURLは通信せずに断る() async {
         let shopDomain = uniqueShopDomain()
-        await #expect(throws: FavoriteDraftLoadError.notProductPageURL) {
+        await #expect(throws: FavoriteAdditionLoadError.notProductPageURL) {
             try await loadFavoriteAddition(text: "http://\(shopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == [])
@@ -164,7 +164,7 @@ struct AddFavoriteTests {
     func 商品の情報を取得できない時は登録できないで終わる(statusCode: Int, body: String, pathAndQuery: String) async {
         let shopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(statusCode: statusCode, body: Data(body.utf8)) }
-        await #expect(throws: FavoriteDraftLoadError.notRegistrable) {
+        await #expect(throws: FavoriteAdditionLoadError.notRegistrable) {
             try await loadFavoriteAddition(text: "https://\(shopDomain)\(pathAndQuery)", urlSession: StubURLProtocol.urlSession())
         }
     }
@@ -173,12 +173,12 @@ struct AddFavoriteTests {
     @Test func 応答の制限と通信の失敗は一時的に取得できないで終わる() async {
         let rateLimitedShopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(rateLimitedShopDomain)/products/coffee-beans.js"] = .http(statusCode: 429, body: productJSON) }
-        await #expect(throws: FavoriteDraftLoadError.temporarilyUnavailable) {
+        await #expect(throws: FavoriteAdditionLoadError.temporarilyUnavailable) {
             try await loadFavoriteAddition(text: "https://\(rateLimitedShopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
         let unreachableShopDomain = uniqueShopDomain()
         StubURLProtocol.stubResponses.withLock { $0["https://\(unreachableShopDomain)/products/coffee-beans.js"] = .connectionFailure }
-        await #expect(throws: FavoriteDraftLoadError.temporarilyUnavailable) {
+        await #expect(throws: FavoriteAdditionLoadError.temporarilyUnavailable) {
             try await loadFavoriteAddition(text: "https://\(unreachableShopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession())
         }
     }
@@ -275,7 +275,31 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
     }
 
+    /// 選んだうちの 1 件が保存済みの時は、保存済みの 1 件 (名前と個数を後から変えたもの) を変えず、まだ無い 1 件だけを末尾に足す。
+    @Test func 一部が保存済みの追加は無いものだけを足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try addFavorites(favorites: [confirmedFavorites[1]], fileURL: fileURL)
+        try updateFavorite(id: confirmedFavorites[1].id, name: "名前を変えた豆", quantity: 5, fileURL: fileURL)
+        try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL).map(\.id) == [confirmedFavorites[1].id, confirmedFavorites[0].id])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["名前を変えた豆", "いつもの豆"])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.quantity) == [5, 3])
+    }
+
     // MARK: - 名前と個数の入力
+
+    /// 保存するボタンは、名前に字があり、商品バリアントを 1 つ以上選んでいる時だけ押せる。どちらかが欠けると押せない。
+    @Test(arguments: [
+        ("豆", 1, true),
+        ("豆", 3, true),
+        ("豆", 0, false),
+        ("", 1, false),
+        (" ", 2, false),
+        ("", 0, false),
+    ])
+    func 名前があり1つ以上選んでいる時だけ保存できる(name: String, selectedVariantCount: Int, expectedSavable: Bool) {
+        #expect(isFavoriteAdditionSavable(name: name, selectedVariantCount: selectedVariantCount) == expectedSavable)
+    }
 
     /// 1 文字でも字があれば保存でき、空文字・空白だけ・改行だけの名前は保存できない。
     @Test(arguments: [
@@ -414,8 +438,8 @@ struct AddFavoriteTests {
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
-        #expect(favoriteDraftLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))
-        #expect(favoriteDraftLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
-        #expect(favoriteDraftLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
     }
 }

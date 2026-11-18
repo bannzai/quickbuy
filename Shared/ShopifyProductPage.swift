@@ -228,7 +228,7 @@ func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
 }
 
 /// お気に入りの登録が、確認の画面に進まずに終わった理由。
-enum FavoriteDraftLoadError: Error, Equatable {
+enum FavoriteAdditionLoadError: Error, Equatable {
     /// 渡された文字列が、Shopify の店の商品ページの URL の形でない。
     case notProductPageURL
     /// 通信できなかった、または店が一時的に応答を制限している (HTTP 429)。待てば取得できる可能性がある。
@@ -241,7 +241,7 @@ enum FavoriteDraftLoadError: Error, Equatable {
 ///
 /// 返すのは、文字列を `shopifyProductPage(text:)` で分解した値、その店から取得した商品の JSON、`initialVariantQuantities(productPage:product:)` の値。
 /// 通信するのは、分解できた時の `shopifyAjaxProductURL(productPage:)` の URL への GET の 1 回だけ。
-/// 失敗した時は `FavoriteDraftLoadError` を投げる (HTTP 200 以外・JSON として読めない応答・`initialVariantQuantities(productPage:product:)` が nil の商品は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
+/// 失敗した時は `FavoriteAdditionLoadError` を投げる (HTTP 200 以外・JSON として読めない応答・`initialVariantQuantities(productPage:product:)` が nil の商品は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
 func loadFavoriteAddition(
     text: String,
     urlSession: URLSession
@@ -249,19 +249,19 @@ func loadFavoriteAddition(
     guard let productPage = shopifyProductPage(text: text.trimmingCharacters(in: .whitespacesAndNewlines)),
           let ajaxProductURL = shopifyAjaxProductURL(productPage: productPage)
     else {
-        throw FavoriteDraftLoadError.notProductPageURL
+        throw FavoriteAdditionLoadError.notProductPageURL
     }
     guard let (data, response) = try? await urlSession.data(from: ajaxProductURL) else {
-        throw FavoriteDraftLoadError.temporarilyUnavailable
+        throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode != 429 else {
-        throw FavoriteDraftLoadError.temporarilyUnavailable
+        throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode == 200,
           let product = try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data),
           let quantitiesByVariantID = initialVariantQuantities(productPage: productPage, product: product)
     else {
-        throw FavoriteDraftLoadError.notRegistrable
+        throw FavoriteAdditionLoadError.notRegistrable
     }
     return (productPage, product, quantitiesByVariantID)
 }

@@ -92,6 +92,15 @@ struct FavoritesListTests {
         )
     }
 
+    /// 開発者メニューの見本の商品は、ネットワークに出ない通信で、実在しない店の 3 つの商品バリアントを持つ商品として読める。
+    @Test func 見本の商品は追加の画面に3つの商品バリアントを未選択で出す() async throws {
+        let favoriteAddition = try await loadFavoriteAddition(text: sampleProductPageURLText, urlSession: sampleProductURLSession())
+        #expect(favoriteAddition.productPage.shopDomain == "mori-coffee.example")
+        #expect(favoriteAddition.product.title == "コーヒー豆 中煎り")
+        #expect(favoriteAddition.product.variants.map(\.title) == ["200g / 豆のまま", "500g / 中挽き", "1kg / 豆のまま"])
+        #expect(favoriteAddition.quantitiesByVariantID == [:])
+    }
+
     /// 見本を入れると、保存済みのお気に入りの後ろに 3 件が足される。もう一度入れても増えず、利用者が変えた見本の名前も戻らない。
     @Test func 見本を入れると末尾に足され2回目は増えない() throws {
         let fileURL = temporaryFavoritesFileURL()
