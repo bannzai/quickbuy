@@ -53,7 +53,7 @@ jobs:
           print(f"編集の画面の文言を含むファイル: {found_control}")
           if not found_control:
               sys.exit("::error::Release ビルドのアプリから、編集の画面の文言を見つけられない。検査の方法が合っていない")
-          for text in ["開発者メニュー", "見本のお気に入りを入れる", "見本のお気に入りを消す", "sukoyaka-soap.example"]:
+          for text in ["開発者メニュー", "見本のお気に入りを入れる", "見本のお気に入りを消す", "リマインドの日数が過ぎた状態にする", "sukoyaka-soap.example"]:
               found = files_containing(text)
               if found:
                   sys.exit(f"::error::Release ビルドのアプリに開発者メニューの文言が入っている: {text} {found}")

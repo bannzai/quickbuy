@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
 struct ContentView: View {
@@ -65,6 +66,14 @@ struct FavoritesListView: View {
             if newScenePhase == .active {
                 reload()
             }
+        }
+        // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
+        .task(id: scenePhase) {
+            guard scenePhase == .active else {
+                return
+            }
+            await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+            reload()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
@@ -139,18 +148,32 @@ struct FavoritesListView: View {
                         Text(shopDomainText(favorite: favorite))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                        Text("\(favorite.quantity) 個")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        // 一覧を開いたまま日数が過ぎた時にも文言が切り替わるよう、1 分ごとに描き直す。
+                        // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
+                        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                            if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: timeline.date) {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: reminder, now: timeline.date))")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(reminderDueColor)
+                            } else {
+                                Text("\(favorite.quantity) 個 ・ \(reminderStatusText(reminder: favorite.reminder, now: timeline.date))")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if let favoritePurchaseURL = purchaseURL(favorite: favorite) {
+            if purchaseURL(favorite: favorite) != nil {
                 Button("買う") {
-                    openURL(favoritePurchaseURL)
+                    save {
+                        if let openingURL = try purchaseURLForOpening(favoriteID: favorite.id, now: .now, fileURL: favoritesFileURL) {
+                            openURL(openingURL)
+                        }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -168,15 +191,21 @@ struct FavoritesListView: View {
     }
 
     /// 保存の操作を実行し、失敗した時はその旨を知らせる。成否にかかわらず、保存先の今の並びを表示に反映する。
+    /// 操作で変わったリマインドに合わせて、通知の予約も取り消す・予約し直す。
     private func save(operation: () throws -> Void) {
         do {
-            try operation()
+            try performSavingWithReminderNotifications(fileURL: favoritesFileURL, center: .current(), operation: operation)
         } catch {
             isSaveFailed = true
         }
         reload()
     }
 }
+
+/// 一覧の行で、リマインドの日数が過ぎたこと (「そろそろ買う頃」) を示す文字の色。
+///
+/// 画面の見本 (documents/design/mock-2026-11-17/project/Main.dc.html) の「そろそろ買う頃」の色 `#9A3412`。
+let reminderDueColor = Color(red: 0x9A / 255, green: 0x34 / 255, blue: 0x12 / 255)
 
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。
 ///
