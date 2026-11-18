@@ -19,7 +19,7 @@ struct NotificationPermissionExplanationTests {
 
     /// お気に入りが 1 件も無い間は、通知の許可を聞かれていなくても出さない。
     @Test func お気に入りが0件の間は出さない() {
-        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 0, authorizationStatus: .notDetermined, isExplanationPresented: false))
+        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 0, authorizationStatus: .notDetermined, isExplanationPresented: false, isAnotherScreenPresented: false))
     }
 
     /// 最初の追加で 1 件になった時も、1 回の追加で 2 件以上になった時も出す。
@@ -29,7 +29,8 @@ struct NotificationPermissionExplanationTests {
             shouldPresentNotificationPermissionExplanation(
                 favoriteCount: favoriteCount,
                 authorizationStatus: .notDetermined,
-                isExplanationPresented: false
+                isExplanationPresented: false,
+                isAnotherScreenPresented: false
             )
         )
     }
@@ -41,15 +42,36 @@ struct NotificationPermissionExplanationTests {
             !shouldPresentNotificationPermissionExplanation(
                 favoriteCount: 1,
                 authorizationStatus: authorizationStatus,
-                isExplanationPresented: false
+                isExplanationPresented: false,
+                isAnotherScreenPresented: false
             )
         )
     }
 
     /// 出した記録がある時は、お気に入りがあって通知の許可を聞かれていなくても出さない (「あとで」を選んだ人に追加のたびに出さない)。
     @Test func 出した記録がある時は出さない() {
-        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 1, authorizationStatus: .notDetermined, isExplanationPresented: true))
-        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 2, authorizationStatus: .notDetermined, isExplanationPresented: true))
+        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 1, authorizationStatus: .notDetermined, isExplanationPresented: true, isAnotherScreenPresented: false))
+        #expect(!shouldPresentNotificationPermissionExplanation(favoriteCount: 2, authorizationStatus: .notDetermined, isExplanationPresented: true, isAnotherScreenPresented: false))
+    }
+
+    /// 追加・編集・設定の画面が出ている間は、ほかの条件を満たしていても出さない (同時に表示されず、記録だけが残るのを防ぐ)。
+    @Test func ほかの画面が出ている間は出さない() {
+        #expect(
+            !shouldPresentNotificationPermissionExplanation(
+                favoriteCount: 1,
+                authorizationStatus: .notDetermined,
+                isExplanationPresented: false,
+                isAnotherScreenPresented: true
+            )
+        )
+    }
+
+    /// 記録のキーを変えると、配布済みの端末の記録が読めず、2 回目が出てしまう。キーを固定する。
+    @Test func 記録のキーが変わっていない() throws {
+        try withTemporaryUserDefaults { userDefaults in
+            userDefaults.set(true, forKey: "isNotificationPermissionExplanationPresented")
+            #expect(isNotificationPermissionExplanationPresented(userDefaults: userDefaults))
+        }
     }
 
     // MARK: - 出したことの記録
@@ -68,7 +90,8 @@ struct NotificationPermissionExplanationTests {
                 shouldPresentNotificationPermissionExplanation(
                     favoriteCount: 1,
                     authorizationStatus: .notDetermined,
-                    isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: userDefaults)
+                    isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: userDefaults),
+                    isAnotherScreenPresented: false
                 )
             )
             recordNotificationPermissionExplanationPresented(userDefaults: userDefaults)
@@ -78,7 +101,8 @@ struct NotificationPermissionExplanationTests {
                 !shouldPresentNotificationPermissionExplanation(
                     favoriteCount: 2,
                     authorizationStatus: .notDetermined,
-                    isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: userDefaults)
+                    isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: userDefaults),
+                    isAnotherScreenPresented: false
                 )
             )
         }

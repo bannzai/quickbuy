@@ -224,8 +224,9 @@ struct FavoritesListView: View {
         guard shouldPresentNotificationPermissionExplanation(
             favoriteCount: favorites.count,
             authorizationStatus: await UNUserNotificationCenter.current().notificationSettings().authorizationStatus,
-            isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: .standard)
-        ), editingFavorite == nil, !isAddingFavorite, !isSettingsPresented else {
+            isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: .standard),
+            isAnotherScreenPresented: editingFavorite != nil || isAddingFavorite || isSettingsPresented
+        ) else {
             return
         }
         isNotificationPermissionExplanationSheetPresented = true

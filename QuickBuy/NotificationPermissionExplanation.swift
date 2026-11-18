@@ -19,12 +19,14 @@ func recordNotificationPermissionExplanationPresented(userDefaults: UserDefaults
 /// 出すのは、お気に入りが 1 件以上あり、通知の許可をまだ聞かれておらず (`.notDetermined`)、説明の画面を出した記録が無い時だけ。
 /// - 件数を「ちょうど 1 件」にしないのは、1 回の追加の操作で複数のお気に入りが保存されるため (0 件から 2 件以上になった人にも出す)
 /// - 許可済み・拒否済みの端末に出さないのは、iOS の許可の問いは 1 回しか出せず、「通知をオンにする」を押しても問いが出ないため
+/// - 追加・編集・設定の画面が出ている間 (`isAnotherScreenPresented`) は出さない。同時には表示されず、出したつもりのまま表示されないため
 func shouldPresentNotificationPermissionExplanation(
     favoriteCount: Int,
     authorizationStatus: UNAuthorizationStatus,
-    isExplanationPresented: Bool
+    isExplanationPresented: Bool,
+    isAnotherScreenPresented: Bool
 ) -> Bool {
-    favoriteCount >= 1 && authorizationStatus == .notDetermined && !isExplanationPresented
+    favoriteCount >= 1 && authorizationStatus == .notDetermined && !isExplanationPresented && !isAnotherScreenPresented
 }
 
 /// 通知の許可を求める前の説明の画面。通知を何に使うかを伝え、「通知をオンにする」を押した時だけ iOS の許可の問いを出す。
