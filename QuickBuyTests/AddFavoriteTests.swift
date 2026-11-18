@@ -58,6 +58,9 @@ final class StubURLProtocol: URLProtocol {
                 wasRedirectedTo: URLRequest(url: URL(string: locationURLText)!),
                 redirectResponse: HTTPURLResponse(url: request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": locationURLText])!
             )
+            // 転送を伝えた後は、この読み込みを取り消しの失敗で終える (転送に従う時は、転送先を読む新しい読み込みが別に始まる)。
+            // 終えないと、転送に従わなかった通信が終わらない (https://github.com/bannzai/quickbuy/actions/runs/44241340789 で 60 秒の上限に達した)。
+            client?.urlProtocol(self, didFailWithError: CocoaError(.userCancelled))
         case .connectionFailure, nil:
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
         }
