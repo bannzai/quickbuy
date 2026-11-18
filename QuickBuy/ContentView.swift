@@ -44,9 +44,6 @@ struct FavoritesListView: View {
         NavigationStack {
             content
                 .navigationTitle("お気に入り")
-                .toolbarBackground(quickBuyAccentColor, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
@@ -54,11 +51,9 @@ struct FavoritesListView: View {
                         } label: {
                             Label("設定", systemImage: "gearshape")
                         }
-                        .tint(.white)
                     }
                     ToolbarItem(placement: .topBarLeading) {
                         EditButton()
-                            .tint(.white)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -66,7 +61,6 @@ struct FavoritesListView: View {
                         } label: {
                             Label("お気に入りを追加", systemImage: "plus")
                         }
-                        .tint(.white)
                     }
                 }
         }
@@ -139,6 +133,14 @@ struct FavoritesListView: View {
                 Section {
                     ForEach(favorites) { favorite in
                         row(favorite: favorite)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color(.secondarySystemGroupedBackground))
+                                    .padding(.vertical, 5)
+                                    .padding(.horizontal, 16)
+                            )
+                            .listRowInsets(EdgeInsets(top: 17, leading: 28, bottom: 17, trailing: 28))
                     }
                     .onMove { sourceIndexes, destinationOffset in
                         // 一覧のドラッグで動かせるのは 1 行ずつなので、渡される位置は 1 つ。
@@ -160,15 +162,9 @@ struct FavoritesListView: View {
                     }
                 } footer: {
                     Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .listRowSeparator(.hidden)
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color(.secondarySystemGroupedBackground))
-                        .padding(.vertical, 5)
-                        .padding(.horizontal, 16)
-                )
-                .listRowInsets(EdgeInsets(top: 17, leading: 28, bottom: 17, trailing: 28))
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -235,9 +231,16 @@ struct FavoritesListView: View {
                                 .font(.footnote.weight(.bold))
                                 .foregroundStyle(quickBuyAccentColor)
                         }
-                        Text("\(shopDomainText(favorite: favorite)) ・ \(favorite.quantity) 個")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        // 長いドメインでも個数が次の行に送られないよう、ドメインだけを中ほどで省いて 1 行に収める。
+                        HStack(spacing: 0) {
+                            Text(shopDomainText(favorite: favorite))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text(" ・ \(favorite.quantity) 個")
+                                .fixedSize()
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         // 一覧を開いたまま日数が過ぎた時にも文言が切り替わるよう、1 分ごとに描き直す。
                         // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
                         TimelineView(.periodic(from: .now, by: 60)) { timeline in
