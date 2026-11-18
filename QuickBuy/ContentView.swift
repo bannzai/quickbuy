@@ -35,7 +35,7 @@ struct FavoritesListView: View {
     /// 設定画面を出している間は true。
     @State private var isSettingsPresented = false
     /// 通知の許可の説明の画面を出している間は true。
-    @State private var isNotificationPermissionExplanationPresented = false
+    @State private var isNotificationPermissionExplanationSheetPresented = false
 
     /// 一覧と、追加・編集・設定の画面への入口。
     var body: some View {
@@ -104,9 +104,9 @@ struct FavoritesListView: View {
                 isSettingsPresented = false
             }
         }
-        .fullScreenCover(isPresented: $isNotificationPermissionExplanationPresented) {
+        .fullScreenCover(isPresented: $isNotificationPermissionExplanationSheetPresented) {
             NotificationPermissionExplanationView(userDefaults: .standard) {
-                isNotificationPermissionExplanationPresented = false
+                isNotificationPermissionExplanationSheetPresented = false
             }
         }
         .alert("保存できませんでした", isPresented: $isSaveFailed) {}
@@ -228,7 +228,7 @@ struct FavoritesListView: View {
         ), editingFavorite == nil, !isAddingFavorite, !isSettingsPresented else {
             return
         }
-        isNotificationPermissionExplanationPresented = true
+        isNotificationPermissionExplanationSheetPresented = true
     }
 
     /// 保存の操作を実行し、失敗した時はその旨を知らせる。成否にかかわらず、保存先の今の並びを表示に反映する。
