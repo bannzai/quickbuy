@@ -92,7 +92,15 @@
   <pre style="margin:4px 0 0;white-space:pre-wrap;padding:0;border:none;background:none">cd /Users/bannzai/ghq/github.com/bannzai/quickbuy
 claude --resume 8f529b2f-93c9-4048-b3e0-91a832b2851e</pre>
   </aside>
-  <p class="lead">最初の版 (iOS で お気に入り → ウィジェットのタップ → 購入画面) が端末内に保存するデータの案。保存する型はこの 1 つだけ。実装の前に見てもらうための資料で、まだコードには入れていない (2026-11-17 作成)。</p>
+  <p class="lead">最初の版 (iOS で お気に入り → ウィジェットのタップ → 購入画面) が端末内に保存するデータの案。実装の前に見てもらうための資料で、まだコードには入れていない (2026-11-17 作成。同日に bannzai の判断を反映して改訂)。</p>
+
+  <h2>改訂で変えた点 (2026-11-17 の bannzai の判断)</h2>
+  <ul>
+    <li>商品バリアントの ID を文字列にした</li>
+    <li><code>Product</code> の各 case に、struct で定義した型 (<code>ShopifyProduct</code>・<code>AmazonProduct</code>) を持たせた</li>
+    <li>「いつものセット」を無くした (同じ店の商品を 1 つの URL にまとめる操作も無くした)</li>
+    <li>リマインド (設定した日数ごとの通知) を足した。型と動きは agent の案で、下の「見てほしい点」に書いた</li>
+  </ul>
 
   <h2>型定義 (Swift)</h2>
   <pre><code>/// お気に入り: 利用者が「また買う」ために登録した 1 つの商品。
@@ -107,22 +115,47 @@ struct Favorite: Codable, Identifiable, Equatable {
     var quantity: Int
     /// どの店のどの商品か。
     var product: Product
+    /// リマインド。設定していなければ nil。
+    var reminder: Reminder?
 
     /// 購入画面を開くのに要る、店の種類ごとの商品の指し方。
     enum Product: Codable, Equatable {
-        /// Shopify の店の商品。店のドメインと商品バリアントの ID。
-        case shopify(shopDomain: String, variantID: UInt64)
-        /// Amazon (amazon.co.jp) の商品。ASIN。
-        case amazon(asin: String)
+        case shopify(ShopifyProduct)
+        case amazon(AmazonProduct)
     }
+}
+
+/// Shopify の店の商品。
+struct ShopifyProduct: Codable, Equatable {
+    /// 店のドメイン (例: example.myshopify.com)。
+    var shopDomain: String
+    /// 商品バリアントの ID。数字だけの文字列。
+    var variantID: String
+}
+
+/// Amazon (amazon.co.jp) の商品。
+struct AmazonProduct: Codable, Equatable {
+    /// ASIN。
+    var asin: String
+}
+
+/// リマインド: 設定した日数ごとに、買う頃だと通知する設定。
+struct Reminder: Codable, Equatable {
+    /// 何日ごとに知らせるか。1 以上。
+    var intervalDays: Int
+    /// 日数を数え始めた日時。リマインドを設定した時と購入画面を開いた時に、その時刻へ更新する。通知はこの日時から intervalDays 日ごとに出す。
+    var countedFrom: Date
 }
 
 /// 端末内 (アプリとウィジェットが共有する領域) に保存するのは [Favorite] の 1 つだけ。
 /// 配列の並びが、一覧とウィジェットの並び順になる。</code></pre>
   <ul>
     <li>購入画面の URL は保存しない。開く時に、店のドメイン・商品の識別子・個数から決まった形で組み立てる (Shopify は <code>https://{店のドメイン}/cart/{商品バリアントの ID}:{個数}</code>)</li>
-    <li>店ごとの「いつものセット」は保存しない。同じ店のお気に入りを、開く時に 1 つの URL にまとめる</li>
-    <li>アカウント・サーバーに置くデータ・購入の履歴・最後に開いた日時は持たない</li>
+    <li>商品バリアントの ID は文字列で持つため、URL を組み立てる時に数字だけであることを検査する (数字以外を含む ID は URL に入れない)</li>
+    <li>アカウント・サーバーに置くデータ・購入の履歴は持たない</li>
+    <li>通知は端末の中だけで予約する (サーバーから送らない)</li>
+    <li>予約する通知は、お気に入り 1 件につき 1 つにする。<code>countedFrom</code> か <code>intervalDays</code> を書き換える時は、前の予約を取り消してから予約し直す</li>
+    <li>数え直しは、タップがアプリを通る前提で成り立つ。ウィジェットのタップがアプリを通らずに店の画面を開く作りになる場合は <code>countedFrom</code> を更新できないため、ウィジェットを実装する時に実機で確かめる (未確認)</li>
   </ul>
 
   <h2>利用者の操作と、読み書きするデータ</h2>
@@ -149,8 +182,13 @@ struct Favorite: Codable, Identifiable, Equatable {
         </tr>
         <tr>
           <td>名前・個数を変える、並べ替える、削除する</td>
-          <td>変えた内容で保存し直し、ウィジェットを更新する</td>
+          <td>変えた内容で保存し直し、ウィジェットを更新する。削除した時は、そのお気に入りの予約済みの通知を取り消す</td>
           <td><span class="w">書く</span> name・quantity・配列の並び・要素の削除</td>
+        </tr>
+        <tr>
+          <td>お気に入りに「何日ごとに知らせるか」を設定する (変える・やめる)</td>
+          <td>そのお気に入りの予約済みの通知を取り消してから、設定した時刻から日数分あとに通知を予約する。やめた時は予約を取り消すだけにする</td>
+          <td><span class="w">書く</span> reminder (intervalDays・countedFrom)。やめた時は nil</td>
         </tr>
         <tr>
           <td>ホーム画面にウィジェットを置く</td>
@@ -159,13 +197,18 @@ struct Favorite: Codable, Identifiable, Equatable {
         </tr>
         <tr>
           <td>ウィジェットか一覧で商品をタップする</td>
-          <td>その商品が個数分カートに入った購入画面の URL を組み立てて開く</td>
-          <td><span class="r">読む</span> Favorite 1 件 (product・quantity)</td>
+          <td>その商品が個数分カートに入った購入画面の URL を組み立てて開く。リマインドがあれば、予約済みの通知を取り消し、開いた時刻から日数分あとに予約し直す</td>
+          <td><span class="r">読む</span> Favorite 1 件 (product・quantity)<br><span class="w">書く</span> リマインドがあれば countedFrom (開いた時刻から数え直す)</td>
         </tr>
         <tr>
-          <td>同じ店のお気に入りをまとめて開く (いつものセット)</td>
-          <td>同じ店のお気に入りを 1 つの URL にまとめて開く</td>
-          <td><span class="r">読む</span> product が同じ shopDomain の Favorite</td>
+          <td>リマインドの通知を受け取り、タップする</td>
+          <td>その商品の購入画面を開く (ウィジェットのタップと同じ動きで、通知も予約し直す)。通知が指すお気に入りが無い時は、購入画面を開かずお気に入りの一覧を表示する</td>
+          <td><span class="r">読む</span> Favorite 1 件 (product・quantity)<br><span class="w">書く</span> countedFrom (開いた時刻から数え直す)</td>
+        </tr>
+        <tr>
+          <td>通知を受け取ったが、タップしない</td>
+          <td>何もしない。同じ日数が過ぎたら、もう一度知らせる</td>
+          <td class="none">読み書きしない</td>
         </tr>
         <tr>
           <td>店の画面で内容を確かめ、支払いを確定する</td>
@@ -179,14 +222,22 @@ struct Favorite: Codable, Identifiable, Equatable {
   <h2>見てほしい点</h2>
   <div class="ask">
     <p><strong>1. URL ではなく、店のドメイン・商品の識別子・個数を保存する</strong></p>
-    <p>企画は「cart permalink と Amazon のカートに入れる URL を保存して開く形」だった。URL のまま保存すると、個数の変更と、同じ店の商品をまとめることのたびに URL を書き換えることになり、渡された URL をそのまま開く作りにもなる。そのため部品で保存する案にした。</p>
+    <p>企画は「cart permalink と Amazon のカートに入れる URL を保存して開く形」だった。URL のまま保存すると、個数を変えるたびに URL を書き換えることになり、渡された URL をそのまま開く作りにもなる。そのため部品で保存する案にした。</p>
   </div>
   <div class="ask">
-    <p><strong>2. 「いつものセット」を保存しない</strong></p>
-    <p>この案では、同じ店のお気に入りは全部まとめて 1 つのセットになる。「セットに入れる商品を選ぶ」「セットに名前を付ける」「同じ店でセットを 2 つ持つ」が要るなら、セットを表す型を足す。</p>
+    <p><strong>2. リマインドの数え方 (agent の案)</strong></p>
+    <p>「何日ごと」を、購入画面を開いた時刻から数える案にした。Quick Buy は購入が完了したかを知れないため、開いた時を「買った時」の代わりにする。開いただけで買わなかった時も数え直しになる。通知を無視した時は、同じ日数でもう一度知らせる。</p>
   </div>
   <div class="ask">
-    <p><strong>3. 最初の版の追加の入口は「URL を貼り付ける・共有メニューから渡す」</strong></p>
+    <p><strong>3. 通知をタップした時の動き (agent の案)</strong></p>
+    <p>お気に入りの一覧ではなく、その商品の購入画面を直接開く案にした。「決めた後は 1 タップ」に合わせるため。</p>
+  </div>
+  <div class="ask">
+    <p><strong>4. 同じ店の商品を続けて開いた時に、2 つともカートに入るかは未確認</strong></p>
+    <p>「いつものセット」を無くしたので、同じ店の 2 商品を買う時は 2 回タップすることになる。Shopify の後継の形式 (<code>/buy</code>) の文書には「The new cart replaces any cart that the buyer already had on the store.」とあり、開くたびにカートが置き換わる。最初の版で使う従来の形式 (<code>/cart/{ID}:{個数}</code>) は、文書に記載が無く確かめられていない。置き換わる場合、1 つ目の支払いを済ませてから 2 つ目を開く使い方になる。実装の時に実際の店で確かめる。</p>
+  </div>
+  <div class="ask">
+    <p><strong>5. 最初の版の追加の入口は「URL を貼り付ける・共有メニューから渡す」</strong></p>
     <p>企画の入口 (アプリ内の検索・相性の良い商品の一覧・店が配るリンクや QR) のうち、検索と一覧は Shopify の Catalog の API キーと自分のサーバーが要る。それらが無い最初の版で登録できるように、この入口を足した。</p>
   </div>
 </div>
