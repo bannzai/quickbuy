@@ -295,6 +295,43 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
     }
 
+    /// 個数が 1 未満のものが、保存済みと同じ識別子のもの・並びの中で 2 回目に出てくるものであっても、追加はエラーになり、新しい 1 件も保存されない。
+    @Test func 個数が1未満のものは重複として除かれる時でも追加を止める() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try addFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        var zeroQuantitySavedFavorite = confirmedFavorites[0]
+        zeroQuantitySavedFavorite.quantity = 0
+        #expect(throws: FavoriteStoreError.quantityLessThanOne) {
+            try finishFavoriteAddition(choice: .add, favorites: [zeroQuantitySavedFavorite, confirmedFavorites[1]], fileURL: fileURL)
+        }
+        var zeroQuantityLaterDuplicate = confirmedFavorites[1]
+        zeroQuantityLaterDuplicate.quantity = 0
+        #expect(throws: FavoriteStoreError.quantityLessThanOne) {
+            try finishFavoriteAddition(choice: .add, favorites: [confirmedFavorites[1], zeroQuantityLaterDuplicate], fileURL: fileURL)
+        }
+        #expect(try loadFavorites(fileURL: fileURL) == [confirmedFavorites[0]])
+    }
+
+    /// 店の商品の情報に同じ ID の商品バリアントが 2 回並んでいる時は、ID ごとに最初の 1 つだけを店の並び順のまま返す。
+    @Test func 同じIDの商品バリアントが並ぶ商品は最初の1つだけを返す() async throws {
+        let shopDomain = uniqueShopDomain()
+        StubURLProtocol.stubResponses.withLock {
+            $0["https://\(shopDomain)/products/coffee-beans.js"] = .http(
+                statusCode: 200,
+                body: Data(
+                    #"{"title":"コーヒー豆","featured_image":null,"variants":[{"id":101,"title":"小","available":true},{"id":102,"title":"中","available":true},{"id":101,"title":"大","available":true}]}"#
+                        .utf8
+                )
+            )
+        }
+        #expect(
+            try await loadFavoriteAddition(text: "https://\(shopDomain)/products/coffee-beans", urlSession: StubURLProtocol.urlSession()).product.variants == [
+                .init(id: 101, title: "小", available: true),
+                .init(id: 102, title: "中", available: true),
+            ]
+        )
+    }
+
     // MARK: - 名前と個数の入力
 
     /// 保存するボタンは、名前に字があり、商品バリアントを 1 つ以上選んでいる時だけ押せる。どちらかが欠けると押せない。

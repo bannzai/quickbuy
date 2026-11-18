@@ -247,9 +247,24 @@ enum FavoriteAdditionLoadError: Error, Equatable {
     case notRegistrable
 }
 
+/// 同じ ID の商品バリアントが並びに複数ある商品を、ID ごとに最初の 1 つだけを店の並び順のまま残した商品にして返す。ほかの値は変えない。
+///
+/// 確認の画面は商品バリアントの ID で行・選択・個数を見分けるため、同じ ID が 2 行あると、選んだ行と違う名前で保存される。
+func productWithUniqueVariants(product: ShopifyAjaxProduct) -> ShopifyAjaxProduct {
+    ShopifyAjaxProduct(
+        title: product.title,
+        featuredImage: product.featuredImage,
+        variants: product.variants.reduce(into: []) { uniqueVariants, variant in
+            if !uniqueVariants.contains(where: { $0.id == variant.id }) {
+                uniqueVariants.append(variant)
+            }
+        }
+    )
+}
+
 /// 渡された文字列 (前後の空白と改行は除く) から、確認の画面に出す商品と、最初に選んである商品バリアントと個数を返す。保存はしない。
 ///
-/// 返すのは、文字列を `shopifyProductPage(text:)` で分解した値、その店から取得した商品の JSON、`initialVariantQuantities(productPage:product:)` の値。
+/// 返すのは、文字列を `shopifyProductPage(text:)` で分解した値、その店から取得した商品の JSON (`productWithUniqueVariants(product:)` を通したもの)、`initialVariantQuantities(productPage:product:)` の値。
 /// 通信するのは、分解できた時の `shopifyAjaxProductURL(productPage:)` の URL への GET の 1 回だけ。
 /// 失敗した時は `FavoriteAdditionLoadError` を投げる (HTTP 200 以外・JSON として読めない応答・`initialVariantQuantities(productPage:product:)` が nil の商品は `notRegistrable`、HTTP 429 と通信の失敗は `temporarilyUnavailable`)。
 func loadFavoriteAddition(
@@ -268,7 +283,7 @@ func loadFavoriteAddition(
         throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode == 200,
-          let product = try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data),
+          let product = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data)).map(productWithUniqueVariants(product:)),
           let quantitiesByVariantID = initialVariantQuantities(productPage: productPage, product: product)
     else {
         throw FavoriteAdditionLoadError.notRegistrable

@@ -214,7 +214,7 @@
                         initialText: sampleProductPageURLText,
                         favoritesFileURL: favoritesFileURL,
                         urlSession: sampleProductURLSession(),
-                        onFinish: onFinish
+                        onFinish: { isAddingSampleProduct = false }
                     )
                 }
             }
