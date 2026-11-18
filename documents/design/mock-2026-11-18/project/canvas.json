@@ -1,0 +1,19 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-17T12:25:00Z" },
+  "title": "Quick Buy 主要画面のモック",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Home.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1. トップページ (検索窓と商品)" },
+    "SearchAdd.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2. 検索 → お気に入り追加 (種類と個数)" },
+    "PushPermission.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. 通知の許可の説明" },
+    "Favorites.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4. お気に入り一覧 → カートイン → トースト" },
+    "WidgetPush.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 560, "title": "5. ウィジェット → 通知" }
+  },
+  "order": ["Home.dc.html", "SearchAdd.dc.html", "PushPermission.dc.html", "Favorites.dc.html", "WidgetPush.dc.html"],
+  "notes": {
+    "flow": { "x": 0, "y": -300, "text": "最初の版の主要画面 (2026-11-18 の作り直し)", "kind": "title1", "maxW": 2270 }
+  },
+  "designSystems": []
+}
