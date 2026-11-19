@@ -169,6 +169,18 @@ struct LocalizationTests {
         #expect(String(localized: LocalizedStringResource("\(1) 日ごと", locale: englishLocale)) == "1 day")
         #expect(String(localized: LocalizedStringResource("\(7) 日ごと", locale: englishLocale)) == "7 days")
         #expect(String(localized: LocalizedStringResource("\("Restarts")\n次の知らせは \("Nov 26") です", locale: englishLocale)) == "Restarts\nNext reminder: Nov 26")
+        #expect(
+            String(localized: LocalizedStringResource("\("Restarts")\n次の知らせは \("Nov 26") です\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます", locale: englishLocale))
+                == "Restarts\nNext reminder: Nov 26\nNotifications aren't allowed\nAllow notifications for Quick Buy in Settings to get reminders"
+        )
+    }
+
+    /// 追加の画面の URL の説明が英語で引ける。`www.amazon.co.jp` を含むが、画面は `Text(String)` で渡すためリンクにならない (2026-11-19 に simtunnel で英語と日本語の両方を確かめた)。
+    @Test func 追加の画面のURLの説明は英語() {
+        #expect(
+            String(localized: LocalizedStringResource("Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください", locale: englishLocale))
+                == "Paste a product page URL from a Shopify store or Amazon (www.amazon.co.jp)"
+        )
     }
 
     /// 問い合わせのメールの件名は英語になる。

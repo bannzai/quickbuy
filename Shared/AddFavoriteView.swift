@@ -84,7 +84,7 @@ struct AddFavoriteView: View {
                 Text("商品ページの URL")
             } footer: {
                 // 訳した文言を String で渡すのは、LocalizedStringKey で渡すと www.amazon.co.jp が押せるリンクになり、確認の画面を通さずに Amazon を開けてしまうため (2026-11-19 に simtunnel で、リンクとして表示されることを確かめた)。
-                Text(String(localized: "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください"))
+                Text(String(localized: LocalizedStringResource("Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください", locale: appTextLocale)))
             }
             if let errorMessage {
                 Section {
