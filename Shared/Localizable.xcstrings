@@ -297,22 +297,22 @@
         }
       }
     },
-    "いつもの商品を 1 タップで" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your usual items in one tap"
-          }
-        }
-      }
-    },
     "いつもの商品をホーム画面からカートイン" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add your usual items to cart from the Home Screen"
+          }
+        }
+      }
+    },
+    "いつもの商品を探さずに買い直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuy your usual items without searching"
           }
         }
       }
