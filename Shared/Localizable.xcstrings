@@ -757,6 +757,16 @@
         }
       }
     },
+    "利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と開いた画面の URL は送りません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage and crash reports are sent to Google Firebase\nProduct names, store names, and URLs of opened pages are not sent"
+          }
+        }
+      }
+    },
     "利用規約" : {
       "localizations" : {
         "en" : {

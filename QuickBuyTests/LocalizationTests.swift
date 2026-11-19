@@ -156,6 +156,14 @@ struct LocalizationTests {
         #expect(textLocale(preferredLocalizations: [], fallback: Locale(identifier: "fr")).identifier == "fr")
     }
 
+    /// 設定画面の、Firebase に送る記録の説明 (PR #51 で足した文言) が英語で引ける。
+    @Test func 設定画面の記録の説明は英語() {
+        #expect(
+            String(localized: LocalizedStringResource("利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と開いた画面の URL は送りません", locale: englishLocale))
+                == "Usage and crash reports are sent to Google Firebase\nProduct names, store names, and URLs of opened pages are not sent"
+        )
+    }
+
     /// 画面に直接書いた、数を含む文言のカタログの訳 (編集の画面の「N 日ごと」と次の知らせの日付) が英語で引ける。
     @Test func 画面の数を含む文言は英語() {
         #expect(String(localized: LocalizedStringResource("\(1) 日ごと", locale: englishLocale)) == "1 day")
