@@ -68,12 +68,13 @@ import Testing
         #expect(products.first?.variants.first?.price == ShopifyCatalogMoney(amount: 2700, currency: "JPY"))
     }
 
-    /// HTTP 429・HTTP 500・tool のエラー (`isError`)・通信の失敗が、それぞれ別の失敗になる。
+    /// HTTP 429・HTTP 500・tool のエラー (`isError`)・JSON-RPC のエラー・通信の失敗が、それぞれ別の失敗になる。
     @Test func 検索の失敗は理由ごとに分かれる() async throws {
         let rateLimitedURL = Self.endpointURL(name: "search-429")
         let failedURL = Self.endpointURL(name: "search-500")
         let toolErrorURL = Self.endpointURL(name: "search-tool-error")
         let unreachableURL = Self.endpointURL(name: "search-unreachable")
+        let jsonRPCErrorURL = Self.endpointURL(name: "search-jsonrpc-error")
         StubURLProtocol.stubResponses.withLock {
             $0[rateLimitedURL.absoluteString] = .http(statusCode: 429, body: Data())
             $0[failedURL.absoluteString] = .http(statusCode: 500, body: Self.searchResponseJSON)
@@ -82,6 +83,13 @@ import Testing
                 body: Data(#"{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Missing required arguments: catalog"}],"isError":true}}"#.utf8)
             )
             $0[unreachableURL.absoluteString] = .connectionFailure
+            $0[jsonRPCErrorURL.absoluteString] = .http(
+                statusCode: 200,
+                body: Data(#"{"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"UCP discovery failed","data":{"code":"profile_malformed"}}}"#.utf8)
+            )
+        }
+        await #expect(throws: ShopifyCatalogError.failed) {
+            try await searchShopifyCatalog(query: "a", endpointURL: jsonRPCErrorURL, urlSession: StubURLProtocol.urlSession())
         }
         await #expect(throws: ShopifyCatalogError.rateLimited(retryAfterSeconds: nil)) {
             try await searchShopifyCatalog(query: "a", endpointURL: rateLimitedURL, urlSession: StubURLProtocol.urlSession())
