@@ -40,14 +40,14 @@ jobs:
           GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
         run: scripts/restore-google-service-info-plist.sh
       - name: Simulator 用 Debug ビルド
-        # runner には署名用の証明書が無いため署名を省く。Simulator は未署名の .app を実行できる
+        # 署名の設定は変えない (simtunnel の runner/build-app.sh と同じ)。CODE_SIGNING_ALLOWED=NO にすると
+        # App Group の entitlement が付かず、起動すると「お気に入りの保存先を開けません」になる (2026-11-19 に simtunnel で確認)
         run: |
           mkdir -p tmp
           xcodebuild -project QuickBuy.xcodeproj -scheme QuickBuy \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath tmp/DerivedData \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             build > tmp/app-build.log 2>&1 || {
               echo "ビルドに失敗。ログ末尾:" >&2
               tail -n 150 tmp/app-build.log >&2
