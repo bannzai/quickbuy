@@ -7,8 +7,8 @@ let homeSuggestedSearchQueries = ["コーヒー豆", "紅茶", "シャンプー"
 
 /// トップページを開いた時に、検索の前に結果を並べておく決まった検索語。
 ///
-/// 検索語の並び (`homeSuggestedSearchQueries`) の先頭と同じ語。人気の順を返す API が無いため、見出しは「人気の商品」でなく、この語の検索の結果だと分かる言葉にする (issue #34)。
-let homeFeaturedSearchQuery = "コーヒー豆"
+/// 検索語の並び (`homeSuggestedSearchQueries`) の先頭の語。人気の順を返す API が無いため、見出しは「人気の商品」でなく、この語の検索の結果だと分かる言葉にする (issue #34)。
+let homeFeaturedSearchQuery = homeSuggestedSearchQueries[0]
 
 /// トップページ。検索窓・買い直す物の検索語・画像つきの商品の並びを見せ、商品の「お気に入り追加」から追加の画面を開く。
 ///
