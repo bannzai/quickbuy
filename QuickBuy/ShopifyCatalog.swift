@@ -278,7 +278,7 @@ func shopifyCatalogShopDomain(variant: ShopifyCatalogVariant) -> String? {
     else {
         return nil
     }
-    return urlComponents.host?.lowercased().flatMap { isHostName(text: $0) ? $0 : nil }
+    return (urlComponents.host?.lowercased()).flatMap { isHostName(text: $0) ? $0 : nil }
 }
 
 /// 一覧と追加の画面に出す商品の画像の URL を返す (保存はしない)。最初の画像が `https` で Shopify の CDN か店のドメインのものでない時は nil。
