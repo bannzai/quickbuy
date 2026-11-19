@@ -1,6 +1,6 @@
-# managed-by: setup-ci (bannzai/castle)
-# 再生成: /setup-ci (このファイルを手で編集する場合はこのヘッダーを外して手動管理に切り替える)
 name: CI Test (xcode)
+
+# setup-ci (bannzai/castle) が作った workflow に、Firebase の設定ファイルを secret から書き出す手順を足したため、手動管理に切り替えた。
 
 on:
   pull_request:
@@ -21,6 +21,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: 設定ファイルを書き出すスクリプトのテスト
+        run: bash scripts/test/test-restore-google-service-info-plist.sh
+      - name: Firebase の設定ファイルを secret から書き出す
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: scripts/restore-google-service-info-plist.sh
       - name: 単体テストを実行する
         run: |
           xcodebuild test -project "QuickBuy.xcodeproj" -scheme "QuickBuy" \

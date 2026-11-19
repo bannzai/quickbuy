@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quick Buy | いつもの商品をホーム画面からワンタップで買い直す</title>
-  <meta name="description" content="Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリです。定期購入の契約は不要で、支払いの確定は毎回自分で行います。">
+  <title>Quick Buy | いつもの商品を探さずに買い直す</title>
+  <meta name="description" content="Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにして、アプリの一覧やホーム画面のウィジェットから、確認に答えると Shopify の店は商品がカートに入った購入画面を、Amazon は商品ページを開く再購入アプリです。定期購入の契約は不要で、支払いの確定は毎回自分で行います。">
   <link rel="canonical" href="https://bannzai.github.io/quickbuy/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Quick Buy | いつもの商品をホーム画面からワンタップで買い直す">
-  <meta property="og:description" content="いつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリ。支払いの確定は毎回自分で。">
+  <meta property="og:title" content="Quick Buy | いつもの商品を探さずに買い直す">
+  <meta property="og:description" content="いつもの商品をお気に入りにして、確認に答えると店の購入画面か Amazon の商品ページが開く再購入アプリ。支払いの確定は毎回自分で。">
   <meta property="og:url" content="https://bannzai.github.io/quickbuy/">
   <meta property="og:image" content="https://bannzai.github.io/quickbuy/og.png">
   <meta property="og:locale" content="ja_JP">
@@ -21,7 +21,7 @@
     "name": "Quick Buy",
     "applicationCategory": "ShoppingApplication",
     "operatingSystem": "iOS",
-    "description": "Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開く再購入アプリ",
+    "description": "Shopify の店と Amazon のいつもの商品をお気に入りにして、アプリの一覧やホーム画面のウィジェットから確認に答えて店の購入画面か Amazon の商品ページを開く再購入アプリ",
     "url": "https://bannzai.github.io/quickbuy/",
     "image": "https://bannzai.github.io/quickbuy/og.png",
     "author": { "@type": "Person", "name": "bannzai" }
@@ -94,8 +94,8 @@
 </head>
 <body>
   <header class="hero">
-    <h1>いつもの商品を<br>ホーム画面からワンタップで買い直す</h1>
-    <p class="lead">Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにして、ホーム画面のウィジェットから購入画面を開くアプリです。定期購入の契約は要りません。支払いの確定は毎回自分で行います。</p>
+    <h1>いつもの商品を<br>探さずに買い直す</h1>
+    <p class="lead">Quick Buy は Shopify の店と Amazon のいつもの商品をお気に入りにしておき、アプリの一覧やホーム画面のウィジェットから、Shopify の店は商品がカートに入った購入画面を、Amazon は商品ページを開くアプリです。「カートイン」や「Amazon で開く」を押すと、開く前に毎回確認が出ます。定期購入の契約は要りません。支払いの確定は毎回自分で行います。</p>
     <p class="status">iPhone 向けに開発中</p>
   </header>
   <main>
@@ -103,16 +103,20 @@
       <h2 id="how">使い方</h2>
       <ol class="steps" role="list">
         <li>
-          <h3>いつもの商品をお気に入りにする</h3>
-          <p>コーヒー豆や洗剤やペットフードなど、繰り返し買う商品を登録します。</p>
+          <h3>検索してお気に入りにする</h3>
+          <p>アプリのトップページで Shopify の店の商品を検索し、種類と個数を選んでお気に入りにします。コーヒー豆や洗剤やペットフードなど、繰り返し買う商品を入れておきます。商品ページの URL を貼り付けるか、共有メニューから渡しても入れられます。Amazon の商品はこの方法で入れます。</p>
         </li>
         <li>
-          <h3>ホーム画面にウィジェットを置く</h3>
-          <p>お気に入りの商品がホーム画面に並びます。</p>
+          <h3>「カートイン」を押して確認に答える</h3>
+          <p>お気に入りの一覧で「カートイン」を押すと「購入画面を開きますか？」の確認が出ます。お気に入りはホーム画面のウィジェットにも並び、ウィジェットの「カートイン」を押すと同じ確認が通知で届きます。ウィジェットから使うには通知の許可が要ります。</p>
         </li>
         <li>
-          <h3>タップして購入画面を開く</h3>
-          <p>商品がカートに入った状態の購入画面が開きます。内容を確かめて自分で支払いを確定します。</p>
+          <h3>購入画面が開く</h3>
+          <p>確認に答えると、商品がカートに入った状態の店の購入画面が開きます。内容を確かめて自分で支払いを確定します。Amazon の商品は「Amazon で開く」を押して確認に答えると Amazon の商品ページが開きます。この時、商品はカートに入っていないので、Amazon の画面で個数を選んでカートに入れます。</p>
+        </li>
+        <li>
+          <h3>買う頃に知らせを受け取る</h3>
+          <p>お気に入りごとに何日ごとに知らせるかを決めておくと、その日数が過ぎた時に通知が届きます。通知をタップすると購入画面 (Amazon の商品は商品ページ) が開きます。日数は購入画面か商品ページを開いた時から数え直します。</p>
         </li>
       </ol>
     </section>
@@ -125,11 +129,11 @@
         </li>
         <li>
           <h3>買う時は自分で決めたい</h3>
-          <p>Quick Buy が勝手に購入することはありません。開くのは購入画面までです。</p>
+          <p>Quick Buy が勝手に購入することはありません。「カートイン」や「Amazon で開く」を押すと、開く前に毎回確認が出ます。開くのは購入画面 (Amazon の商品は商品ページ) までです。</p>
         </li>
         <li>
           <h3>毎回探してカートに入れる手間を省きたい</h3>
-          <p>店を開いて商品を探す操作を、ホーム画面のワンタップに置き換えます。</p>
+          <p>店を開いて商品を探す操作を、お気に入りのボタンを押して確認に答えるだけにします。</p>
         </li>
       </ul>
     </section>
@@ -139,7 +143,7 @@
     </section>
     <section aria-labelledby="support">
       <h2 id="support">サポート・お問い合わせ</h2>
-      <p>ご質問や不具合の報告はメールで受け付けています。アプリの公開後は、アプリ内の設定画面にあるお問い合わせからも送れるようにします。</p>
+      <p>ご質問や不具合の報告はメールで受け付けています。アプリの設定画面のお問い合わせからも送れます。</p>
       <p><a class="contact" href="mailto:bannzai.app@gmail.com">bannzai.app@gmail.com にメールする</a></p>
     </section>
   </main>

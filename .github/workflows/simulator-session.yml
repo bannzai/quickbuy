@@ -23,7 +23,50 @@ on:
         default: "60"
 
 jobs:
+  # Simulator 用 .app をビルドして artifact に上げる。
+  # session.yml の build_project 入力（runner 上で xcodebuild 直叩き）を使わず caller 側でビルドするのは、
+  # ビルドの前に Firebase の設定ファイルを secret から書き出す必要があるため（session.yml にはビルド前の手順を足す入力が無い）
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read # checkout のみ。OIDC token (id-token) は session job だけに与える
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Firebase の設定ファイルを secret から書き出す
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: scripts/restore-google-service-info-plist.sh
+      - name: Simulator 用 Debug ビルド
+        # 署名の設定は変えない (simtunnel の runner/build-app.sh と同じ)。CODE_SIGNING_ALLOWED=NO にすると
+        # App Group の entitlement が付かず、起動すると「お気に入りの保存先を開けません」になる (2026-11-19 に simtunnel で確認)
+        run: |
+          mkdir -p tmp
+          xcodebuild -project QuickBuy.xcodeproj -scheme QuickBuy \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath tmp/DerivedData \
+            build > tmp/app-build.log 2>&1 || {
+              echo "ビルドに失敗。ログ末尾:" >&2
+              tail -n 150 tmp/app-build.log >&2
+              exit 1
+            }
+          grep -E 'warning:|\*\* BUILD' tmp/app-build.log || true
+          test -d tmp/DerivedData/Build/Products/Debug-iphonesimulator/QuickBuy.app
+          # .app だけを artifact に載せる（Products 直下の swiftmodule 等は不要）
+          mkdir -p tmp/simulator-app
+          ditto tmp/DerivedData/Build/Products/Debug-iphonesimulator/QuickBuy.app tmp/simulator-app/QuickBuy.app
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: simulator-app
+          path: tmp/simulator-app # .app の親ディレクトリ（.app 直指定は中身が flatten される）
+          # .app は Firebase の設定ファイルを含むため、session job が取り出すのに要る最短の日数だけ残す
+          retention-days: 1
+
   session:
+    needs: build
     # id-token: write が必要なのは reusable workflow を呼ぶこの job だけのため、job 単位で最小権限にする
     permissions:
       id-token: write # Tailscale の OIDC (workload identity federation) 認証に必要
@@ -34,8 +77,8 @@ jobs:
       session: ${{ inputs.session }}
       device: ${{ inputs.device }}
       duration_minutes: ${{ inputs.duration_minutes }}
-      build_project: QuickBuy.xcodeproj
-      build_scheme: QuickBuy
+      app_artifact: simulator-app
+      bundle_id: com.bannzai.QuickBuy
     secrets:
       TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
       TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}

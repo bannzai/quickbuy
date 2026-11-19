@@ -17,6 +17,12 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 
 しきい値は実測の裏付けが無い仮の値 (評価レポートの「撤退・継続の基準」と同じ)。計測元の指標は、計測と bannzai/dashboard への収集を入れた後に読めるようになる。
 
+アプリが Firebase Analytics (プロジェクト `quickbuy-app-prod`) に記録するイベントと、計測元の指標への数え方 (https://github.com/bannzai/quickbuy/issues/39 で入れた。bannzai/dashboard への収集はまだ無い):
+
+- `purchase_screen_open`: Shopify の店の購入画面か Amazon の商品ページを開いた時に 1 件。引数は `entry_point` (`favorites_list` = 一覧の確認の「開く」、`cart_in_notification` = ウィジェットの「カートイン」(Amazon の商品は「Amazon で開く」) の確認の通知のタップ、`reminder_notification` = リマインドの通知のタップ) と `store` (`shopify` = 購入画面、`amazon` = 商品ページ)。`purchase_open` の `users` は `store` が `shopify` のこのイベントを記録した利用者の数、`purchase_open_retention` の `d14_rate` は `store` が `shopify` のこのイベントを記録した利用者のうち、次の 14 日にも `store` が `shopify` のこのイベントを記録した人の割合 (下の表の指標は「購入画面」を数え、用語「購入画面」は Amazon の商品ページを含まないため。Amazon の商品ページを開いた数は `store` が `amazon` のもので別に読む)
+- `widget_placed`: アプリが前面に来た時に、お気に入りのウィジェットをホーム画面に置いていれば 1 件。引数は `widget_families` (置いている大きさ `small`・`medium`・`large`・`extra_large_portrait` (iOS 27 以降の縦長の特大サイズ) を名前の順に `,` でつないだ値)。`widget_adoption` の `rate` は、期間の新規の利用者 (Firebase Analytics の自動のイベント `first_open` を記録した利用者) のうち、このイベントを記録した人の割合。ウィジェットを置いた後にアプリを前面に出していない利用者 (ウィジェットと通知だけで使い、通知のタップでも開いていない人) は記録されないため、実際より低く出ることがある
+- 両方のイベントに、商品・店・お気に入りの名前、店のドメイン、購入画面の URL は入れない。Debug の設定のビルド (開発中とユニットテスト) は記録を送らない
+
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 直近 14 日に購入画面を 1 回以上開いた利用者数 | `bash ~/.agents/skills/product-loop/scripts/read-dashboard-metric.sh --repo bannzai/quickbuy --metric purchase_open --field users --days 14 --agg sum` の `VALUE` | >= 10 | < 3 x2 (2 回連続) | 新規の利用者は 10 人以上いるのに開いた利用者が 3 人未満なら、お気に入りを登録する入口を作り直す |
@@ -38,7 +44,8 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 - [x] リマインド: お気に入りごとに「何日ごとに知らせるか」を設定し、端末の通知で知らせる。通知をタップすると、その商品の購入画面が開く。日数は購入画面を開いた時刻から数え直す (数え方と通知をタップした時の動きは agent の案)
 - [ ] 設定画面: お問い合わせ・利用規約・プライバシーポリシー・アフィリエイトのリンクを含むことの表示 (お問い合わせ・利用規約・プライバシーポリシーは実装済み。アフィリエイトのリンクを含むことの表示は、アフィリエイトのリンクを置く時に足す)
 - [x] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
-- [ ] 計測とクラッシュ収集: 購入画面を開いた・ウィジェットを置いた、を数える (Firebase Analytics・Crashlytics・bannzai/dashboard への収集)
+- [x] 計測とクラッシュ収集 (アプリ側): 購入画面を開いた・ウィジェットを置いている、を Firebase Analytics に記録し、クラッシュを Crashlytics に送る (https://github.com/bannzai/quickbuy/issues/39 )
+- [ ] 計測の数字の bannzai/dashboard への収集 (公開の後に別の issue で作る)
 - [ ] 多言語化 (日本語・英語) とストアの素材 (アプリ・ウィジェット・共有メニューの拡張・通知の文言の日本語と英語は実装済み (https://github.com/bannzai/quickbuy/issues/54 。文字列カタログ `Shared/Localizable.xcstrings` を 3 つのターゲットで共有する。開発者メニューは訳さない)。ストアの素材 (スクリーンショット・説明文) と、利用規約・プライバシーポリシーの英語版は残っている)
 
 その後:
@@ -110,6 +117,8 @@ bannzai の返答 (2026-11-18。https://github.com/bannzai/quickbuy/issues/8#iss
 | 2026-11-19 | トップページの検索の実装 (https://github.com/bannzai/quickbuy/issues/34 ) | アプリを開いた時はトップページを出すが、ウィジェットの「カートイン」以外の場所のタップで開いた時はお気に入りのタブを出す (2026-11-18 のウィジェットの実装の行の「アプリの一覧を開く」を保つ)。ウィジェットはアプリの中だけの行き先の URL (`quickbuy-widget://favorites`) を渡し、アプリはこの URL の時だけタブを替える。検索の結果からの追加の入口は Shopify の店の商品だけに置き、Amazon のお気に入りは商品ページの URL からだけ足す (検索の結果の店のドメインが Amazon のものなら並べない) | agent |
 | 2026-11-19 | トップページの検索の実装 (https://github.com/bannzai/quickbuy/issues/34 ) | 通知の許可の説明を出すかを確かめる時機に、お気に入りのタブを開いた時を足す。検索の結果からの追加の画面はホームのタブの上で閉じるため、追加の画面を閉じた時に確かめると、お気に入りの一覧を見る前に説明が出る。一覧を開いた時に、足した最初のお気に入りと一緒に説明を見せる (出す条件は 2026-11-18 の行のまま) | agent |
 | 2026-11-19 | Amazon の商品の登録と開き方の実装 (https://github.com/bannzai/quickbuy/issues/35 ) | 受け取る URL は www.amazon.co.jp の商品ページの URL (`/dp/{ASIN}`・`/{商品名の部分}/dp/{ASIN}`・`/gp/product/{ASIN}`・`/gp/aw/d/{ASIN}`) と、その短い URL (`https://amzn.asia/d/{英数字}`)。ほかの国の Amazon・`amazon.co.jp` (www の無い形)・`amzn.to`・`a.co` は受け取らず、Amazon の共有から渡す案内を出す。短い URL は、短い URL へ 1 回だけ GET し、転送に従わずに転送先から ASIN を読む (Amazon の商品ページは取得しない)。保存するのは ASIN と、利用者が確認の画面で付けた名前だけ (名前の欄は空で出し、Amazon のページから名前・画像を読まない)。確認の画面には店のドメイン `www.amazon.co.jp` と ASIN を出し、個数の欄を出さない。商品ページの URL で個数を渡せるかは、2026-11-19 に `?quantity=3` を付けた URL を GitHub Actions の Linux Runner の Chromium で開いたが、Amazon のロボットの確認の画面になり確かめられなかった。個数は利用者が Amazon の画面で選ぶ。保存する個数は型の下限の 1 で、一覧・ウィジェット・通知・編集の画面に出さない。一覧とウィジェットのボタンは「Amazon で開く」、確認の見出しは「Amazon の商品ページを開きますか？」にする (開いた時に商品がカートに入らないため、「カートイン」「購入画面」と書かない)。一覧の店の表記は `www.amazon.co.jp`、ウィジェットの行の説明は「Amazon」。リマインドは Shopify の店と同じく、商品ページを開いた時 (一覧の確認の「開く」・通知のタップ) にその時刻から数え直し、通知の案内は「タップすると Amazon の商品ページが開きます」 | agent |
+| 2026-11-19 | 計測とクラッシュ収集の実装 (https://github.com/bannzai/quickbuy/issues/39 ) | firebase-ios-sdk は、公開から 2 週間以上たった中で最新の 13.1.1 (2026-10-22 公開) に固定する (公開直後の版の不具合を避けるため)。Firebase はアプリ本体だけに入れ、ウィジェットと共有メニューの拡張には入れない。Analytics は広告識別子を集めない `FirebaseAnalyticsCore` を使う (プライバシーポリシーの「広告識別子を使用しない」を保つため)。記録するのは「判定基準」の下に書いた 2 つのイベントだけ。ウィジェットを置いているかは、アプリが前面に来るたびに WidgetKit から読み、置いていれば記録する (ウィジェットの拡張からは送らない)。Debug の設定のビルドは `QuickBuy/Info-Debug.plist` で Analytics と Crashlytics の収集を止める。利用の記録を止める切り替えは作らず、設定画面にはプライバシーポリシーの入口の下に送ることだけを書く。Amazon の商品ページを開いた時も `purchase_screen_open` を `store=amazon` で記録するが、判定基準の「購入画面を開いた」の 2 つの指標は `store=shopify` だけで数える (用語「購入画面」が Amazon の商品ページを含まないため。指標の文言を変えずに済む方に決めた) | agent |
+| 2026-11-19 | 紹介ページと法務文書の公開 (https://github.com/bannzai/quickbuy/issues/53 ) | GitHub Pages を 2026-11-19 に有効にした。配信は main の `docs/` をブランチから配信する設定 (`build_type` は `legacy`、`source` は `main` の `/docs`) で、`https://bannzai.github.io/quickbuy/` が紹介ページ、`/Terms-ja`・`/PrivacyPolicy-ja` が利用規約とプライバシーポリシー。main へのマージが公開になる。Catalog に渡すエージェントのプロフィールは、この時点では jsDelivr のまま (上の 2026-11-19 のトップページの検索の行。Pages の URL へ移すのはアプリの定数の変更を伴うため別の issue) | agent |
 
 ## agent に任せること
 

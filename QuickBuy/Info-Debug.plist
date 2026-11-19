@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Debug の設定のビルド (開発者向けのビルドとユニットテスト) だけで、生成される Info.plist に混ぜるキー。
+	利用の記録とクラッシュの記録を Firebase に送らない (判定基準の数字に開発中の操作が混ざらないようにするため)。
+	FIREBASE_ANALYTICS_COLLECTION_ENABLED: https://firebase.google.com/docs/analytics/configure-data-collection?platform=ios
+	FirebaseCrashlyticsCollectionEnabled: https://firebase.google.com/docs/crashlytics/customize-crash-reports?platform=ios#enable-reporting
+-->
+<plist version="1.0">
+<dict>
+	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
+	<false/>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
+</dict>
+</plist>

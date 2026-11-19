@@ -1,3 +1,4 @@
+import FirebaseCore
 import SwiftUI
 import UserNotifications
 
@@ -12,7 +13,10 @@ struct QuickBuyApp: App {
     /// 起動が終わった後に渡すと、通知のタップでアプリが起動した時にそのタップを受け取れないため、`init` で渡している
     /// (https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/delegate の
     /// 「you must set the value of this property before your app finishes launching」)。
+    ///
+    /// Firebase (利用の記録とクラッシュの記録) も、通知のタップでの起動で購入画面を開いた記録を落とさないよう、同じく `init` で初期化する。
     init() {
+        FirebaseApp.configure()
         UNUserNotificationCenter.current().delegate = reminderNotificationDelegate
     }
 

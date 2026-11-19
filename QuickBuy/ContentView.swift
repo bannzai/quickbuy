@@ -36,6 +36,7 @@ struct ContentView: View {
             // 選んでいないタブの task は動かないため、前面に来た時にどのタブでも行う処理はタブの外に置く。
             // 通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約し、
             // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
+            // ウィジェットを置いている記録 (widget_placed) も、どのタブにいても前面に来た時に取る。
             .task(id: scenePhase) {
                 guard scenePhase == .active else {
                     return
@@ -43,6 +44,7 @@ struct ContentView: View {
                 await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
                 remindersRestoredAt = .now
                 WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
+                recordWidgetPlacement(recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:))
             }
         } else {
             FavoritesStoreUnavailableView()
@@ -235,7 +237,13 @@ struct FavoritesListView: View {
                 Button {
                     cartInConfirmation = nil
                     save {
-                        if let favoriteOpeningURL = try openingURL(favoriteID: confirmingFavorite.id, now: .now, fileURL: favoritesFileURL) {
+                        if let favoriteOpeningURL = try openingURL(
+                            favoriteID: confirmingFavorite.id,
+                            entryPoint: .favoritesList,
+                            now: .now,
+                            fileURL: favoritesFileURL,
+                            recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:)
+                        ) {
                             openURL(favoriteOpeningURL)
                         }
                     }

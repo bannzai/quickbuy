@@ -164,18 +164,22 @@ struct CartInConfirmationNotificationTests {
         var recountedSoapFavorite = soapFavorite
         recountedSoapFavorite.reminder = Reminder(intervalDays: 30, countedFrom: tappedAt)
         var appliedChanges: [[ReminderNotificationChange]] = []
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: soapFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { appliedChanges.append($0) }
+                applyChanges: { appliedChanges.append($0) },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             )?.absoluteString == "https://sukoyaka-soap.example/cart/70881382:5"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [coffeeFavorite, recountedSoapFavorite])
         #expect(appliedChanges == [[.schedule(favorite: recountedSoapFavorite)]])
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "shopify"])])
     }
 
     /// Amazon の商品の確認の通知のタップでは、www.amazon.co.jp の商品ページの URL を返し、リマインドをタップした時刻から数え直す。
@@ -192,17 +196,21 @@ struct CartInConfirmationNotificationTests {
         try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
         var recountedAmazonFavorite = amazonFavorite
         recountedAmazonFavorite.reminder = Reminder(intervalDays: 30, countedFrom: tappedAt)
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: amazonFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { _ in }
+                applyChanges: { _ in },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             )?.absoluteString == "https://www.amazon.co.jp/dp/B0DTESTAB1"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [recountedAmazonFavorite])
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "amazon"])])
     }
 
     /// 確認の通知を出した後に個数を変えた時は、通知の文言の個数ではなく、タップした時に保存されている個数で組み立てる (購入画面の URL を通知に載せないため)。
@@ -215,10 +223,12 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { _ in }
+                applyChanges: { _ in },
+                recordAnalyticsEvent: { _ in }
             )?.absoluteString == "https://mori-coffee.example/cart/70881412:3"
         )
     }
@@ -229,18 +239,22 @@ struct CartInConfirmationNotificationTests {
         let coffeeFavorite = shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
         try saveFavorites(favorites: [coffeeFavorite], fileURL: fileURL)
         var appliedChanges: [[ReminderNotificationChange]] = []
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDismissActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { appliedChanges.append($0) }
+                applyChanges: { appliedChanges.append($0) },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             ) == nil
         )
         #expect(try loadFavorites(fileURL: fileURL) == [coffeeFavorite])
         #expect(appliedChanges.isEmpty)
+        #expect(recordedEvents.isEmpty)
     }
 
     /// 確認の通知を出した後にお気に入りを削除した時は、通知をタップしても購入画面を開かない。
@@ -249,15 +263,19 @@ struct CartInConfirmationNotificationTests {
         let coffeeFavorite = shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
         try saveFavorites(favorites: [coffeeFavorite], fileURL: fileURL)
         try deleteFavorite(id: coffeeFavorite.id, fileURL: fileURL)
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { _ in }
+                applyChanges: { _ in },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             ) == nil
         )
+        #expect(recordedEvents.isEmpty)
     }
 }

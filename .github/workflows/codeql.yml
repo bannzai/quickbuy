@@ -1,0 +1,69 @@
+# CodeQL のコード スキャン (advanced setup)。
+# default setup の自動ビルドは、target 指定の xcodebuild が firebase/nanopb の直下の `BUILD` ファイルと `build/` の衝突で落ち、
+# secret も読めないため GoogleService-Info.plist が無いことでも落ちる (https://github.com/bannzai/quickbuy/pull/51 の「CodeQL の Analyze (swift) の失敗」)。
+# そのため swift は手動ビルドにし、CI と同じく secret から設定ファイルを書き出してから scheme のビルドを行う (2026-11-19 に owner が advanced setup への切り替えを決めた)。
+# 言語・頻度は切り替える前の default setup (actions と swift、push・pull_request と週 1 回) に合わせた。
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.language == 'swift' && 'macos-26' || 'ubuntu-latest' }}
+    # swift の job は 2026-11-19 の初回の run (44511193861) で 38 分 50 秒かかった (CodeQL の追跡の下のビルドだけで約 36 分)。
+    # cache は無く毎回この程度かかる見込みのため、runner の速さのばらつきを見込んで実測の 2 倍強にした
+    timeout-minutes: 90
+    permissions:
+      security-events: write # 解析の結果を code scanning に送るため
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: swift
+            build-mode: manual
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      - name: Firebase の設定ファイルを secret から書き出す
+        if: matrix.build-mode == 'manual'
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: scripts/restore-google-service-info-plist.sh
+      - name: アプリをビルドする (CI の release-build と同じ scheme のビルド)
+        if: matrix.build-mode == 'manual'
+        # DerivedData (依存パッケージの checkout を含む) は checkout の外に置く。依存の Swift のコードもコンパイルされる限り CodeQL が抽出するが、
+        # パスが checkout の外になる (checkout の外のファイルの結果を code scanning がどう扱うかは確かめていない)
+        run: |
+          xcodebuild build -project QuickBuy.xcodeproj -scheme QuickBuy -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: "/language:${{ matrix.language }}"
+          # データベースは secret から書き出した GoogleService-Info.plist のある checkout から作るため、code scanning へ送らない
+          # (解析の結果の送信は別の入力 upload で、こちらは止めない)
+          upload-database: false
