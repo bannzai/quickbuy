@@ -374,7 +374,7 @@ struct ShopifyProductPageTests {
         #expect(hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct(
             title: "豆",
             featuredImage: nil,
-            variants: (0 ..< variantCount).map { .init(id: 100 + $0, title: "種類 \($0)", available: true) }
+            variants: (0 ..< variantCount).map { .init(id: UInt64(100 + $0), title: "種類 \($0)", available: true) }
         )) == expectedHasVariantChoices)
     }
 }
