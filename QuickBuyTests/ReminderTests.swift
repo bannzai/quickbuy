@@ -525,6 +525,27 @@ struct ReminderTests {
         #expect(!"\(content.title)\(content.subtitle)\(content.body)\(content.userInfo)".contains("mori-coffee.example"))
     }
 
+    /// 商品バリアントの名前を持つお気に入りの通知は、名前と同じ行に商品バリアントの名前が続く。
+    /// 同じ名前で商品バリアントの名前だけが違うお気に入りの通知は、本文が違う。
+    @Test func 商品バリアントの名前を持つお気に入りの通知の本文は名前に商品バリアントの名前が続く() throws {
+        var smallFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        smallFavorite.variantName = "200g / 豆のまま"
+        var largeFavorite = smallFavorite
+        largeFavorite.variantName = "1kg"
+
+        #expect(reminderNotificationContent(favorite: smallFavorite).body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
+        #expect(reminderNotificationContent(favorite: largeFavorite).body == "コーヒー豆 1 1kg\nタップすると購入画面が開きます")
+        #expect(try #require(reminderNotificationRequest(favorite: smallFavorite)).content.body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
+    }
+
+    /// 商品バリアントの名前を持たないお気に入りの通知の本文は、名前の行と案内の文言の行だけ (名前の後ろに空白を足さない)。
+    @Test func 商品バリアントの名前を持たないお気に入りの通知の本文は名前と案内の文言だけ() {
+        var favoriteWithoutVariantName = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        favoriteWithoutVariantName.variantName = nil
+
+        #expect(reminderNotificationContent(favorite: favoriteWithoutVariantName).body == "コーヒー豆 1\nタップすると購入画面が開きます")
+    }
+
     /// 付加情報が空・文字列が識別子の形でない・値が文字列でない時は nil を返す。
     @Test func 識別子の形でない通知の付加情報からは識別子を取り出さない() {
         #expect(favoriteNotificationFavoriteID(userInfo: [:]) == nil)
