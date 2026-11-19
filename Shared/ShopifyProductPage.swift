@@ -206,6 +206,11 @@ func makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct, makeID: () -> UUID)
     Dictionary(product.variants.map { ($0.id, makeID()) }, uniquingKeysWith: { firstID, _ in firstID })
 }
 
+/// 商品の JSON の商品が、種類を選ぶ商品 (商品バリアントが 2 つ以上ある商品) かを返す。
+func hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct) -> Bool {
+    product.variants.count >= 2
+}
+
 /// 確認の画面の、保存するボタンの文言を返す。
 ///
 /// 種類を選ぶ商品 (`hasVariantChoices`。商品バリアントが 2 つ以上ある商品) で 1 つ以上選んでいる時は、選んだ数を入れる (例: `2 種類をお気に入りに追加`)。

@@ -255,12 +255,13 @@ struct CatalogAddFavoriteView: View {
         guard latestLoadID == loadID else {
             return
         }
+        // 最初に読み込んだ商品かは `storefrontProduct` を書き換える前に見る。
+        if let autoSelectedVariant = shopifyCatalogAutoSelectedVariant(product: product, isFirstLoadedProduct: storefrontProduct == nil) {
+            selectVariant(variant: autoSelectedVariant)
+        }
         storefrontProduct = product
         storefrontProductFetchedAt = .now
         isStorefrontPriceExpired = false
-        if let autoSelectedVariant = shopifyCatalogAutoSelectedVariant(product: product, selectedVariants: selectedVariants) {
-            selectVariant(variant: autoSelectedVariant)
-        }
     }
 
     /// 利用者が選んだ操作を保存に反映して画面を閉じる。

@@ -156,7 +156,7 @@ struct AddFavoriteView: View {
                 Button {
                     finish(choice: .add)
                 } label: {
-                    Text(favoriteAdditionButtonTitle(hasVariantChoices: product.variants.count >= 2, selectedVariantCount: quantitiesByVariantID.count))
+                    Text(favoriteAdditionButtonTitle(hasVariantChoices: hasShopifyAjaxVariantChoices(product: product), selectedVariantCount: quantitiesByVariantID.count))
                         .bold()
                         .frame(maxWidth: .infinity)
                 }

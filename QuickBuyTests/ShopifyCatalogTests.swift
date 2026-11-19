@@ -402,28 +402,28 @@ import Testing
         #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: true, now: fetchedAt.addingTimeInterval(600)))
     }
 
-    /// 種類の選び方が無く、まだ何も選んでいない商品だけ、選ぶ操作を挟まずに商品バリアントを選ぶ。
+    /// 最初に読み込んだ、種類の選び方が無い商品だけ、選ぶ操作を挟まずに商品バリアントを選ぶ。2 回目以降の読み込みでは選ばない。
     @Test func 種類の選び方が無い商品だけ選ぶ操作を挟まずに選ぶ() {
         let singleVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")
         let singleProduct = ShopifyCatalogProduct(
             id: "gid://shopify/Product/1", title: "豆", media: nil,
             options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])], selected: nil, variants: [singleVariant]
         )
-        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, selectedVariants: []) == singleVariant)
-        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, selectedVariants: [singleVariant]) == nil)
+        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: true) == singleVariant)
+        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: false) == nil)
         #expect(shopifyCatalogAutoSelectedVariant(
             product: ShopifyCatalogProduct(
                 id: "gid://shopify/Product/2", title: "豆", media: nil,
                 options: [ShopifyCatalogOption(name: "挽き", values: [.init(label: "豆"), .init(label: "粉")])], selected: nil, variants: [singleVariant]
             ),
-            selectedVariants: []
+            isFirstLoadedProduct: true
         ) == nil)
         #expect(shopifyCatalogAutoSelectedVariant(
             product: ShopifyCatalogProduct(
                 id: "gid://shopify/Product/3", title: "豆", media: nil, options: nil, selected: nil,
                 variants: [Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "Default Title")]
             ),
-            selectedVariants: []
+            isFirstLoadedProduct: true
         ) == nil)
     }
 

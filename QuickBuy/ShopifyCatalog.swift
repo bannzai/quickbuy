@@ -369,10 +369,11 @@ func shouldRefreshShopifyCatalogSearch(fetchedAt: Date?, isSearching: Bool, now:
 
 /// 追加の画面で、選ぶ操作を挟まずに選んだ状態にする商品バリアントを返す。
 ///
-/// 種類の選び方が無い商品 (`hasShopifyCatalogVariantChoices` が false) で、まだ何も選んでおらず、商品バリアントの ID が数字で終わる時だけ、
-/// 店の入口が返した商品バリアントを返す。それ以外は nil。
-func shopifyCatalogAutoSelectedVariant(product: ShopifyCatalogProduct, selectedVariants: [ShopifyCatalogVariant]) -> ShopifyCatalogVariant? {
-    guard !hasShopifyCatalogVariantChoices(options: product.options), selectedVariants.isEmpty else {
+/// 画面を開いて最初に読み込んだ商品 (`isFirstLoadedProduct`) で、種類の選び方が無く (`hasShopifyCatalogVariantChoices` が false)、
+/// 商品バリアントの ID が数字で終わる時だけ、店の入口が返した商品バリアントを返す。それ以外は nil。
+/// 2 回目以降の読み込み (価格の期限の読み直し・「もう一度読み込む」) では選ばない。利用者が外した種類を、操作なしに選び直さないため。
+func shopifyCatalogAutoSelectedVariant(product: ShopifyCatalogProduct, isFirstLoadedProduct: Bool) -> ShopifyCatalogVariant? {
+    guard isFirstLoadedProduct, !hasShopifyCatalogVariantChoices(options: product.options) else {
         return nil
     }
     return product.variants.first.flatMap { shopifyVariantNumericID(variantGID: $0.id) != nil ? $0 : nil }

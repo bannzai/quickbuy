@@ -367,4 +367,14 @@ struct ShopifyProductPageTests {
     func 保存するボタンは選んだ種類の数を出す(hasVariantChoices: Bool, selectedVariantCount: Int, expectedTitle: String) {
         #expect(favoriteAdditionButtonTitle(hasVariantChoices: hasVariantChoices, selectedVariantCount: selectedVariantCount) == expectedTitle)
     }
+
+    /// 商品バリアントが 2 つ以上の商品だけが種類を選ぶ商品で、1 つだけの商品は種類を選ばない。
+    @Test(arguments: [(1, false), (2, true), (3, true)])
+    func 商品バリアントが2つ以上の商品だけ種類を選ぶ(variantCount: Int, expectedHasVariantChoices: Bool) {
+        #expect(hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct(
+            title: "豆",
+            featuredImage: nil,
+            variants: (0 ..< variantCount).map { .init(id: 100 + $0, title: "種類 \($0)", available: true) }
+        )) == expectedHasVariantChoices)
+    }
 }
