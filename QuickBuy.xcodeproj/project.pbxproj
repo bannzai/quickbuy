@@ -22,7 +22,7 @@
 		B10000000000000000000004 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
 		B10000000000000000000005 /* FavoriteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* FavoriteStoreTests.swift */; };
 		B10000000000000000000006 /* AppGroupEntitlementsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* AppGroupEntitlementsTests.swift */; };
-		B20000000000000000000001 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
+		B20000000000000000000001 /* FavoriteOpeningURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoriteOpeningURL.swift */; };
 		B40000000000000000000001 /* ReminderSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* ReminderSchedule.swift */; };
 		B40000000000000000000002 /* ReminderNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000002 /* ReminderNotifications.swift */; };
 		B40000000000000000000003 /* ReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000003 /* ReminderTests.swift */; };
@@ -42,7 +42,7 @@
 		B20000000000000000000009 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
 		B2000000000000000000000A /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
 		B2000000000000000000000B /* ShopifyCartPermalink.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */; };
-		B2000000000000000000000D /* FavoritePurchaseURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* FavoritePurchaseURLTests.swift */; };
+		B2000000000000000000000D /* FavoriteOpeningURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* FavoriteOpeningURLTests.swift */; };
 		B2000000000000000000000E /* ShopifyProductPageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* ShopifyProductPageTests.swift */; };
 		B2000000000000000000000F /* FavoritesListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* FavoritesListTests.swift */; };
 		B20000000000000000000010 /* AddFavoriteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* AddFavoriteTests.swift */; };
@@ -52,7 +52,7 @@
 		B50000000000000000000003 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B50000000000000000000004 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000002 /* QuickBuyAccentColor.swift */; };
-		B50000000000000000000007 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
+		B50000000000000000000007 /* FavoriteOpeningURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoriteOpeningURL.swift */; };
 		B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ ={isa = PBXBuildFile; fileRef = A50000000000000000000003 /* FavoritesWidgetTests.swift */; };
 		B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000001 /* CartInConfirmationNotification.swift */; };
 		B70000000000000000000002 /* CartInConfirmationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000001 /* CartInConfirmationNotification.swift */; };
@@ -62,6 +62,12 @@
 		B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000001 /* NotificationPermissionExplanation.swift */; };
 		B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 		B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */; };
+		B80000000000000000000001 /* AmazonProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000001 /* AmazonProductPage.swift */; };
+		B80000000000000000000002 /* AmazonProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000001 /* AmazonProductPage.swift */; };
+		B80000000000000000000003 /* AmazonProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000001 /* AmazonProductPage.swift */; };
+		B80000000000000000000004 /* AmazonFavoriteAddition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000002 /* AmazonFavoriteAddition.swift */; };
+		B80000000000000000000005 /* AmazonFavoriteAddition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000002 /* AmazonFavoriteAddition.swift */; };
+		B80000000000000000000006 /* AmazonProductPageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80000000000000000000003 /* AmazonProductPageTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,7 +127,7 @@
 		A10000000000000000000004 /* AppGroupEntitlementsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupEntitlementsTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* QuickBuy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuy.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000006 /* QuickBuyWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickBuyWidget.entitlements; sourceTree = "<group>"; };
-		A20000000000000000000001 /* FavoritePurchaseURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePurchaseURL.swift; sourceTree = "<group>"; };
+		A20000000000000000000001 /* FavoriteOpeningURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteOpeningURL.swift; sourceTree = "<group>"; };
 		A40000000000000000000001 /* ReminderSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderSchedule.swift; sourceTree = "<group>"; };
 		A40000000000000000000002 /* ReminderNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderNotifications.swift; sourceTree = "<group>"; };
 		A40000000000000000000003 /* ReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderTests.swift; sourceTree = "<group>"; };
@@ -136,7 +142,7 @@
 		A30000000000000000000002 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		A34000000000000000000004 /* ShopifyCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCatalogTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
-		A2000000000000000000000A /* FavoritePurchaseURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePurchaseURLTests.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* FavoriteOpeningURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteOpeningURLTests.swift; sourceTree = "<group>"; };
 		A2000000000000000000000B /* ShopifyProductPageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyProductPageTests.swift; sourceTree = "<group>"; };
 		A2000000000000000000000C /* FavoritesListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesListTests.swift; sourceTree = "<group>"; };
 		A2000000000000000000000D /* AddFavoriteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFavoriteTests.swift; sourceTree = "<group>"; };
@@ -152,6 +158,9 @@
 		A60000000000000000000001 /* NotificationPermissionExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanation.swift; sourceTree = "<group>"; };
 		A60000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanationTests.swift; sourceTree = "<group>"; };
+		A80000000000000000000001 /* AmazonProductPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmazonProductPage.swift; sourceTree = "<group>"; };
+		A80000000000000000000002 /* AmazonFavoriteAddition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmazonFavoriteAddition.swift; sourceTree = "<group>"; };
+		A80000000000000000000003 /* AmazonProductPageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmazonProductPageTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -201,8 +210,10 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000003 /* AddFavoriteView.swift */,
+				A80000000000000000000002 /* AmazonFavoriteAddition.swift */,
+				A80000000000000000000001 /* AmazonProductPage.swift */,
 				A70000000000000000000001 /* CartInConfirmationNotification.swift */,
-				A20000000000000000000001 /* FavoritePurchaseURL.swift */,
+				A20000000000000000000001 /* FavoriteOpeningURL.swift */,
 				A40000000000000000000001 /* ReminderSchedule.swift */,
 				A20000000000000000000002 /* ShopifyProductPage.swift */,
 				A10000000000000000000001 /* Favorite.swift */,
@@ -229,8 +240,9 @@
 			isa = PBXGroup;
 			children = (
 				A2000000000000000000000D /* AddFavoriteTests.swift */,
+				A80000000000000000000003 /* AmazonProductPageTests.swift */,
 				A70000000000000000000003 /* CartInConfirmationNotificationTests.swift */,
-				A2000000000000000000000A /* FavoritePurchaseURLTests.swift */,
+				A2000000000000000000000A /* FavoriteOpeningURLTests.swift */,
 				A2000000000000000000000C /* FavoritesListTests.swift */,
 				A50000000000000000000003 /* FavoritesWidgetTests.swift */,
 				A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */,
@@ -398,7 +410,7 @@
 				BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */,
 				76132C1EF59E00AEE7EF022B /* QuickBuyWidgetBundle.swift in Sources */,
 				B10000000000000000000002 /* Favorite.swift in Sources */,
-				B50000000000000000000007 /* FavoritePurchaseURL.swift in Sources */,
+				B50000000000000000000007 /* FavoriteOpeningURL.swift in Sources */,
 				B10000000000000000000004 /* FavoriteStore.swift in Sources */,
 				B50000000000000000000002 /* FavoritesWidgetContent.swift in Sources */,
 				B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */,
@@ -406,6 +418,7 @@
 				B70000000000000000000002 /* CartInConfirmationNotification.swift in Sources */,
 				B70000000000000000000003 /* CartInIntent.swift in Sources */,
 				B70000000000000000000004 /* ReminderSchedule.swift in Sources */,
+				B80000000000000000000003 /* AmazonProductPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -420,6 +433,8 @@
 				B2000000000000000000000A /* FavoriteStore.swift in Sources */,
 				B50000000000000000000004 /* QuickBuyAccentColor.swift in Sources */,
 				B2000000000000000000000B /* ShopifyCartPermalink.swift in Sources */,
+				B80000000000000000000002 /* AmazonProductPage.swift in Sources */,
+				B80000000000000000000005 /* AmazonFavoriteAddition.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -429,7 +444,7 @@
 			files = (
 				B10000000000000000000006 /* AppGroupEntitlementsTests.swift in Sources */,
 				B10000000000000000000005 /* FavoriteStoreTests.swift in Sources */,
-				B2000000000000000000000D /* FavoritePurchaseURLTests.swift in Sources */,
+				B2000000000000000000000D /* FavoriteOpeningURLTests.swift in Sources */,
 				B2000000000000000000000E /* ShopifyProductPageTests.swift in Sources */,
 				B2000000000000000000000F /* FavoritesListTests.swift in Sources */,
 				B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */,
@@ -440,6 +455,7 @@
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
 				B70000000000000000000005 /* CartInConfirmationNotificationTests.swift in Sources */,
+				B80000000000000000000006 /* AmazonProductPageTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,7 +467,7 @@
 				834ED59FF7E782B26E69E7CB /* QuickBuyApp.swift in Sources */,
 				B10000000000000000000001 /* Favorite.swift in Sources */,
 				B10000000000000000000003 /* FavoriteStore.swift in Sources */,
-				B20000000000000000000001 /* FavoritePurchaseURL.swift in Sources */,
+				B20000000000000000000001 /* FavoriteOpeningURL.swift in Sources */,
 				B40000000000000000000001 /* ReminderSchedule.swift in Sources */,
 				B40000000000000000000002 /* ReminderNotifications.swift in Sources */,
 				B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */,
@@ -467,6 +483,8 @@
 				B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
 				B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */,
+				B80000000000000000000001 /* AmazonProductPage.swift in Sources */,
+				B80000000000000000000004 /* AmazonFavoriteAddition.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

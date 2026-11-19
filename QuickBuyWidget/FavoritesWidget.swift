@@ -13,7 +13,7 @@ struct FavoritesWidget: Widget {
         }
         .configurationDisplayName("お気に入り")
         .description("いつもの商品をホーム画面からカートイン")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies(favoritesWidgetSupportedFamilies())
     }
 }
 
@@ -96,8 +96,8 @@ struct FavoritesWidgetView: View {
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: widgetFamily == .systemLarge ? 10 : 8) {
-                    if widgetFamily == .systemLarge {
+                VStack(alignment: .leading, spacing: isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) ? 10 : 8) {
+                    if isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) {
                         Text("Quick Buy のお気に入り")
                             .font(.footnote.weight(.heavy))
                             .foregroundStyle(quickBuyAccentColor)
@@ -107,12 +107,12 @@ struct FavoritesWidgetView: View {
                             favorite: favorite,
                             now: entry.date,
                             isNotificationAuthorized: entry.isNotificationAuthorized,
-                            iconSideLength: widgetFamily == .systemLarge ? 48 : 40
+                            iconSideLength: isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) ? 48 : 40
                         )
                     }
                     Spacer(minLength: 0)
                     if !entry.isNotificationAuthorized {
-                        FavoritesWidgetNotificationRequiredText()
+                        FavoritesWidgetNotificationRequiredText(favorites: widgetFavorites(favorites: favorites, widgetFamily: widgetFamily))
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -123,7 +123,7 @@ struct FavoritesWidgetView: View {
     }
 }
 
-/// 中サイズと大サイズのウィジェットの、お気に入り 1 件の行。左に買い物袋のアイコン、中に名前と「種類 ・ 個数」、右に「カートイン」を横に並べる。
+/// 中サイズ・大サイズ・縦長の特大サイズのウィジェットの、お気に入り 1 件の行。左に買い物袋のアイコン、中に名前と「種類 ・ 個数」、右に「カートイン」を横に並べる。
 struct FavoriteWidgetRow: View {
     /// 表示するお気に入り。
     let favorite: Favorite
@@ -171,7 +171,7 @@ struct FavoriteWidgetSmallRow: View {
                 FavoriteWidgetCartInButton(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                FavoritesWidgetNotificationRequiredText()
+                FavoritesWidgetNotificationRequiredText(favorites: [favorite])
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -200,20 +200,20 @@ struct FavoriteWidgetRowDetail: View {
     }
 }
 
-/// ウィジェットの行の「カートイン」のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
+/// ウィジェットの行の「カートイン」(Amazon の商品は「Amazon で開く」) のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
 ///
-/// 通知が許可されていない時と、購入画面の URL を組み立てられないお気に入り (Amazon の商品。開き方が決まるまで) では出さない。
+/// 通知が許可されていない時と、開く URL を組み立てられないお気に入りでは出さない。
 struct FavoriteWidgetCartInButton: View {
     /// ボタンが指すお気に入り。
     let favorite: Favorite
     /// 通知が許可されているか。
     let isNotificationAuthorized: Bool
 
-    /// 強調の色の地に白い文字の「カートイン」。
+    /// 強調の色の地に白い文字の「カートイン」(Amazon の商品は「Amazon で開く」)。
     var body: some View {
         if isCartInButtonShown(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized) {
             Button(intent: CartInIntent(favoriteID: favorite.id)) {
-                Text("カートイン")
+                Text(cartInButtonTitle(favorite: favorite))
                     .font(.footnote.weight(.heavy))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -225,11 +225,14 @@ struct FavoriteWidgetCartInButton: View {
     }
 }
 
-/// 通知が許可されていない時に出す、「カートイン」には通知の許可が要ることの 1 行。
+/// 通知が許可されていない時に出す、ボタン (「カートイン」・「Amazon で開く」) には通知の許可が要ることの 1 行。
 struct FavoritesWidgetNotificationRequiredText: View {
+    /// ウィジェットに並べているお気に入り。文言に出すボタンの名前を決める (`widgetNotificationRequiredText(favorites:)`)。
+    let favorites: [Favorite]
+
     /// 補足の色の小さい文字の 1 行。
     var body: some View {
-        Text("カートインには通知の許可が要ります")
+        Text(widgetNotificationRequiredText(favorites: favorites))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(2)

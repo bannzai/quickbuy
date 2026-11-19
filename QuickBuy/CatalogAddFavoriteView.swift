@@ -44,7 +44,7 @@ struct CatalogAddFavoriteView: View {
         NavigationStack {
             Form {
                 Section {
-                    ShopDomainConfirmationBox(shopDomain: shopDomain)
+                    ShopDomainBox(shopDomain: shopDomain)
                 }
                 Section {
                     HStack(spacing: 12) {

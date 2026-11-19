@@ -155,12 +155,15 @@ import Testing
         #expect(shopifyVariantNumericID(variantGID: variantGID) == expectedNumericID)
     }
 
-    /// `seller.url` から、https でポートと認証情報の無いホスト名だけを小文字で取り出す。
+    /// `seller.url` から、https でポートと認証情報の無いホスト名だけを小文字で取り出す。Amazon が持つホストは取り出さない (名前に amazon を含むだけの店は取り出す)。
     @Test(arguments: [
         ("https://chimney-coffee.com", "chimney-coffee.com"),
         ("https://WWW.SotCoffee.com/", "www.sotcoffee.com"),
         ("http://chimney-coffee.com", nil),
         ("https://chimney-coffee.com:8443", nil),
+        ("https://www.amazon.co.jp", nil),
+        ("https://amazon.com", nil),
+        ("https://amazon-coffee.example", "amazon-coffee.example"),
         ("https://user@chimney-coffee.com", nil),
         ("chimney-coffee.com", nil),
     ] as [(String, String?)])
@@ -285,7 +288,7 @@ import Testing
         let savedFavorites = try loadFavorites(fileURL: fileURL)
         #expect(savedFavorites.map(\.product) == [.shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "45476745412786"))])
         #expect(savedFavorites.map(\.imageURL) == [nil])
-        #expect(savedFavorites.first.flatMap(purchaseURL(favorite:))?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3")
+        #expect(savedFavorites.first.flatMap(openingURL(favorite:))?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3")
     }
 
     /// 種類の選び方が無い商品では、店が付けた `Default Title` を種類の名前に入れない。
