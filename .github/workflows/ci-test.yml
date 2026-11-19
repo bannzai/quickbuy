@@ -26,21 +26,3 @@ jobs:
           xcodebuild test -project "QuickBuy.xcodeproj" -scheme "QuickBuy" \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             CODE_SIGNING_ALLOWED=NO
-      - name: 一時的 文字列カタログの未翻訳を数える
-        if: always()
-        run: |
-          xcodebuild -exportLocalizations -project "QuickBuy.xcodeproj" -localizationPath "$RUNNER_TEMP/loc" -exportLanguage en CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/export.log" 2>&1 || { tail -50 "$RUNNER_TEMP/export.log"; exit 1; }
-          grep -iE 'warning|error' "$RUNNER_TEMP/export.log" || true
-          git status --short
-          git diff -- Shared/Localizable.xcstrings
-          python3 - "$RUNNER_TEMP/loc/en.xcloc/Localized Contents/en.xliff" <<'PY'
-          import sys, xml.etree.ElementTree as ET
-          ns = {"x": "urn:oasis:names:tc:xliff:document:1.2"}
-          root = ET.parse(sys.argv[1]).getroot()
-          for file in root.findall("x:file", ns):
-              units = file.findall(".//x:trans-unit", ns)
-              missing = [u for u in units if u.find("x:target", ns) is None or u.find("x:target", ns).get("state") in ("new", "needs-translation")]
-              print(f"FILE {file.get('original')} units={len(units)} untranslated={len(missing)}")
-              for u in missing:
-                  print("  UNTRANSLATED", repr(u.get("id")))
-          PY
