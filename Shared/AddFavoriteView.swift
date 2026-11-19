@@ -83,8 +83,8 @@ struct AddFavoriteView: View {
             } header: {
                 Text("商品ページの URL")
             } footer: {
-                // verbatim にするのは、文字列のまま渡すと www.amazon.co.jp が押せるリンクになり、確認の画面を通さずに Amazon を開けてしまうため (2026-11-19 に simtunnel で、リンクとして表示されることを確かめた)。
-                Text(verbatim: "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください")
+                // 訳した文言を String で渡すのは、LocalizedStringKey で渡すと www.amazon.co.jp が押せるリンクになり、確認の画面を通さずに Amazon を開けてしまうため (2026-11-19 に simtunnel で、リンクとして表示されることを確かめた)。
+                Text(String(localized: "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください"))
             }
             if let errorMessage {
                 Section {
@@ -162,7 +162,7 @@ struct AddFavoriteView: View {
                 Button {
                     finish(choice: .add)
                 } label: {
-                    Text(favoriteAdditionButtonTitle(hasVariantChoices: hasShopifyAjaxVariantChoices(product: product), selectedVariantCount: quantitiesByVariantID.count))
+                    Text(favoriteAdditionButtonTitle(hasVariantChoices: hasShopifyAjaxVariantChoices(product: product), selectedVariantCount: quantitiesByVariantID.count, locale: appTextLocale))
                         .bold()
                         .frame(maxWidth: .infinity)
                 }
@@ -237,7 +237,7 @@ struct AddFavoriteView: View {
             loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {
             // `loadAmazonASIN` と `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
-            errorMessage = favoriteAdditionLoadErrorMessage(error: error as? FavoriteAdditionLoadError ?? .notRegistrable)
+            errorMessage = favoriteAdditionLoadErrorMessage(error: error as? FavoriteAdditionLoadError ?? .notRegistrable, locale: appTextLocale)
         }
         isLoading = false
     }
@@ -341,17 +341,17 @@ func sharedText(itemProviders: [NSItemProvider]) async -> String? {
     return nil
 }
 
-/// 登録できなかった理由を、入力欄の下に出す文言にして返す。
-func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError) -> String {
+/// 登録できなかった理由を、入力欄の下に出す文言にして `locale` の言語で返す。
+func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError, locale: Locale) -> String {
     switch error {
     case .notProductPageURL:
-        "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください"
+        String(localized: LocalizedStringResource("この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください", locale: locale))
     case .notAmazonProductPageURL:
-        "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください"
+        String(localized: LocalizedStringResource("この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください", locale: locale))
     case .temporarilyUnavailable:
-        "商品の情報を取得できませんでした\n少し待ってからもう一度お試しください"
+        String(localized: LocalizedStringResource("商品の情報を取得できませんでした\n少し待ってからもう一度お試しください", locale: locale))
     case .notRegistrable:
-        "この商品は登録できません\n商品の情報を取得できない店か、商品が見つかりません"
+        String(localized: LocalizedStringResource("この商品は登録できません\n商品の情報を取得できない店か、商品が見つかりません", locale: locale))
     }
 }
 

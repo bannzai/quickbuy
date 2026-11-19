@@ -34,7 +34,7 @@ struct CartInConfirmationNotificationTests {
     @Test func 通知の文言は見出しと何を何個とどの店か() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.title == "購入画面を開きますか？")
@@ -46,7 +46,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try #require(
                 cartInConfirmationNotificationContent(
-                    favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
+                    favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1), locale: Locale(identifier: "ja")
                 )
             ).body == "コーヒー豆 を 1 個\nタップすると sukoyaka-soap.example の購入画面が開きます"
         )
@@ -56,7 +56,7 @@ struct CartInConfirmationNotificationTests {
     @Test func 載せるのはお気に入りの識別子だけ() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.userInfo.count == 1)
@@ -70,7 +70,7 @@ struct CartInConfirmationNotificationTests {
     @Test func Amazonの商品の通知は商品ページが開くことを書く() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.title == "Amazon の商品ページを開きますか？")
@@ -81,11 +81,11 @@ struct CartInConfirmationNotificationTests {
     /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・ホスト名の形でない店のドメイン) では、確認の通知を作らない。
     @Test func 開くURLを組み立てられないお気に入りでは通知を作らない() {
         let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
-        #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite) == nil)
+        #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
         #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite) == nil)
         #expect(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1), locale: Locale(identifier: "ja")
             ) == nil
         )
     }
@@ -125,7 +125,7 @@ struct CartInConfirmationNotificationTests {
         let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
 
         #expect(request.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2")
-        #expect(request.content.body == "コーヒー豆 を 5 個\nタップすると sukoyaka-soap.example の購入画面が開きます")
+        #expect(request.content.body == cartInConfirmationNotificationContent(favorite: soapFavorite, locale: appTextLocale)?.body)
         #expect(try Data(contentsOf: fileURL) == savedData)
     }
 
@@ -167,7 +167,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) }
@@ -195,7 +195,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in }
@@ -214,7 +214,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in }
@@ -232,7 +232,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDismissActionIdentifier,
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) }
@@ -252,7 +252,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in }

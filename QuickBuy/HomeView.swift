@@ -3,7 +3,15 @@ import SwiftUI
 /// トップページの、検索の前に並べる買い直す物の検索語。押すとその語で検索する。
 ///
 /// 日用品・食品のうち、同じ物を定期的に買い直す物として agent が選んだ語 (issue #34。documents/DIRECTION.md「決めたこと」)。
-let homeSuggestedSearchQueries = ["コーヒー豆", "紅茶", "シャンプー", "洗濯洗剤", "プロテイン", "ドッグフード"]
+/// 端末の言語の語で出し、その語で検索する (英語の各語でも Catalog が 20 件を返すことを 2026-11-19 に確かめた。issue #54)。
+let homeSuggestedSearchQueries = [
+    String(localized: "コーヒー豆"),
+    String(localized: "紅茶"),
+    String(localized: "シャンプー"),
+    String(localized: "洗濯洗剤"),
+    String(localized: "プロテイン"),
+    String(localized: "ドッグフード"),
+]
 
 /// トップページを開いた時に、検索の前に結果を並べておく決まった検索語。
 ///
@@ -236,7 +244,7 @@ struct HomeView: View {
                     return
                 }
                 // `searchShopifyCatalog` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed, locale: appTextLocale)
             }
             if latestSearchID == searchID {
                 isSearching = false

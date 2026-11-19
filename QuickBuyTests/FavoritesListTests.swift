@@ -154,7 +154,7 @@ struct FavoritesListTests {
                     quantity: 2,
                     product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
                     reminder: nil
-                )
+                ), locale: Locale(identifier: "ja")
             ) == "コーヒー豆 中煎り 200g / 豆のまま を 2 個カートに入れて開きます"
         )
         #expect(
@@ -165,7 +165,7 @@ struct FavoritesListTests {
                     quantity: 12,
                     product: .shopify(ShopifyProduct(shopDomain: "sukoyaka-soap.example", variantID: "70881382")),
                     reminder: nil
-                )
+                ), locale: Locale(identifier: "ja")
             ) == "洗濯用せっけん を 12 個カートに入れて開きます"
         )
     }
@@ -173,7 +173,7 @@ struct FavoritesListTests {
     /// Amazon の商品の確認は、個数を出さずに商品ページを開くことと、カートに入らないことを書く。確認は Amazon の商品も指す。
     @Test func Amazonの商品の確認は商品ページを開くことを書く() {
         let amazonFavorite = favorite(name: "単3電池", variantName: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B0DTESTAB1")), reminder: nil)
-        #expect(cartInConfirmationText(favorite: amazonFavorite) == "単3電池 の商品ページを開きます (カートには入りません)")
+        #expect(cartInConfirmationText(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "単3電池 の商品ページを開きます (カートには入りません)")
         #expect(cartInConfirmationFavorite(confirmation: (favoriteID: amazonFavorite.id, shownAt: pressedAt), favorites: [amazonFavorite], now: pressedAt) == amazonFavorite)
     }
 

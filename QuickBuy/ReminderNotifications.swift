@@ -8,14 +8,15 @@ import UserNotifications
 /// (並べ方は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本「コーヒー豆 200g / 豆のまま」)。
 /// 案内の文言は、タップで開くもの (Shopify の店の商品は購入画面、Amazon の商品は商品ページ) を書く。
 /// 開く URL は載せない (.claude/rules/purchase-url.md。URL はタップされた時に保存済みのお気に入りから組み立てる)。
-func reminderNotificationContent(favorite: Favorite) -> UNMutableNotificationContent {
+/// 文言は `locale` の言語にする。予約した時に文言を決めるため、予約した後に端末の言語を変えても、届く通知は予約した時の言語のまま。
+func reminderNotificationContent(favorite: Favorite, locale: Locale) -> UNMutableNotificationContent {
     let content = UNMutableNotificationContent()
-    content.title = "そろそろ買う頃です"
+    content.title = String(localized: LocalizedStringResource("そろそろ買う頃です", locale: locale))
     content.body = switch favorite.product {
     case .shopify:
-        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます"
+        String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます", locale: locale))
     case .amazon:
-        "\(favorite.name)\nタップすると Amazon の商品ページが開きます"
+        String(localized: LocalizedStringResource("\(favorite.name)\nタップすると Amazon の商品ページが開きます", locale: locale))
     }
     content.sound = .default
     content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
@@ -49,12 +50,12 @@ func applyReminderNotificationChanges(changes: [ReminderNotificationChange], cen
 
 /// お気に入りのリマインドの通知の予約を返す。リマインドを設定していないお気に入りでは nil を返す。
 ///
-/// 通知の識別子はお気に入りの識別子 (1 件につき予約を 1 つにするため)。予約した時刻から、設定した日数ごとに繰り返し知らせる。
+/// 通知の識別子はお気に入りの識別子 (1 件につき予約を 1 つにするため)。予約した時刻から、設定した日数ごとに繰り返し知らせる。文言は `appTextLocale` の言語。
 func reminderNotificationRequest(favorite: Favorite) -> UNNotificationRequest? {
     favorite.reminder.map { reminder in
         UNNotificationRequest(
             identifier: favorite.id.uuidString,
-            content: reminderNotificationContent(favorite: favorite),
+            content: reminderNotificationContent(favorite: favorite, locale: appTextLocale),
             trigger: UNTimeIntervalNotificationTrigger(timeInterval: reminderTimeInterval(reminder: reminder), repeats: true)
         )
     }

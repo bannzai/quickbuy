@@ -29,26 +29,26 @@ func openingURL(favoriteID: UUID, now: Date, fileURL: URL) throws -> URL? {
     return favoriteOpeningURL
 }
 
-/// 一覧とウィジェットの行の、確認を出すボタンの文言を返す。Shopify の店の商品は「カートイン」、Amazon の商品は「Amazon で開く」。
+/// 一覧とウィジェットの行の、確認を出すボタンの文言を `locale` の言語で返す。Shopify の店の商品は「カートイン」、Amazon の商品は「Amazon で開く」。
 ///
 /// Amazon の商品ページは開いた時に商品がカートに入っていないため、カートに入れると読める文言を使わない (https://github.com/bannzai/quickbuy/issues/35 で agent が決めた文言)。
-func cartInButtonTitle(favorite: Favorite) -> String {
+func cartInButtonTitle(favorite: Favorite, locale: Locale) -> String {
     switch favorite.product {
     case .shopify:
-        "カートイン"
+        String(localized: LocalizedStringResource("カートイン", locale: locale))
     case .amazon:
-        "Amazon で開く"
+        String(localized: LocalizedStringResource("Amazon で開く", locale: locale))
     }
 }
 
-/// 一覧の確認と、ウィジェットの確認の通知の見出しを返す。Shopify の店の商品は「購入画面を開きますか？」、Amazon の商品は「Amazon の商品ページを開きますか？」。
+/// 一覧の確認と、ウィジェットの確認の通知の見出しを `locale` の言語で返す。Shopify の店の商品は「購入画面を開きますか？」、Amazon の商品は「Amazon の商品ページを開きますか？」。
 ///
 /// 用語「購入画面」は Amazon の商品ページを含まない (documents/DIRECTION.md「用語」)。
-func cartInConfirmationTitle(favorite: Favorite) -> String {
+func cartInConfirmationTitle(favorite: Favorite, locale: Locale) -> String {
     switch favorite.product {
     case .shopify:
-        "購入画面を開きますか？"
+        String(localized: LocalizedStringResource("購入画面を開きますか？", locale: locale))
     case .amazon:
-        "Amazon の商品ページを開きますか？"
+        String(localized: LocalizedStringResource("Amazon の商品ページを開きますか？", locale: locale))
     }
 }

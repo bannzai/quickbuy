@@ -17,7 +17,7 @@ struct SettingsTests {
             try String(contentsOf: repositoryFileURL(relativePath: "documents/PROJECT.md"), encoding: .utf8)
                 .contains("連絡先のメールアドレスは bannzai.app@gmail.com\n")
         )
-        let components = try #require(contactMailURL().flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) })
+        let components = try #require(contactMailURL(locale: Locale(identifier: "ja")).flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) })
         #expect(components.scheme == "mailto")
         #expect(components.path == "bannzai.app@gmail.com")
         #expect(components.queryItems == [URLQueryItem(name: "subject", value: "Quick Buy へのお問い合わせ")])

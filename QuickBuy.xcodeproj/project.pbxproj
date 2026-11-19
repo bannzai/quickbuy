@@ -72,6 +72,9 @@
 		B90000000000000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000001 /* Localizable.xcstrings */; };
 		B90000000000000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000001 /* Localizable.xcstrings */; };
 		B90000000000000000000004 /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000002 /* LocalizationTests.swift */; };
+		B90000000000000000000005 /* AppTextLocale.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000003 /* AppTextLocale.swift */; };
+		B90000000000000000000006 /* AppTextLocale.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000003 /* AppTextLocale.swift */; };
+		B90000000000000000000007 /* AppTextLocale.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000003 /* AppTextLocale.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -167,6 +170,7 @@
 		A80000000000000000000003 /* AmazonProductPageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmazonProductPageTests.swift; sourceTree = "<group>"; };
 		A90000000000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		A90000000000000000000002 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		A90000000000000000000003 /* AppTextLocale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTextLocale.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -222,6 +226,7 @@
 				A20000000000000000000001 /* FavoriteOpeningURL.swift */,
 				A40000000000000000000001 /* ReminderSchedule.swift */,
 				A20000000000000000000002 /* ShopifyProductPage.swift */,
+				A90000000000000000000003 /* AppTextLocale.swift */,
 				A10000000000000000000001 /* Favorite.swift */,
 				A10000000000000000000002 /* FavoriteStore.swift */,
 				A50000000000000000000001 /* FavoritesWidgetContent.swift */,
@@ -438,6 +443,7 @@
 				BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */,
 				76132C1EF59E00AEE7EF022B /* QuickBuyWidgetBundle.swift in Sources */,
 				B10000000000000000000002 /* Favorite.swift in Sources */,
+				B90000000000000000000006 /* AppTextLocale.swift in Sources */,
 				B50000000000000000000007 /* FavoriteOpeningURL.swift in Sources */,
 				B10000000000000000000004 /* FavoriteStore.swift in Sources */,
 				B50000000000000000000002 /* FavoritesWidgetContent.swift in Sources */,
@@ -458,6 +464,7 @@
 				B20000000000000000000005 /* AddFavoriteView.swift in Sources */,
 				B20000000000000000000008 /* ShareViewController.swift in Sources */,
 				B20000000000000000000009 /* Favorite.swift in Sources */,
+				B90000000000000000000007 /* AppTextLocale.swift in Sources */,
 				B2000000000000000000000A /* FavoriteStore.swift in Sources */,
 				B50000000000000000000004 /* QuickBuyAccentColor.swift in Sources */,
 				B2000000000000000000000B /* ShopifyCartPermalink.swift in Sources */,
@@ -495,6 +502,7 @@
 				6176567ED72EA8A01DD20E9E /* ContentView.swift in Sources */,
 				834ED59FF7E782B26E69E7CB /* QuickBuyApp.swift in Sources */,
 				B10000000000000000000001 /* Favorite.swift in Sources */,
+				B90000000000000000000005 /* AppTextLocale.swift in Sources */,
 				B10000000000000000000003 /* FavoriteStore.swift in Sources */,
 				B20000000000000000000001 /* FavoriteOpeningURL.swift in Sources */,
 				B40000000000000000000001 /* ReminderSchedule.swift in Sources */,
@@ -614,6 +622,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
@@ -731,6 +740,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
