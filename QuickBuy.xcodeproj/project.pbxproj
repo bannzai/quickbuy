@@ -58,6 +58,11 @@
 		B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000001 /* NotificationPermissionExplanation.swift */; };
 		B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 		B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */; };
+		E10000000000000000000001 /* AppAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* AppAnalytics.swift */; };
+		E10000000000000000000002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000003 /* GoogleService-Info.plist */; };
+		E10000000000000000000003 /* AppAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000004 /* AppAnalyticsTests.swift */; };
+		E10000000000000000000004 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F10000000000000000000004 /* FirebaseAnalyticsCore */; };
+		E10000000000000000000005 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F10000000000000000000005 /* FirebaseCrashlytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -144,7 +149,23 @@
 		A60000000000000000000001 /* NotificationPermissionExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanation.swift; sourceTree = "<group>"; };
 		A60000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanationTests.swift; sourceTree = "<group>"; };
+		D10000000000000000000001 /* AppAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAnalytics.swift; sourceTree = "<group>"; };
+		D10000000000000000000002 /* Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Debug.plist"; sourceTree = "<group>"; };
+		D10000000000000000000003 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		D10000000000000000000004 /* AppAnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAnalyticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E10000000000000000000004 /* FirebaseAnalyticsCore in Frameworks */,
+				E10000000000000000000005 /* FirebaseCrashlytics in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		1F07A618A40469F9FD81D3A8 /* QuickBuy */ = {
@@ -152,6 +173,9 @@
 			children = (
 				B5E40B1782B9401D57C38BBA /* Assets.xcassets */,
 				A60000000000000000000003 /* PrivacyInfo.xcprivacy */,
+				D10000000000000000000001 /* AppAnalytics.swift */,
+				D10000000000000000000003 /* GoogleService-Info.plist */,
+				D10000000000000000000002 /* Info-Debug.plist */,
 				DB475B718CDC27643AF3FAA8 /* ContentView.swift */,
 				A20000000000000000000005 /* DeveloperMenuView.swift */,
 				A60000000000000000000001 /* NotificationPermissionExplanation.swift */,
@@ -218,6 +242,7 @@
 			isa = PBXGroup;
 			children = (
 				A2000000000000000000000D /* AddFavoriteTests.swift */,
+				D10000000000000000000004 /* AppAnalyticsTests.swift */,
 				A70000000000000000000003 /* CartInConfirmationNotificationTests.swift */,
 				A2000000000000000000000A /* FavoritePurchaseURLTests.swift */,
 				A2000000000000000000000C /* FavoritesListTests.swift */,
@@ -288,8 +313,10 @@
 			buildConfigurationList = 7A5BDA5995B4A4670A30A252 /* Build configuration list for PBXNativeTarget "QuickBuy" */;
 			buildPhases = (
 				A135654472B323A48C60197C /* Sources */,
+				F10000000000000000000001 /* Frameworks */,
 				9177E95EF557595340720227 /* Resources */,
 				BD6B97004374BFD5080ECAC4 /* Embed Foundation Extensions */,
+				F10000000000000000000002 /* Upload dSYMs to Crashlytics */,
 			);
 			buildRules = (
 			);
@@ -299,6 +326,8 @@
 			);
 			name = QuickBuy;
 			packageProductDependencies = (
+				F10000000000000000000004 /* FirebaseAnalyticsCore */,
+				F10000000000000000000005 /* FirebaseCrashlytics */,
 			);
 			productName = QuickBuy;
 			productReference = 85E185745E6906802A51F0F5 /* QuickBuy.app */;
@@ -354,6 +383,9 @@
 			);
 			mainGroup = FC37909C0C92D06185F1CF51;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -373,10 +405,38 @@
 			files = (
 				1E510AF7F06AF7D287B04471 /* Assets.xcassets in Resources */,
 				B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */,
+				E10000000000000000000002 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F10000000000000000000002 /* Upload dSYMs to Crashlytics */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+			);
+			name = "Upload dSYMs to Crashlytics";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Crashlytics がクラッシュの場所を読めるよう、配布用 (Release の実機向け) のビルドの dSYM を送る。\n# 手順と入力ファイル: https://firebase.google.com/docs/crashlytics/get-started?platform=ios\nif [ \"$CONFIGURATION\" = \"Release\" ] && [ \"$PLATFORM_NAME\" = \"iphoneos\" ]; then\n  \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		60E87EADC248DD73E85C7E73 /* Sources */ = {
@@ -427,6 +487,7 @@
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
 				B70000000000000000000005 /* CartInConfirmationNotificationTests.swift in Sources */,
+				E10000000000000000000003 /* AppAnalyticsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,6 +512,7 @@
 				B30000000000000000000001 /* SettingsView.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
 				B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */,
+				E10000000000000000000001 /* AppAnalytics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -483,6 +545,7 @@
 				CODE_SIGN_ENTITLEMENTS = QuickBuy/QuickBuy.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "QuickBuy/Info-Debug.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Quick Buy";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -490,6 +553,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bannzai.QuickBuy;
 				SDKROOT = iphoneos;
@@ -706,6 +773,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bannzai.QuickBuy;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -795,6 +866,30 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = exactVersion;
+				version = 13.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F10000000000000000000004 /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
+		};
+		F10000000000000000000005 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 87DF9E70371ACEC2412C1105 /* Project object */;
 }

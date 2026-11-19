@@ -98,6 +98,7 @@ struct FavoritesListView: View {
             }
             await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
             reload()
+            await recordWidgetPlacement(recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:))
             // 共有メニューの拡張の中で最初のお気に入りを保存した時は、次にアプリが前面に来たここで説明の画面を出す。
             await presentNotificationPermissionExplanationIfNeeded()
         }
@@ -199,7 +200,13 @@ struct FavoritesListView: View {
                 Button {
                     cartInConfirmation = nil
                     save {
-                        if let openingURL = try purchaseURLForOpening(favoriteID: confirmingFavorite.id, now: .now, fileURL: favoritesFileURL) {
+                        if let openingURL = try purchaseURLForOpening(
+                            favoriteID: confirmingFavorite.id,
+                            entryPoint: .favoritesList,
+                            now: .now,
+                            fileURL: favoritesFileURL,
+                            recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:)
+                        ) {
                             openURL(openingURL)
                         }
                     }

@@ -254,18 +254,22 @@ struct ReminderTests {
         let tappedAt = countedFrom.addingTimeInterval(31 * daySeconds)
         let recountedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: tappedAt))
         var appliedChanges: [[ReminderNotificationChange]] = []
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             purchaseURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: notifiedFavorite.id.uuidString,
                 userInfo: ["favoriteID": notifiedFavorite.id.uuidString],
                 now: tappedAt,
                 fileURL: fileURL,
-                applyChanges: { appliedChanges.append($0) }
+                applyChanges: { appliedChanges.append($0) },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             )?.absoluteString == "https://mori-coffee.example/cart/70881412:2"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [recountedFavorite])
         #expect(appliedChanges == [[.schedule(favorite: recountedFavorite)]])
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "reminder_notification", "store": "shopify"])])
     }
 
     /// 通知を消す操作 (タップ以外の操作) では、購入画面を開かず、数え直しもしない。
@@ -274,18 +278,22 @@ struct ReminderTests {
         let notifiedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
         try saveFavorites(favorites: [notifiedFavorite], fileURL: fileURL)
         var appliedChanges: [[ReminderNotificationChange]] = []
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             purchaseURLForNotificationResponse(
                 actionIdentifier: UNNotificationDismissActionIdentifier,
+                notificationIdentifier: notifiedFavorite.id.uuidString,
                 userInfo: ["favoriteID": notifiedFavorite.id.uuidString],
                 now: countedFrom.addingTimeInterval(31 * daySeconds),
                 fileURL: fileURL,
-                applyChanges: { appliedChanges.append($0) }
+                applyChanges: { appliedChanges.append($0) },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             ) == nil
         )
         #expect(try loadFavorites(fileURL: fileURL) == [notifiedFavorite])
         #expect(appliedChanges.isEmpty)
+        #expect(recordedEvents.isEmpty)
     }
 
     /// 付加情報にお気に入りの識別子が無い通知のタップでは、購入画面を開かず、数え直しもしない。
@@ -294,18 +302,22 @@ struct ReminderTests {
         let savedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
         try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
         var appliedChanges: [[ReminderNotificationChange]] = []
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             purchaseURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: savedFavorite.id.uuidString,
                 userInfo: [:],
                 now: countedFrom.addingTimeInterval(31 * daySeconds),
                 fileURL: fileURL,
-                applyChanges: { appliedChanges.append($0) }
+                applyChanges: { appliedChanges.append($0) },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             ) == nil
         )
         #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
         #expect(appliedChanges.isEmpty)
+        #expect(recordedEvents.isEmpty)
     }
 
     /// 保存先を読めない時 (中身が壊れている時) の通知のタップでは、エラーにせず nil を返して購入画面を開かない。
@@ -316,10 +328,12 @@ struct ReminderTests {
         #expect(
             purchaseURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1",
                 userInfo: ["favoriteID": "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"],
                 now: countedFrom,
                 fileURL: fileURL,
-                applyChanges: { _ in }
+                applyChanges: { _ in },
+                recordAnalyticsEvent: { _ in }
             ) == nil
         )
     }
