@@ -18,8 +18,10 @@ struct CatalogAddFavoriteView: View {
 
     /// 店の入口が返した、今選んでいる値の組の商品 (種類の選び方と 1 件の商品バリアント)。読み込む前と読み込めなかった時は nil。
     @State private var storefrontProduct: ShopifyCatalogProduct?
-    /// `storefrontProduct` を取得した時刻。価格を出してよい時間を過ぎた時と、まだ取得していない時は nil (価格を出さない)。
+    /// `storefrontProduct` を取得した時刻。まだ取得していない時は nil (価格を出さない)。
     @State private var storefrontProductFetchedAt: Date?
+    /// `storefrontProduct` の価格を出してよい時間を過ぎた後、読み直すまでの間は true (価格を出さない)。
+    @State private var isStorefrontPriceExpired = false
     /// 店の入口を呼んでいる間は true。
     @State private var isLoading = false
     /// 最後に始めた店の入口の呼び出しの識別子。結果を受けた時に、この値と違う (後から別の呼び出しを始めた) 呼び出しの結果は捨てる。
@@ -126,7 +128,8 @@ struct CatalogAddFavoriteView: View {
             guard !Task.isCancelled else {
                 return
             }
-            self.storefrontProductFetchedAt = nil
+            // task の id (`storefrontProductFetchedAt`) を書き換えるとこの task が取り消されて読み直しも止まるため、id とは別の値で価格を消す。
+            isStorefrontPriceExpired = true
             // 選び直しの読み込みの最中なら、その結果が新しい価格を出すので、前の値の組で読み直さない。
             if !isLoading, let storefrontProduct {
                 await loadStorefrontProduct(productID: storefrontProduct.id, selected: storefrontProduct.selected)
@@ -153,7 +156,7 @@ struct CatalogAddFavoriteView: View {
                         Text(variant.title)
                             .font(.subheadline)
                         HStack(spacing: 6) {
-                            if storefrontProductFetchedAt != nil, let price = variant.price {
+                            if storefrontProductFetchedAt != nil, !isStorefrontPriceExpired, let price = variant.price {
                                 Text(shopifyCatalogPriceText(money: price))
                             }
                             if variant.availability?.available == false {
@@ -254,6 +257,7 @@ struct CatalogAddFavoriteView: View {
         }
         storefrontProduct = product
         storefrontProductFetchedAt = .now
+        isStorefrontPriceExpired = false
         if let autoSelectedVariant = shopifyCatalogAutoSelectedVariant(product: product, selectedVariants: selectedVariants) {
             selectVariant(variant: autoSelectedVariant)
         }

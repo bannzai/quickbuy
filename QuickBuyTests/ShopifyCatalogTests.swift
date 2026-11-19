@@ -196,8 +196,8 @@ import Testing
     /// 円は補助の単位が無く、米ドルは 100 分の 1 で書く。
     @Test func 価格は通貨の最小の単位から書く() {
         // 円は補助の単位が無く、米ドルは 100 分の 1 (documents/research/2026-11-18/search-api-and-amazon-purchase-url.md の「minor currency units」)。
-        #expect(shopifyCatalogPriceText(money: ShopifyCatalogMoney(amount: 2700, currency: "JPY")).contains("2,700"))
-        #expect(shopifyCatalogPriceText(money: ShopifyCatalogMoney(amount: 2700, currency: "USD")).contains("27.00"))
+        #expect(shopifyCatalogPriceText(money: ShopifyCatalogMoney(amount: 2700, currency: "JPY")) == "¥2,700")
+        #expect(shopifyCatalogPriceText(money: ShopifyCatalogMoney(amount: 2700, currency: "USD")) == "$27.00")
     }
 
     /// 選び直した種類の選び方の値だけが替わり、無い選び方は末尾に足される。
