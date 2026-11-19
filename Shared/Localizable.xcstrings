@@ -121,6 +121,9 @@
         }
       }
     },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
     "%lld 個" : {
       "localizations" : {
         "en" : {
@@ -175,6 +178,9 @@
         }
       }
     },
+    "ASIN" : {
+      "shouldTranslate" : false
+    },
     "Amazon で開く" : {
       "localizations" : {
         "en" : {
@@ -215,6 +221,9 @@
         }
       }
     },
+    "Quick Buy" : {
+      "shouldTranslate" : false
+    },
     "Quick Buy のお気に入り" : {
       "localizations" : {
         "en" : {
@@ -244,6 +253,9 @@
           }
         }
       }
+    },
+    "https://" : {
+      "shouldTranslate" : false
     },
     "「%@」の検索結果" : {
       "localizations" : {
