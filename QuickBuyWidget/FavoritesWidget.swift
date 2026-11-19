@@ -200,20 +200,20 @@ struct FavoriteWidgetRowDetail: View {
     }
 }
 
-/// ウィジェットの行の「カートイン」のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
+/// ウィジェットの行の「カートイン」(Amazon の商品は「Amazon で開く」) のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
 ///
-/// 通知が許可されていない時と、購入画面の URL を組み立てられないお気に入り (Amazon の商品。開き方が決まるまで) では出さない。
+/// 通知が許可されていない時と、開く URL を組み立てられないお気に入りでは出さない。
 struct FavoriteWidgetCartInButton: View {
     /// ボタンが指すお気に入り。
     let favorite: Favorite
     /// 通知が許可されているか。
     let isNotificationAuthorized: Bool
 
-    /// 強調の色の地に白い文字の「カートイン」。
+    /// 強調の色の地に白い文字の「カートイン」(Amazon の商品は「Amazon で開く」)。
     var body: some View {
         if isCartInButtonShown(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized) {
             Button(intent: CartInIntent(favoriteID: favorite.id)) {
-                Text("カートイン")
+                Text(cartInButtonTitle(favorite: favorite))
                     .font(.footnote.weight(.heavy))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)

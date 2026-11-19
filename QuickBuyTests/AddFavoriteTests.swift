@@ -135,7 +135,7 @@ struct AddFavoriteTests {
         #expect(favoriteAddition.quantitiesByVariantID == [:])
     }
 
-    /// 商品ページの URL の形でない入力 (Amazon の商品ページ・`http`・カートの URL) は、通信せずに「URL の形でない」で終わる。
+    /// Shopify の商品ページの URL の形でない入力 (Amazon の商品ページと同じパス・カートの URL・トップページ) は、通信せずに「URL の形でない」で終わる。
     @Test(arguments: ["/dp/B00EXAMPLE", "/cart/70881412:1", "/"])
     func 商品ページのURLでない入力は通信せずに断る(path: String) async {
         let shopDomain = uniqueShopDomain()

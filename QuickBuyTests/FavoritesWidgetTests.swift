@@ -67,6 +67,15 @@ struct FavoritesWidgetTests {
         #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1)) == "1 個")
     }
 
+    /// Amazon の商品の行は個数を出さず、店を見分ける「Amazon」を出す (Amazon の商品は個数を持たない)。
+    @Test func Amazonの商品の行は個数を出さない() {
+        #expect(
+            favoriteWidgetRowCaption(
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+            ) == "Amazon"
+        )
+    }
+
     // MARK: - 「カートイン」を出すか
 
     /// 通知が許可 (authorized) の時だけ「カートイン」を出せる。仮の許可・一時的な許可・拒否・未決定では出せない。
@@ -93,13 +102,16 @@ struct FavoritesWidgetTests {
         #expect(isCartInAvailable(authorizationStatus: .authorized, alertSetting: alertSetting, notificationCenterSetting: notificationCenterSetting, lockScreenSetting: lockScreenSetting) == expected)
     }
 
-    /// Shopify の商品は通知が許可されている時だけボタンを出し、Amazon の商品は許可されていても出さない。
-    @Test func カートインのボタンは許可されたShopifyの商品だけに出す() {
+    /// Shopify の商品と Amazon の商品は通知が許可されている時だけボタンを出す。開く URL を組み立てられない Amazon の商品 (ASIN の形でない保存値) は許可されていても出さない。
+    @Test func カートインのボタンは許可された開けるお気に入りだけに出す() {
+        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
         #expect(isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: true))
         #expect(!isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: false))
+        #expect(isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: true))
+        #expect(!isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: false))
         #expect(
             !isCartInButtonShown(
-                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil),
+                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil),
                 isNotificationAuthorized: true
             )
         )
