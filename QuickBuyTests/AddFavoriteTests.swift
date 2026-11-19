@@ -69,14 +69,15 @@ final class StubURLProtocol: URLProtocol {
             client?.urlProtocol(self, didLoad: body)
             client?.urlProtocolDidFinishLoading(self)
         case let .redirect(locationURLText):
-            client?.urlProtocol(
-                self,
-                wasRedirectedTo: URLRequest(url: URL(string: locationURLText)!),
-                redirectResponse: HTTPURLResponse(url: request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": locationURLText])!
-            )
-            // 転送を伝えた後は、この読み込みを取り消しの失敗で終える (転送に従う時は、転送先を読む新しい読み込みが別に始まる)。
+            let redirectResponse = HTTPURLResponse(url: request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": locationURLText])!
+            client?.urlProtocol(self, wasRedirectedTo: URLRequest(url: URL(string: locationURLText)!), redirectResponse: redirectResponse)
+            // 転送を伝えた後は、この読み込みを 302 の応答で終える (実際のサーバーが返すのと同じ形)。
             // 終えないと、転送に従わなかった通信が終わらない (https://github.com/bannzai/quickbuy/actions/runs/44241340789 で 60 秒の上限に達した)。
-            client?.urlProtocol(self, didFailWithError: CocoaError(.userCancelled))
+            // 取り消しの失敗で終えると、転送に従う通信が取り消しの失敗 (NSCocoaErrorDomain 3072) で終わる回があった (issue #57。https://github.com/bannzai/quickbuy/actions/runs/44529553651 の 1 回目)。
+            // 302 の応答で終える形は、転送に従う通信 40 回が転送先の 200、従わない通信 40 回が 302 で終わった。stopLoading と delegate の答えの順が入れ替わった回を含む (https://github.com/bannzai/quickbuy/actions/runs/44553300279)。
+            client?.urlProtocol(self, didReceive: redirectResponse, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data())
+            client?.urlProtocolDidFinishLoading(self)
         case .connectionFailure, nil:
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
         }
