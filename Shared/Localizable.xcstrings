@@ -1,0 +1,38 @@
+{
+  "sourceLanguage" : "ja",
+  "strings" : {
+    "%lld 種類をお気に入りに追加" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Add %lld Variant to Favorites"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Add %lld Variants to Favorites"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "カートイン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Cart"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
