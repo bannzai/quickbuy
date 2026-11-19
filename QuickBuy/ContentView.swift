@@ -2,12 +2,50 @@ import SwiftUI
 import UserNotifications
 import WidgetKit
 
-/// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
+/// アプリの最初の画面。お気に入りの保存先を開ければトップページ (検索) とお気に入りの一覧のタブを、開けなければその旨を表示する。
 struct ContentView: View {
-    /// お気に入りの一覧、または保存先を開けないことの表示。
+    /// 出しているタブ。開いた時はトップページで、ウィジェットのタップで開いた時はお気に入りの一覧にする。
+    @State private var selectedTab = AppTab.home
+    /// アプリが前面にあるか。前面に来た時の処理を、出しているタブに関わらず行うために見る。
+    @Environment(\.scenePhase) private var scenePhase
+    /// 前面に来た時のリマインドの予約の復元 (日数の数え直しを保存に書く) を終えた時刻。まだ終えていない時は nil。
+    @State private var remindersRestoredAt: Date?
+
+    /// トップページとお気に入りの一覧のタブ、または保存先を開けないことの表示。
     var body: some View {
         if let favoritesFileURL = sharedFavoritesFileURL() {
-            FavoritesListView(favoritesFileURL: favoritesFileURL)
+            TabView(selection: $selectedTab) {
+                // `Tab` は iOS 18 からのため、iOS 17 でも使える `tabItem` で並べる。
+                HomeView(favoritesFileURL: favoritesFileURL)
+                    .tabItem {
+                        Label("ホーム", systemImage: "magnifyingglass")
+                    }
+                    .tag(AppTab.home)
+                FavoritesListView(favoritesFileURL: favoritesFileURL, remindersRestoredAt: remindersRestoredAt)
+                    .tabItem {
+                        Label("お気に入り", systemImage: "star")
+                    }
+                    .tag(AppTab.favorites)
+            }
+            .tint(quickBuyAccentColor)
+            .onOpenURL { openedURL in
+                if let openedTab = appTab(openedURL: openedURL) {
+                    selectedTab = openedTab
+                }
+            }
+            // 選んでいないタブの task は動かないため、前面に来た時にどのタブでも行う処理はタブの外に置く。
+            // 通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約し、
+            // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
+            // ウィジェットを置いている記録 (widget_placed) も、どのタブにいても前面に来た時に取る。
+            .task(id: scenePhase) {
+                guard scenePhase == .active else {
+                    return
+                }
+                await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+                remindersRestoredAt = .now
+                WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
+                recordWidgetPlacement(recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:))
+            }
         } else {
             FavoritesStoreUnavailableView()
         }
@@ -19,6 +57,8 @@ struct ContentView: View {
 struct FavoritesListView: View {
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
+    /// `ContentView` が前面に来た時のリマインドの予約の復元を終えた時刻。変わった時に、数え直した「次の知らせは N 日後」を読み直す。
+    let remindersRestoredAt: Date?
 
     /// 店の購入画面を開く処理 (既定のブラウザで開く)。
     @Environment(\.openURL) private var openURL
@@ -68,7 +108,8 @@ struct FavoritesListView: View {
                 }
         }
         .tint(quickBuyAccentColor)
-        .onAppear(perform: reload)
+        // トップページの検索から足したお気に入りを、このタブを開いた時に読み直し、最初のお気に入りなら通知の許可の説明を出す。
+        .onAppear(perform: reloadAndPresentNotificationPermissionExplanationIfNeeded)
         .task(id: cartInConfirmation?.shownAt) {
             guard let waitingShownAt = cartInConfirmation?.shownAt else {
                 return
@@ -84,23 +125,19 @@ struct FavoritesListView: View {
                 cartInConfirmation = nil
             }
         }
-        .onChange(of: scenePhase) { _, newScenePhase in
-            if newScenePhase == .active {
-                reload()
-                // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
-                WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
-            }
-        }
-        // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
+        // リマインドの予約とウィジェットの更新は、どのタブでも行うため ContentView が前面に来た時に行う。
+        // この一覧のタブを出している間に前面に来た時は、共有メニューから足したお気に入りを読み直し、
+        // 共有メニューの拡張の中で最初のお気に入りを保存した時は説明の画面を出す (別のタブにいた時は、このタブを開いた時の `onAppear` で行う)。
         .task(id: scenePhase) {
             guard scenePhase == .active else {
                 return
             }
-            await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
             reload()
-            recordWidgetPlacement(recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:))
-            // 共有メニューの拡張の中で最初のお気に入りを保存した時は、次にアプリが前面に来たここで説明の画面を出す。
             await presentNotificationPermissionExplanationIfNeeded()
+        }
+        // 復元はタブの外の別の task で行い、上の読み直しより後に保存に書くことがあるため、終えた時にもう一度読み直す。
+        .onChange(of: remindersRestoredAt) {
+            reload()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {

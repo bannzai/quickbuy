@@ -357,15 +357,24 @@ struct ShopifyProductPageTests {
 
     // MARK: - 保存するボタンの文言
 
-    /// 商品バリアントが複数ある商品で 1 つ以上選んでいる時だけ、選んだ数を入れる。1 つも選んでいない時と、1 つだけの商品では数を入れない。
+    /// 種類を選ぶ商品で 1 つ以上選んでいる時だけ、選んだ数を入れる。1 つも選んでいない時と、種類を選ばない商品では数を入れない。
     @Test(arguments: [
-        (3, 2, "2 種類をお気に入りに追加"),
-        (3, 1, "1 種類をお気に入りに追加"),
-        (2, 2, "2 種類をお気に入りに追加"),
-        (3, 0, "お気に入りに追加"),
-        (1, 1, "お気に入りに追加"),
+        (true, 2, "2 種類をお気に入りに追加"),
+        (true, 1, "1 種類をお気に入りに追加"),
+        (true, 0, "お気に入りに追加"),
+        (false, 1, "お気に入りに追加"),
     ])
-    func 保存するボタンは選んだ種類の数を出す(variantCount: Int, selectedVariantCount: Int, expectedTitle: String) {
-        #expect(favoriteAdditionButtonTitle(variantCount: variantCount, selectedVariantCount: selectedVariantCount) == expectedTitle)
+    func 保存するボタンは選んだ種類の数を出す(hasVariantChoices: Bool, selectedVariantCount: Int, expectedTitle: String) {
+        #expect(favoriteAdditionButtonTitle(hasVariantChoices: hasVariantChoices, selectedVariantCount: selectedVariantCount) == expectedTitle)
+    }
+
+    /// 商品バリアントが 2 つ以上の商品だけが種類を選ぶ商品で、1 つだけの商品は種類を選ばない。
+    @Test(arguments: [(1, false), (2, true), (3, true)])
+    func 商品バリアントが2つ以上の商品だけ種類を選ぶ(variantCount: Int, expectedHasVariantChoices: Bool) {
+        #expect(hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct(
+            title: "豆",
+            featuredImage: nil,
+            variants: (0 ..< variantCount).map { .init(id: UInt64(100 + $0), title: "種類 \($0)", available: true) }
+        )) == expectedHasVariantChoices)
     }
 }

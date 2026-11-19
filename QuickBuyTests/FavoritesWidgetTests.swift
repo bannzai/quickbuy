@@ -219,4 +219,16 @@ struct FavoritesWidgetTests {
     @Test func お気に入りが無い時は今だけ() {
         #expect(favoritesWidgetTimelineDates(favorites: [], now: countedFrom) == [countedFrom])
     }
+
+    /// ウィジェットのタップの URL だけがお気に入りのタブを出し、形の似た URL ではタブを変えない。
+    @Test(arguments: [
+        ("quickbuy-widget://favorites", AppTab?.some(.favorites)),
+        ("quickbuy-widget://home", nil),
+        ("quickbuy-widget://favorites/1", nil),
+        ("https://favorites", nil),
+        ("https://chimney-coffee.com/cart/1:1", nil),
+    ] as [(String, AppTab?)])
+    func ウィジェットのタップのURLだけがお気に入りのタブを出す(openedURLText: String, expectedTab: AppTab?) throws {
+        #expect(appTab(openedURL: try #require(URL(string: openedURLText))) == expectedTab)
+    }
 }
