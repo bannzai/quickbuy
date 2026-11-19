@@ -109,12 +109,58 @@ struct LocalizationTests {
         #expect(favoriteAdditionButtonTitle(hasVariantChoices: hasVariantChoices, selectedVariantCount: selectedVariantCount, locale: englishLocale) == expectedTitle)
     }
 
-    /// 登録できない理由と、検索の失敗の文言は英語になる。待つ秒数は 1 秒の時は単数、2 秒以上の時は複数の形になる。
-    @Test func エラーの文言は英語() {
-        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL, locale: englishLocale) == "This URL can't be added\nEnter a product page URL from a Shopify store or Amazon")
-        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: 1), locale: englishLocale) == "It's busy right now\nPlease wait about 1 second and try again")
-        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: 120), locale: englishLocale) == "It's busy right now\nPlease wait about 120 seconds and try again")
-        #expect(shopifyCatalogErrorMessage(error: .connectionFailed, locale: englishLocale) == "Couldn't connect\nPlease try again where the signal is better")
+    /// 登録できない理由の文言は、どの理由でも英語になる。
+    @Test(arguments: [
+        (FavoriteAdditionLoadError.notProductPageURL, "This URL can't be added\nEnter a product page URL from a Shopify store or Amazon"),
+        (.notAmazonProductPageURL, "This Amazon URL can't be added\nOn an Amazon product page in the app or website, tap Share and choose Quick Buy"),
+        (.temporarilyUnavailable, "Couldn't get product info\nPlease wait a moment and try again"),
+        (.notRegistrable, "This product can't be added\nThe store doesn't share product info or the product wasn't found"),
+    ])
+    func 登録できない理由は英語(error: FavoriteAdditionLoadError, expectedMessage: String) {
+        #expect(favoriteAdditionLoadErrorMessage(error: error, locale: englishLocale) == expectedMessage)
+    }
+
+    /// 検索の失敗の文言は、どの理由でも英語になる。待つ秒数は 1 秒の時は単数、2 秒以上の時は複数の形になる。
+    @Test(arguments: [
+        (ShopifyCatalogError.rateLimited(retryAfterSeconds: 1), "It's busy right now\nPlease wait about 1 second and try again"),
+        (.rateLimited(retryAfterSeconds: 120), "It's busy right now\nPlease wait about 120 seconds and try again"),
+        (.rateLimited(retryAfterSeconds: nil), "It's busy right now\nPlease wait a moment and try again"),
+        (.connectionFailed, "Couldn't connect\nPlease try again where the signal is better"),
+        (.failed, "Couldn't load products\nPlease wait a moment and try again"),
+    ])
+    func 検索の失敗の文言は英語(error: ShopifyCatalogError, expectedMessage: String) {
+        #expect(shopifyCatalogErrorMessage(error: error, locale: englishLocale) == expectedMessage)
+    }
+
+    /// 通知の要求の文言は、渡した言語になる (アプリは `appTextLocale` を渡す)。
+    @Test func 通知の要求は渡した言語の文言() throws {
+        let favorite = shopifyFavorite(name: "コーヒー豆", variantName: nil, quantity: 5)
+        #expect(try #require(cartInConfirmationNotificationRequest(favorite: favorite, locale: englishLocale)).content.body == "コーヒー豆 ×5\nTap to open checkout on mori-coffee.example")
+        #expect(try #require(cartInConfirmationNotificationRequest(favorite: favorite, locale: Locale(identifier: "ja"))).content.body == "コーヒー豆 を 5 個\nタップすると mori-coffee.example の購入画面が開きます")
+        var reminderFavorite = favorite
+        reminderFavorite.reminder = Reminder(intervalDays: 7, countedFrom: countedFrom)
+        #expect(try #require(reminderNotificationRequest(favorite: reminderFavorite, locale: englishLocale)).content.title == "Time to buy again")
+        #expect(try #require(reminderNotificationRequest(favorite: reminderFavorite, locale: Locale(identifier: "ja"))).content.title == "そろそろ買う頃です")
+    }
+
+    /// ホームの検索語の候補は、英語では英語の語、日本語では今の語になる。先頭の語が最初に検索する語になる。
+    @Test func 検索語の候補は言語ごとの語() {
+        #expect(homeSuggestedSearchQueries(locale: englishLocale) == ["Coffee beans", "Black tea", "Shampoo", "Laundry detergent", "Protein", "Dog food"])
+        #expect(homeSuggestedSearchQueries(locale: Locale(identifier: "ja")) == ["コーヒー豆", "紅茶", "シャンプー", "洗濯洗剤", "プロテイン", "ドッグフード"])
+    }
+
+    /// 文言の言語は、bundle が選んだ言語の並びの先頭にする。並びが空の時だけ渡した代わりの locale にする。
+    @Test func 文言の言語はbundleが選んだ言語の先頭() {
+        #expect(textLocale(preferredLocalizations: ["en", "ja"], fallback: Locale(identifier: "fr")).identifier == "en")
+        #expect(textLocale(preferredLocalizations: ["ja"], fallback: Locale(identifier: "fr")).identifier == "ja")
+        #expect(textLocale(preferredLocalizations: [], fallback: Locale(identifier: "fr")).identifier == "fr")
+    }
+
+    /// 画面に直接書いた、数を含む文言のカタログの訳 (編集の画面の「N 日ごと」と次の知らせの日付) が英語で引ける。
+    @Test func 画面の数を含む文言は英語() {
+        #expect(String(localized: LocalizedStringResource("\(1) 日ごと", locale: englishLocale)) == "1 day")
+        #expect(String(localized: LocalizedStringResource("\(7) 日ごと", locale: englishLocale)) == "7 days")
+        #expect(String(localized: LocalizedStringResource("\("Restarts")\n次の知らせは \("Nov 26") です", locale: englishLocale)) == "Restarts\nNext reminder: Nov 26")
     }
 
     /// 問い合わせのメールの件名は英語になる。

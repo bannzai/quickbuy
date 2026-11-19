@@ -549,7 +549,7 @@ struct ReminderTests {
 
         #expect(reminderNotificationContent(favorite: smallFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
         #expect(reminderNotificationContent(favorite: largeFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1 1kg\nタップすると購入画面が開きます")
-        #expect(try #require(reminderNotificationRequest(favorite: smallFavorite)).content.body == reminderNotificationContent(favorite: smallFavorite, locale: appTextLocale).body)
+        #expect(try #require(reminderNotificationRequest(favorite: smallFavorite, locale: Locale(identifier: "ja"))).content.body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
     }
 
     /// 商品バリアントの名前を持たないお気に入りの通知の本文は、名前の行と案内の文言の行だけ (名前の後ろに空白を足さない)。
@@ -587,18 +587,18 @@ struct ReminderTests {
 
     /// 予約は、お気に入りの識別子を通知の識別子にし、設定した日数 (7 日 = 604800 秒) ごとに繰り返す。
     @Test func 通知の予約はお気に入りの識別子で設定した日数ごとに繰り返す() throws {
-        let request = try #require(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom))))
+        let request = try #require(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)), locale: Locale(identifier: "ja")))
         let trigger = try #require(request.trigger as? UNTimeIntervalNotificationTrigger)
 
         #expect(request.identifier == "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
         #expect(trigger.timeInterval == 604_800)
         #expect(trigger.repeats)
-        #expect(request.content.body == reminderNotificationContent(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)), locale: appTextLocale).body)
+        #expect(request.content.body == "コーヒー豆 1\nタップすると購入画面が開きます")
     }
 
     /// リマインドを設定していないお気に入りからは、予約を作らない。
     @Test func リマインドの無いお気に入りの通知の予約は作らない() {
-        #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil)) == nil)
+        #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil), locale: Locale(identifier: "ja")) == nil)
     }
 
     /// リマインドがあって予約の識別子が無いお気に入りだけを返す。予約のあるお気に入りと、リマインドの無いお気に入りは返さない。

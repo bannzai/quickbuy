@@ -82,7 +82,7 @@ struct CartInConfirmationNotificationTests {
     @Test func 開くURLを組み立てられないお気に入りでは通知を作らない() {
         let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
         #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
-        #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite) == nil)
+        #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
         #expect(
             cartInConfirmationNotificationContent(
                 favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1), locale: Locale(identifier: "ja")
@@ -96,14 +96,15 @@ struct CartInConfirmationNotificationTests {
     /// 別のお気に入りとは違う値で、リマインドの通知の識別子 (お気に入りの識別子) とも違う。すぐに出す (時刻の条件を持たない)。
     @Test func 通知の識別子はお気に入りごとに1つでリマインドと別() throws {
         let coffeeFavorite = shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        let firstRequest = try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite))
+        let firstRequest = try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite, locale: Locale(identifier: "ja")))
 
         #expect(firstRequest.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
-        #expect(try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite)).identifier == firstRequest.identifier)
+        #expect(try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).identifier == firstRequest.identifier)
         #expect(
             try #require(
                 cartInConfirmationNotificationRequest(
-                    favorite: shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
+                    favorite: shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1),
+                    locale: Locale(identifier: "ja")
                 )
             ).identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2"
         )
@@ -122,10 +123,10 @@ struct CartInConfirmationNotificationTests {
         )
         let savedData = try Data(contentsOf: fileURL)
 
-        let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
+        let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")))
 
         #expect(request.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2")
-        #expect(request.content.body == cartInConfirmationNotificationContent(favorite: soapFavorite, locale: appTextLocale)?.body)
+        #expect(request.content.body == "コーヒー豆 を 5 個\nタップすると sukoyaka-soap.example の購入画面が開きます")
         #expect(try Data(contentsOf: fileURL) == savedData)
     }
 
@@ -138,8 +139,8 @@ struct CartInConfirmationNotificationTests {
             fileURL: fileURL
         )
 
-        #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL) == nil)
-        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
     }
 
     /// 保存先を読めない時 (中身が JSON でない) はエラーを投げる。
@@ -148,7 +149,7 @@ struct CartInConfirmationNotificationTests {
         try Data("not json".utf8).write(to: fileURL)
 
         #expect(throws: (any Error).self) {
-            try cartInConfirmationNotificationRequest(favoriteID: UUID(), fileURL: fileURL)
+            try cartInConfirmationNotificationRequest(favoriteID: UUID(), fileURL: fileURL, locale: Locale(identifier: "ja"))
         }
     }
 
