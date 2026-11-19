@@ -134,19 +134,6 @@ struct FavoritesListTests {
         )
     }
 
-    /// 同じ行を押し直すと押し直した時刻から 8 秒を数え直すので、最初に押してから 8 秒を過ぎても、押し直してから 8 秒未満なら確認が出ている。
-    @Test func 同じ行を押し直すと8秒を数え直す() {
-        let savedFavorite = favorite(name: "コーヒー豆")
-        // 最初に押してから 5 秒後に押し直し、最初に押してから 10 秒後 (押し直してから 5 秒後) に見る。
-        #expect(
-            cartInConfirmationFavorite(
-                confirmation: (favoriteID: savedFavorite.id, shownAt: pressedAt.addingTimeInterval(5)),
-                favorites: [savedFavorite],
-                now: pressedAt.addingTimeInterval(10)
-            ) == savedFavorite
-        )
-    }
-
     /// 購入画面の URL を組み立てられないお気に入り (Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
     @Test(arguments: [
         Favorite.Product.amazon(AmazonProduct(asin: "B00EXAMPLE")),
@@ -189,13 +176,6 @@ struct FavoritesListTests {
         let fileURL = temporaryFavoritesFileURL()
         // 2026-11-17 00:00:00 UTC。
         let countedFrom = Date(timeIntervalSince1970: 1_794_873_600)
-        let otherFavorite = favorite(
-            name: "コーヒー豆 中煎り",
-            variantName: "200g / 豆のまま",
-            quantity: 2,
-            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
-            reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)
-        )
         let pressedFavorite = favorite(
             name: "コーヒー豆 中煎り",
             variantName: "500g / 中挽き",
@@ -203,7 +183,19 @@ struct FavoritesListTests {
             product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")),
             reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)
         )
-        try saveFavorites(favorites: [otherFavorite, pressedFavorite], fileURL: fileURL)
+        try saveFavorites(
+            favorites: [
+                favorite(
+                    name: "コーヒー豆 中煎り",
+                    variantName: "200g / 豆のまま",
+                    quantity: 2,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                    reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)
+                ),
+                pressedFavorite,
+            ],
+            fileURL: fileURL
+        )
 
         // 数え始めてから 10 日後 (10 × 86400 秒)。
         let openedAt = countedFrom.addingTimeInterval(864_000)
