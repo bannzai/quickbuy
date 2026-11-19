@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UserNotifications
 import WidgetKit
 @testable import QuickBuy
 
@@ -64,6 +65,32 @@ struct FavoritesWidgetTests {
     /// 商品バリアントの名前を持たないお気に入りの行は「N 個」だけで、前に区切りを付けない。
     @Test func 種類の名前の無い行は個数だけ() {
         #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1)) == "1 個")
+    }
+
+    // MARK: - 「カートイン」を出すか
+
+    /// 通知が許可 (authorized) の時だけ「カートイン」を出せる。仮の許可・一時的な許可・拒否・未決定では出せない。
+    @Test(arguments: [
+        (UNAuthorizationStatus.authorized, true),
+        (UNAuthorizationStatus.provisional, false),
+        (UNAuthorizationStatus.ephemeral, false),
+        (UNAuthorizationStatus.denied, false),
+        (UNAuthorizationStatus.notDetermined, false),
+    ])
+    func 許可の時だけカートインを出せる(authorizationStatus: UNAuthorizationStatus, expected: Bool) {
+        #expect(isCartInAvailable(authorizationStatus: authorizationStatus) == expected)
+    }
+
+    /// Shopify の商品は通知が許可されている時だけボタンを出し、Amazon の商品は許可されていても出さない。
+    @Test func カートインのボタンは許可されたShopifyの商品だけに出す() {
+        #expect(isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: true))
+        #expect(!isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: false))
+        #expect(
+            !isCartInButtonShown(
+                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil),
+                isNotificationAuthorized: true
+            )
+        )
     }
 
     // MARK: - 表示を切り替える時刻

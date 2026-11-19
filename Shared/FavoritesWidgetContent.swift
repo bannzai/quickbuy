@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 import WidgetKit
 
 /// ウィジェットの大きさごとの、並べるお気に入りの行の数の上限を返す。
@@ -42,4 +43,16 @@ func favoritesWidgetTimelineDates(favorites: [Favorite], now: Date) -> [Date] {
             .map { $0.countedFrom.addingTimeInterval(reminderTimeInterval(reminder: $0)) }
             .filter { $0 > now }
     ).sorted()
+}
+
+/// 通知の許可の状態から、ウィジェットに「カートイン」を出せるかを返す。許可 (authorized) の時だけ true。
+///
+/// 仮の許可 (provisional) と一時的な許可 (ephemeral) は、通知を通知センターにだけ静かに届ける・App Clip 向けの許可で、押した直後にバナーで確認を見せられないため false にする。
+func isCartInAvailable(authorizationStatus: UNAuthorizationStatus) -> Bool {
+    authorizationStatus == .authorized
+}
+
+/// ウィジェットの行に「カートイン」のボタンを出すかを返す。通知が許可されていて、購入画面の URL を組み立てられるお気に入り (Amazon の商品以外) の時だけ true。
+func isCartInButtonShown(favorite: Favorite, isNotificationAuthorized: Bool) -> Bool {
+    isNotificationAuthorized && purchaseURL(favorite: favorite) != nil
 }

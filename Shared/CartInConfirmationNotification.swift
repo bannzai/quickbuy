@@ -40,12 +40,20 @@ func cartInConfirmationNotificationRequest(favorite: Favorite) -> UNNotification
     }
 }
 
-/// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知を出す。ウィジェットの「カートイン」のボタンの処理が呼ぶ。
+/// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知の要求を返す。
 ///
 /// 保存先を読むだけで書かない (リマインドの数え直しは、通知をタップして購入画面を開いた時に行う)。
-/// その識別子のお気に入りが無い時と、購入画面の URL を組み立てられない時は何も出さない。保存先を読めない時と、通知を出せない時 (通知が許可されていない等) はエラーを投げる。
+/// その識別子のお気に入りが無い時と、購入画面の URL を組み立てられない時は nil を返す。保存先を読めない時はエラーを投げる。
+func cartInConfirmationNotificationRequest(favoriteID: UUID, fileURL: URL) throws -> UNNotificationRequest? {
+    try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }).flatMap(cartInConfirmationNotificationRequest(favorite:))
+}
+
+/// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知を出す。ウィジェットの「カートイン」のボタンの処理が呼ぶ。
+///
+/// 出す通知は `cartInConfirmationNotificationRequest(favoriteID:fileURL:)` が返すもので、nil の時は何も出さない。
+/// 保存先を読めない時と、通知を出せない時 (通知が許可されていない等) はエラーを投げる。
 func postCartInConfirmationNotification(favoriteID: UUID, fileURL: URL, center: UNUserNotificationCenter) async throws {
-    guard let request = try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }).flatMap(cartInConfirmationNotificationRequest(favorite:)) else {
+    guard let request = try cartInConfirmationNotificationRequest(favoriteID: favoriteID, fileURL: fileURL) else {
         return
     }
     try await center.add(request)

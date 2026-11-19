@@ -98,6 +98,48 @@ struct CartInConfirmationNotificationTests {
         #expect(firstRequest.trigger == nil)
     }
 
+    // MARK: - 「カートイン」を押した時の要求
+
+    /// 保存済みのお気に入りのうち、指定した識別子のものの確認の通知の要求を作る。保存先は書き換えない (押した時はリマインドを数え直さない)。
+    @Test func 押した時は指定したお気に入りの要求を作り保存先を書き換えない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let soapFavorite = shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 5)
+        try saveFavorites(
+            favorites: [shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), soapFavorite],
+            fileURL: fileURL
+        )
+        let savedData = try Data(contentsOf: fileURL)
+
+        let request = try #require(cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
+
+        #expect(request.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2")
+        #expect(request.content.body == "コーヒー豆 を 5 個\nタップすると sukoyaka-soap.example の購入画面が開きます")
+        #expect(try Data(contentsOf: fileURL) == savedData)
+    }
+
+    /// 保存されていない識別子と、購入画面の URL を組み立てられないお気に入り (Amazon の商品) では要求を作らない。
+    @Test func 保存されていないお気に入りとAmazonの商品では要求を作らない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+        try saveFavorites(
+            favorites: [shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), amazonFavorite],
+            fileURL: fileURL
+        )
+
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL) == nil)
+    }
+
+    /// 保存先を読めない時 (中身が JSON でない) はエラーを投げる。
+    @Test func 保存先を読めない時はエラーを投げる() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try Data("not json".utf8).write(to: fileURL)
+
+        #expect(throws: (any Error).self) {
+            try cartInConfirmationNotificationRequest(favoriteID: UUID(), fileURL: fileURL)
+        }
+    }
+
     // MARK: - 通知のタップ
 
     /// 確認の通知のタップでは、そのお気に入りの店のドメイン・商品バリアントの ID・個数から組み立てた購入画面の URL を返し、そのお気に入りのリマインドだけをタップした時刻から数え直す。

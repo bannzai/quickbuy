@@ -55,8 +55,7 @@ struct FavoritesTimelineProvider: TimelineProvider {
     /// 保存先を得られない・読めない時は、お気に入りを nil にした `now` の表示内容 1 つを返す。
     private func savedFavoritesTimelineEntries(now: Date) async -> [FavoritesTimelineEntry] {
         let favorites = sharedFavoritesFileURL().flatMap { try? loadFavorites(fileURL: $0) }
-        // 仮の許可 (provisional) の通知はバナーを出さず、押した直後に確認を見られないため、許可 (authorized) の時だけ「カートイン」を出す。
-        let isNotificationAuthorized = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
+        let isNotificationAuthorized = await isCartInAvailable(authorizationStatus: UNUserNotificationCenter.current().notificationSettings().authorizationStatus)
         return favoritesWidgetTimelineDates(favorites: favorites ?? [], now: now).map {
             FavoritesTimelineEntry(date: $0, favorites: favorites, isNotificationAuthorized: isNotificationAuthorized)
         }
@@ -204,7 +203,7 @@ struct FavoriteWidgetCartInButton: View {
 
     /// 強調の色の地に白い文字の「カートイン」。
     var body: some View {
-        if isNotificationAuthorized, purchaseURL(favorite: favorite) != nil {
+        if isCartInButtonShown(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized) {
             Button(intent: CartInIntent(favoriteID: favorite.id)) {
                 Text("カートイン")
                     .font(.footnote.weight(.heavy))
