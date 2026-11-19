@@ -110,7 +110,7 @@ struct CartInConfirmationNotificationTests {
         )
         let savedData = try Data(contentsOf: fileURL)
 
-        let request = try #require(cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
+        let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
 
         #expect(request.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2")
         #expect(request.content.body == "コーヒー豆 を 5 個\nタップすると sukoyaka-soap.example の購入画面が開きます")
