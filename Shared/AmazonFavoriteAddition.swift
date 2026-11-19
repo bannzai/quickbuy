@@ -29,7 +29,7 @@ func amazonOwnedHost(host: String) -> Bool {
 /// 断るのは、ホストが Amazon が持つホスト (`amazonOwnedHost(host:)`) の URL と、ドメインを `.` で区切った部分のどれかが `amazon` のホスト (ほかの国の Amazon 等) で
 /// Shopify の店の商品ページの形 (`shopifyProductPage(text:)`) でない URL。ホストに `amazon` の部分を持つ Shopify の店 (`amazon.example/products/…`) の商品ページの URL は断らない。
 func containsRejectedAmazonURL(text: String) -> Bool {
-    text.split(whereSeparator: \.isWhitespace).contains { part in
+    text.split(whereSeparator: \.isWhitespace).contains { (part: Substring) -> Bool in
         guard let host = URLComponents(string: String(part))?.host?.lowercased() else {
             return false
         }
