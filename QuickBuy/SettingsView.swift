@@ -74,7 +74,7 @@ struct SettingsView: View {
                     Link("プライバシーポリシー", destination: privacyPolicyURL)
                 } footer: {
                     // 送る内容の詳細は docs/PrivacyPolicy-ja.md「利用状況の解析と不具合の記録」
-                    Text("利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と購入画面の URL は送りません")
+                    Text("利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と開いた画面の URL は送りません")
                 }
                 if let versionText = appVersionText(infoDictionary: Bundle.main.infoDictionary) {
                     Section {

@@ -6,11 +6,17 @@ import UserNotifications
 /// 載せるのは見出し・お気に入りの名前・商品バリアントの名前 (持つお気に入りだけ)・案内の文言と、タップされた時にお気に入りを探すための識別子だけ。
 /// 商品バリアントの名前は、同じ商品の商品バリアントごとのお気に入りの通知を見分けられるよう、名前と同じ行に空白で区切って続ける
 /// (並べ方は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本「コーヒー豆 200g / 豆のまま」)。
-/// 購入画面の URL は載せない (.claude/rules/purchase-url.md。URL はタップされた時に保存済みのお気に入りから組み立てる)。
+/// 案内の文言は、タップで開くもの (Shopify の店の商品は購入画面、Amazon の商品は商品ページ) を書く。
+/// 開く URL は載せない (.claude/rules/purchase-url.md。URL はタップされた時に保存済みのお気に入りから組み立てる)。
 func reminderNotificationContent(favorite: Favorite) -> UNMutableNotificationContent {
     let content = UNMutableNotificationContent()
     content.title = "そろそろ買う頃です"
-    content.body = "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます"
+    content.body = switch favorite.product {
+    case .shopify:
+        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます"
+    case .amazon:
+        "\(favorite.name)\nタップすると Amazon の商品ページが開きます"
+    }
     content.sound = .default
     content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
     return content
@@ -81,12 +87,13 @@ func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) ->
     try operation()
 }
 
-/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く購入画面の URL を返す。開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、購入画面を開いた記録を `recordAnalyticsEvent` に渡す。
+/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く URL (`openingURL(favorite:)`。Shopify の店は購入画面、Amazon は商品ページ) を返す。
+/// 開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、開いた記録を `recordAnalyticsEvent` に渡す。
 ///
 /// `notificationIdentifier` は通知の識別子。「カートイン」の確認の通知の識別子 (`cartInConfirmationNotificationIdentifier(favoriteID:)`) なら入口を確認の通知、それ以外ならリマインドの通知として記録する。
-/// 次の時は何も保存も記録もせずに nil を返す (呼び出し側は購入画面を開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
-/// 通知の付加情報からお気に入りの識別子を取り出せない、通知が指すお気に入りが保存されていない、購入画面の URL を組み立てられない、保存先を読めない・書けない。
-func purchaseURLForNotificationResponse(
+/// 次の時は何も保存も記録もせずに nil を返す (呼び出し側は何も開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
+/// 通知の付加情報からお気に入りの識別子を取り出せない、通知が指すお気に入りが保存されていない、開く URL を組み立てられない、保存先を読めない・書けない。
+func openingURLForNotificationResponse(
     actionIdentifier: String,
     notificationIdentifier: String,
     userInfo: [AnyHashable: Any],
@@ -98,10 +105,10 @@ func purchaseURLForNotificationResponse(
     guard actionIdentifier == UNNotificationDefaultActionIdentifier, let favoriteID = favoriteNotificationFavoriteID(userInfo: userInfo) else {
         return nil
     }
-    var openingURL: URL?
+    var favoriteOpeningURL: URL?
     do {
         try performSaving(fileURL: fileURL, applyChanges: applyChanges) {
-            openingURL = try purchaseURLForOpening(
+            favoriteOpeningURL = try openingURL(
                 favoriteID: favoriteID,
                 entryPoint: notificationIdentifier == cartInConfirmationNotificationIdentifier(favoriteID: favoriteID) ? .cartInNotification : .reminderNotification,
                 now: now,
@@ -112,7 +119,7 @@ func purchaseURLForNotificationResponse(
     } catch {
         return nil
     }
-    return openingURL
+    return favoriteOpeningURL
 }
 
 /// リマインドを設定しているのに、通知の予約が無いお気に入りの識別子を返す。
@@ -186,9 +193,9 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
         completionHandler([.banner, .list, .sound])
     }
 
-    /// 通知がタップされた時に、通知が指すお気に入りの購入画面を既定のブラウザで開き、リマインドの日数を数え直す。
+    /// 通知がタップされた時に、通知が指すお気に入りの購入画面 (Amazon の商品は商品ページ) をアプリの外で開き、リマインドの日数を数え直す。
     ///
-    /// 通知が指すお気に入りが保存されていない時は購入画面を開かない (アプリは開くので、お気に入りの一覧が表示される)。
+    /// 通知が指すお気に入りが保存されていない時は何も開かない (アプリは開くので、お気に入りの一覧が表示される)。
     /// 画面からの保存の操作と同時に保存先を読み書きしないよう、数え直しの保存もメインのスレッド (画面の操作と同じ) で実行する。
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -197,7 +204,7 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
     ) {
         DispatchQueue.main.async {
             guard let favoritesFileURL = sharedFavoritesFileURL(),
-                  let openingURL = purchaseURLForNotificationResponse(
+                  let openingURL = openingURLForNotificationResponse(
                       actionIdentifier: response.actionIdentifier,
                       notificationIdentifier: response.notification.request.identifier,
                       userInfo: response.notification.request.content.userInfo,

@@ -50,10 +50,62 @@ struct FavoritesWidgetTests {
         #expect(widgetFavorites(favorites: favorites(count: savedCount), widgetFamily: widgetFamily).map(\.name) == expectedNames)
     }
 
-    /// ウィジェットが対応していない特大サイズには、お気に入りを並べない。
+    /// ウィジェットが対応していない横長の特大サイズには、お気に入りを並べない。
     @Test func 対応していない大きさには並べない() {
         #expect(widgetFavorites(favorites: favorites(count: 4), widgetFamily: .systemExtraLarge) == [])
     }
+
+    // MARK: - 置ける大きさと並べ方
+
+    /// 小・中・大サイズはどの OS でも置け、横長の特大サイズはどの OS でも置けない。
+    @Test func 小中大サイズを置けて横長の特大サイズは置けない() {
+        let supportedFamilies = favoritesWidgetSupportedFamilies()
+        #expect(supportedFamilies.contains(.systemSmall))
+        #expect(supportedFamilies.contains(.systemMedium))
+        #expect(supportedFamilies.contains(.systemLarge))
+        #expect(!supportedFamilies.contains(.systemExtraLarge))
+    }
+
+    /// 見出しと大きいアイコンで並べるのは大サイズで、小・中サイズと横長の特大サイズは並べない。
+    @Test(arguments: [
+        (WidgetFamily.systemSmall, false),
+        (WidgetFamily.systemMedium, false),
+        (WidgetFamily.systemLarge, true),
+        (WidgetFamily.systemExtraLarge, false),
+    ])
+    func 大きい並べ方は大サイズ(widgetFamily: WidgetFamily, expected: Bool) {
+        #expect(isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) == expected)
+    }
+
+    #if compiler(>=6.4)
+        /// iOS 27 以降では縦長の特大サイズを置け、iOS 26 以前では小・中・大サイズだけを置ける。
+        @Test func 縦長の特大サイズはiOS27以降だけ置ける() {
+            if #available(iOS 27.0, *) {
+                #expect(favoritesWidgetSupportedFamilies().contains(.systemExtraLargePortrait))
+            } else {
+                #expect(favoritesWidgetSupportedFamilies() == [.systemSmall, .systemMedium, .systemLarge])
+            }
+        }
+
+        /// 縦長の特大サイズは先頭から 5 行までを保存した並びのまま並べ、見出しと大きいアイコンで並べる。
+        /// 保存が上限より少ない時はある分だけ、0 件の時は何も並べない。
+        @Test(arguments: [
+            (0, [String]()),
+            (4, ["洗剤", "電池", "水", "米"]),
+            (5, ["洗剤", "電池", "水", "米", "茶"]),
+            (6, ["洗剤", "電池", "水", "米", "茶"]),
+        ])
+        @available(iOS 27.0, *)
+        func 縦長の特大サイズは先頭から5行(savedCount: Int, expectedNames: [String]) {
+            #expect(
+                widgetFavorites(
+                    favorites: ["洗剤", "電池", "水", "米", "茶", "塩"].prefix(savedCount).map { favorite(name: $0) },
+                    widgetFamily: .systemExtraLargePortrait
+                ).map(\.name) == expectedNames
+            )
+            #expect(isFavoritesWidgetLargeLayout(widgetFamily: .systemExtraLargePortrait))
+        }
+    #endif
 
     // MARK: - 行の説明
 
@@ -65,6 +117,24 @@ struct FavoritesWidgetTests {
     /// 商品バリアントの名前を持たないお気に入りの行は「N 個」だけで、前に区切りを付けない。
     @Test func 種類の名前の無い行は個数だけ() {
         #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1)) == "1 個")
+    }
+
+    /// Amazon の商品の行は個数を出さず、店を見分ける「Amazon」を出す (Amazon の商品は個数を持たない)。
+    @Test func Amazonの商品の行は個数を出さない() {
+        #expect(
+            favoriteWidgetRowCaption(
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+            ) == "Amazon"
+        )
+    }
+
+    /// 通知の許可が要ることの文は、並べているお気に入りのボタンの名前を出す。Amazon の商品だけなら「カートイン」と書かない。
+    @Test func 通知の許可が要ることの文は並べたお気に入りのボタンの名前を出す() {
+        let amazonFavorite = Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")]) == "カートインには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [amazonFavorite]) == "Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite]) == "カートイン・Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: []) == "カートインには通知の許可が要ります")
     }
 
     // MARK: - 「カートイン」を出すか
@@ -93,13 +163,16 @@ struct FavoritesWidgetTests {
         #expect(isCartInAvailable(authorizationStatus: .authorized, alertSetting: alertSetting, notificationCenterSetting: notificationCenterSetting, lockScreenSetting: lockScreenSetting) == expected)
     }
 
-    /// Shopify の商品は通知が許可されている時だけボタンを出し、Amazon の商品は許可されていても出さない。
-    @Test func カートインのボタンは許可されたShopifyの商品だけに出す() {
+    /// Shopify の商品と Amazon の商品は通知が許可されている時だけボタンを出す。開く URL を組み立てられない Amazon の商品 (ASIN の形でない保存値) は許可されていても出さない。
+    @Test func カートインのボタンは許可された開けるお気に入りだけに出す() {
+        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
         #expect(isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: true))
         #expect(!isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: false))
+        #expect(isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: true))
+        #expect(!isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: false))
         #expect(
             !isCartInButtonShown(
-                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil),
+                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil),
                 isNotificationAuthorized: true
             )
         )

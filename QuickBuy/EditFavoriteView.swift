@@ -33,7 +33,10 @@ struct EditFavoriteView: View {
                 Section {
                     TextField("名前", text: $favorite.name, axis: .vertical)
                         .accessibilityIdentifier("favoriteNameField")
-                    QuantityStepperRow(quantity: $favorite.quantity)
+                    // Amazon の商品は個数を持たない (個数は利用者が Amazon の画面で選ぶ。`amazonFavorite(asin:name:id:)`)。
+                    if case .shopify = favorite.product {
+                        QuantityStepperRow(quantity: $favorite.quantity)
+                    }
                 }
                 Section {
                     Toggle("リマインド", isOn: isReminderOn)
@@ -48,7 +51,7 @@ struct EditFavoriteView: View {
                 } footer: {
                     if let reminder = favorite.reminder {
                         Text(
-                            "購入画面を開いた日から数え直します\n次の知らせは \(nextReminderDate(reminder: reminder, now: .now).formatted(.dateTime.month().day())) です"
+                            "\(reminderRecountText(favorite: favorite))\n次の知らせは \(nextReminderDate(reminder: reminder, now: .now).formatted(.dateTime.month().day())) です"
                                 + (isNotificationDenied ? "\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます" : "")
                         )
                     }
@@ -135,5 +138,15 @@ struct EditFavoriteView: View {
         } catch {
             isSaveFailed = true
         }
+    }
+}
+
+/// リマインドの設定の下に出す、日数を数え直す時の文を返す。Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直す (`openingURL(favoriteID:now:fileURL:)`)。
+func reminderRecountText(favorite: Favorite) -> String {
+    switch favorite.product {
+    case .shopify:
+        "購入画面を開いた日から数え直します"
+    case .amazon:
+        "Amazon の商品ページを開いた日から数え直します"
     }
 }

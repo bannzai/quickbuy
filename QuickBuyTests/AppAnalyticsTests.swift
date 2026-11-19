@@ -33,7 +33,7 @@ struct AppAnalyticsTests {
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForOpening(
+            try openingURL(
                 favoriteID: savedFavorite.id,
                 entryPoint: .favoritesList,
                 now: Date(timeIntervalSince1970: 1_800_000_000),
@@ -44,15 +44,34 @@ struct AppAnalyticsTests {
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "shopify"])])
     }
 
-    /// 購入画面の URL を組み立てられないお気に入り (最初の版の Amazon の商品) では、購入画面を開かないので記録しない。
-    @Test func 購入画面を開かない時は記録しない() throws {
+    /// 一覧の確認の「開く」で Amazon の商品ページを開いた時は、入口が一覧・店が Amazon のイベントを 1 件だけ記録し、商品ページの URL を返す。
+    @Test func 一覧からAmazonの商品ページを開くと店の種類amazonで記録する() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let savedFavorite = favorite(product: .amazon(AmazonProduct(asin: "B0EXAMPLE1")))
+        let savedFavorite = favorite(product: .amazon(AmazonProduct(asin: "B00EXAMPLE")))
         try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForOpening(
+            try openingURL(
+                favoriteID: savedFavorite.id,
+                entryPoint: .favoritesList,
+                now: Date(timeIntervalSince1970: 1_800_000_000),
+                fileURL: fileURL,
+                recordAnalyticsEvent: { recordedEvents.append($0) }
+            )?.absoluteString == "https://www.amazon.co.jp/dp/B00EXAMPLE"
+        )
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "amazon"])])
+    }
+
+    /// 開く URL を組み立てられないお気に入り (ASIN の形でない保存値の Amazon の商品) では、何も開かないので記録しない。
+    @Test func 何も開かない時は記録しない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let savedFavorite = favorite(product: .amazon(AmazonProduct(asin: "b00example")))
+        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
+        var recordedEvents: [AnalyticsEvent] = []
+
+        #expect(
+            try openingURL(
                 favoriteID: savedFavorite.id,
                 entryPoint: .favoritesList,
                 now: Date(timeIntervalSince1970: 1_800_000_000),
@@ -70,7 +89,7 @@ struct AppAnalyticsTests {
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForOpening(
+            try openingURL(
                 favoriteID: UUID(),
                 entryPoint: .favoritesList,
                 now: Date(timeIntervalSince1970: 1_800_000_000),
@@ -105,7 +124,7 @@ struct AppAnalyticsTests {
         try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
         var recordedEvents: [AnalyticsEvent] = []
         #expect(
-            try purchaseURLForOpening(
+            try openingURL(
                 favoriteID: savedFavorite.id,
                 entryPoint: .favoritesList,
                 now: Date(timeIntervalSince1970: 1_800_000_000),
@@ -135,7 +154,19 @@ struct AppAnalyticsTests {
         )
     }
 
-    /// 小・中・大以外の大きさは `other` にまとめる (WidgetKit が大きさを足しても記録を落とさない)。
+    #if compiler(>=6.4)
+        /// 縦長の特大サイズは `extra_large_portrait` で記録する (iOS 27 以降でだけ置ける)。
+        @Test @available(iOS 27.0, *)
+        func 縦長の特大サイズはextra_large_portraitで記録する() {
+            #expect(widgetFamilyName(widgetFamily: .systemExtraLargePortrait) == "extra_large_portrait")
+            #expect(
+                widgetPlacedEvent(widgetFamilies: [.systemExtraLargePortrait, .systemSmall])
+                    == AnalyticsEvent(name: "widget_placed", parameters: ["widget_families": "extra_large_portrait,small"])
+            )
+        }
+    #endif
+
+    /// 小・中・大と縦長の特大サイズ以外の大きさ (お気に入りのウィジェットが対応しない横長の特大サイズ等) は `other` にまとめる (WidgetKit が大きさを足しても記録を落とさない)。
     @Test func 小中大以外の大きさはotherにまとめる() {
         #expect(widgetFamilyName(widgetFamily: .systemExtraLarge) == "other")
         #expect(widgetFamilyName(widgetFamily: .accessoryCircular) == "other")

@@ -66,9 +66,21 @@ struct CartInConfirmationNotificationTests {
         #expect(!allText.contains("/cart/"))
     }
 
-    /// 購入画面の URL を組み立てられないお気に入り (Amazon の商品・ホスト名の形でない店のドメイン) では、確認の通知を作らない。
-    @Test func 購入画面を組み立てられないお気に入りでは通知を作らない() {
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+    /// Amazon の商品の通知は、見出しを「Amazon の商品ページを開きますか？」にし、本文に個数を出さずに商品ページが開くことを書く。商品ページの URL は載せない。
+    @Test func Amazonの商品の通知は商品ページが開くことを書く() throws {
+        let content = try #require(
+            cartInConfirmationNotificationContent(
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+            )
+        )
+        #expect(content.title == "Amazon の商品ページを開きますか？")
+        #expect(content.body == "単3電池\nタップすると www.amazon.co.jp の商品ページが開きます")
+        #expect(!"\(content.title)\(content.body)\(content.userInfo)".contains("/dp/"))
+    }
+
+    /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・ホスト名の形でない店のドメイン) では、確認の通知を作らない。
+    @Test func 開くURLを組み立てられないお気に入りでは通知を作らない() {
+        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
         #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite) == nil)
         #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite) == nil)
         #expect(
@@ -117,10 +129,10 @@ struct CartInConfirmationNotificationTests {
         #expect(try Data(contentsOf: fileURL) == savedData)
     }
 
-    /// 保存されていない識別子と、購入画面の URL を組み立てられないお気に入り (Amazon の商品) では要求を作らない。
-    @Test func 保存されていないお気に入りとAmazonの商品では要求を作らない() throws {
+    /// 保存されていない識別子と、開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品) では要求を作らない。
+    @Test func 保存されていないお気に入りと組み立てられないお気に入りでは要求を作らない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
         try saveFavorites(
             favorites: [shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), amazonFavorite],
             fileURL: fileURL
@@ -154,7 +166,7 @@ struct CartInConfirmationNotificationTests {
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForNotificationResponse(
+            try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: soapFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite)).userInfo,
@@ -169,6 +181,37 @@ struct CartInConfirmationNotificationTests {
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "shopify"])])
     }
 
+    /// Amazon の商品の確認の通知のタップでは、www.amazon.co.jp の商品ページの URL を返し、リマインドをタップした時刻から数え直す。
+    @Test func Amazonの商品の通知のタップで商品ページのURLを返して数え直す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let amazonFavorite = Favorite(
+            id: UUID(),
+            name: "単3電池",
+            imageURL: nil,
+            quantity: 1,
+            product: .amazon(AmazonProduct(asin: "B0DTESTAB1")),
+            reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)
+        )
+        try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
+        var recountedAmazonFavorite = amazonFavorite
+        recountedAmazonFavorite.reminder = Reminder(intervalDays: 30, countedFrom: tappedAt)
+        var recordedEvents: [AnalyticsEvent] = []
+
+        #expect(
+            try openingURLForNotificationResponse(
+                actionIdentifier: UNNotificationDefaultActionIdentifier,
+                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: amazonFavorite.id),
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite)).userInfo,
+                now: tappedAt,
+                fileURL: fileURL,
+                applyChanges: { _ in },
+                recordAnalyticsEvent: { recordedEvents.append($0) }
+            )?.absoluteString == "https://www.amazon.co.jp/dp/B0DTESTAB1"
+        )
+        #expect(try loadFavorites(fileURL: fileURL) == [recountedAmazonFavorite])
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "amazon"])])
+    }
+
     /// 確認の通知を出した後に個数を変えた時は、通知の文言の個数ではなく、タップした時に保存されている個数で組み立てる (購入画面の URL を通知に載せないため)。
     @Test func 通知の後に個数を変えたらタップした時の個数で組み立てる() throws {
         let fileURL = temporaryFavoritesFileURL()
@@ -177,7 +220,7 @@ struct CartInConfirmationNotificationTests {
         try updateFavorite(id: coffeeFavorite.id, name: coffeeFavorite.name, quantity: 3, fileURL: fileURL)
 
         #expect(
-            try purchaseURLForNotificationResponse(
+            try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
@@ -198,7 +241,7 @@ struct CartInConfirmationNotificationTests {
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForNotificationResponse(
+            try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDismissActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
@@ -222,7 +265,7 @@ struct CartInConfirmationNotificationTests {
         var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
-            try purchaseURLForNotificationResponse(
+            try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
                 userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,

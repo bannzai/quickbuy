@@ -55,10 +55,16 @@ func widgetPlacedEvent(widgetFamilies: [WidgetFamily]) -> AnalyticsEvent? {
 
 /// ウィジェットの大きさのイベントの引数での名前を返す。
 ///
-/// お気に入りのウィジェットが対応する大きさ (`FavoritesWidget` の `supportedFamilies`) 以外は届かないが、
+/// お気に入りのウィジェットが対応する大きさ (`favoritesWidgetSupportedFamilies()`) 以外は届かないが、
 /// WidgetKit が大きさを足した時に記録を落とさないよう、それ以外は `other` にまとめる。
+/// 縦長の特大サイズ (`systemExtraLargePortrait`) を書ける条件は `favoritesWidgetSupportedFamilies()` と同じ (Swift 6.4 以降でビルドし、iOS 27 以降で動く時)。
 func widgetFamilyName(widgetFamily: WidgetFamily) -> String {
-    switch widgetFamily {
+    #if compiler(>=6.4)
+        if #available(iOS 27.0, *), widgetFamily == .systemExtraLargePortrait {
+            return "extra_large_portrait"
+        }
+    #endif
+    return switch widgetFamily {
     case .systemSmall: "small"
     case .systemMedium: "medium"
     case .systemLarge: "large"
@@ -92,10 +98,11 @@ func recordWidgetPlacement(recordAnalyticsEvent: @escaping (AnalyticsEvent) -> V
     }
 }
 
-/// 指定した識別子の保存済みのお気に入りの購入画面を開く時に呼び、開く URL を返す。開く時は `entryPoint` を入口にした購入画面を開いた記録を `recordAnalyticsEvent` に渡す。
+/// 指定した識別子の保存済みのお気に入りを開く時に呼び、開く URL (Shopify の店は購入画面、Amazon は商品ページ) を返す。開く時は `entryPoint` を入口にした開いた記録を `recordAnalyticsEvent` に渡す。
 ///
-/// 保存とリマインドの数え直しは `purchaseURLForOpening(favoriteID:now:fileURL:)` と同じ。nil を返す時 (購入画面を開かない時) は記録しない。
-func purchaseURLForOpening(
+/// 保存とリマインドの数え直しは `openingURL(favoriteID:now:fileURL:)` と同じ。nil を返す時 (何も開かない時) は記録しない。
+/// Amazon の商品ページを開いた時も同じイベントを店の種類 `amazon` で記録する (用語「購入画面」は Amazon の商品ページを含まないが、判定基準の「購入画面を開いた」は店の種類で分けて数える。documents/DIRECTION.md「判定基準」)。
+func openingURL(
     favoriteID: UUID,
     entryPoint: PurchaseScreenEntryPoint,
     now: Date,
@@ -103,12 +110,12 @@ func purchaseURLForOpening(
     recordAnalyticsEvent: (AnalyticsEvent) -> Void
 ) throws -> URL? {
     guard let favorite = try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }),
-          let openingURL = try purchaseURLForOpening(favoriteID: favoriteID, now: now, fileURL: fileURL)
+          let favoriteOpeningURL = try openingURL(favoriteID: favoriteID, now: now, fileURL: fileURL)
     else {
         return nil
     }
     recordAnalyticsEvent(purchaseScreenOpenEvent(entryPoint: entryPoint, product: favorite.product))
-    return openingURL
+    return favoriteOpeningURL
 }
 
 /// イベントを Firebase Analytics に送る。アプリの画面と通知の受け取りが記録先として渡す。

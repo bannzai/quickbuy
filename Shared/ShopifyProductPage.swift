@@ -239,8 +239,10 @@ func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
 
 /// お気に入りの登録が、確認の画面に進まずに終わった理由。
 enum FavoriteAdditionLoadError: Error, Equatable {
-    /// 渡された文字列が、Shopify の店の商品ページの URL の形でない。
+    /// 渡された文字列が、Shopify の店の商品ページの URL の形でも、Amazon の URL でもない。
     case notProductPageURL
+    /// 渡された文字列が Amazon の URL だが、受け取る形 (www.amazon.co.jp の商品ページの URL か、その短い URL) でない。
+    case notAmazonProductPageURL
     /// 通信できなかった、または店が一時的に応答を制限している (HTTP 429)。待てば取得できる可能性がある。
     case temporarilyUnavailable
     /// 商品の情報を取得できない (Shopify の店でない・商品が無い・指定の商品バリアントが無い)。
