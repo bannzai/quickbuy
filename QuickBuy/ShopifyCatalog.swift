@@ -357,6 +357,27 @@ func shopifyCatalogFavorites(
     }
 }
 
+/// 検索窓の文字列から、検索に使う語 (前後の空白と改行を除いたもの) を返す。空になる時は検索しないので nil。
+func shopifyCatalogSearchQuery(text: String) -> String? {
+    Optional(text.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
+}
+
+/// 検索の結果を取り直すかを返す。検索中は取り直さない。まだ結果が無い (`fetchedAt` が nil) 時と、価格を出してよい時間を過ぎた時は取り直す。
+func shouldRefreshShopifyCatalogSearch(fetchedAt: Date?, isSearching: Bool, now: Date) -> Bool {
+    !isSearching && fetchedAt.map { !isShopifyCatalogPriceFresh(fetchedAt: $0, now: now) } ?? true
+}
+
+/// 追加の画面で、選ぶ操作を挟まずに選んだ状態にする商品バリアントを返す。
+///
+/// 種類の選び方が無い商品 (`hasShopifyCatalogVariantChoices` が false) で、まだ何も選んでおらず、商品バリアントの ID が数字で終わる時だけ、
+/// 店の入口が返した商品バリアントを返す。それ以外は nil。
+func shopifyCatalogAutoSelectedVariant(product: ShopifyCatalogProduct, selectedVariants: [ShopifyCatalogVariant]) -> ShopifyCatalogVariant? {
+    guard !hasShopifyCatalogVariantChoices(options: product.options), selectedVariants.isEmpty else {
+        return nil
+    }
+    return product.variants.first.flatMap { shopifyVariantNumericID(variantGID: $0.id) != nil ? $0 : nil }
+}
+
 /// 種類の選び方に、値が 2 つ以上あるものがあるかを返す (商品バリアントが 2 つ以上ある商品か)。
 func hasShopifyCatalogVariantChoices(options: [ShopifyCatalogOption]?) -> Bool {
     options?.contains { $0.values.count >= 2 } == true

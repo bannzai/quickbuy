@@ -208,20 +208,15 @@ struct HomeView: View {
 
     /// 並べている結果の価格を取得してから `shopifyCatalogPriceCacheSeconds` 秒たっていれば、同じ検索語で取り直す。まだ取得していなければ取得する。
     private func refreshIfPriceExpired() {
-        guard !isSearching else {
-            return
+        if shouldRefreshShopifyCatalogSearch(fetchedAt: searchResult?.fetchedAt, isSearching: isSearching, now: .now) {
+            search(query: shownQuery)
         }
-        if let searchResult, isShopifyCatalogPriceFresh(fetchedAt: searchResult.fetchedAt, now: .now) {
-            return
-        }
-        search(query: shownQuery)
     }
 
     /// 検索語 (前後の空白と改行は除く) で Global Catalog を検索し、結果を並べる。空の検索語では何もしない。
     /// 検索できなかった時は、前の結果を消して理由を出す (古い価格を残さないため)。
     private func search(query: String) {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else {
+        guard let trimmedQuery = shopifyCatalogSearchQuery(text: query) else {
             return
         }
         let searchID = UUID()
@@ -232,12 +227,10 @@ struct HomeView: View {
         searchResult = nil
         Task {
             do {
-                let products = try await searchShopifyCatalog(query: trimmedQuery, endpointURL: shopifyGlobalCatalogEndpointURL, urlSession: .shared)
-                // 結果を待つ間に検索し直した時 (同じ語を含む) は、前の検索の結果で上書きしない。
-                guard latestSearchID == searchID else {
-                    return
-                }
-                searchResult = (products, .now)
+                try await applySearchResult(
+                    searchID: searchID,
+                    products: searchShopifyCatalog(query: trimmedQuery, endpointURL: shopifyGlobalCatalogEndpointURL, urlSession: .shared)
+                )
             } catch {
                 guard latestSearchID == searchID else {
                     return
@@ -245,7 +238,17 @@ struct HomeView: View {
                 // `searchShopifyCatalog` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
                 errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
             }
-            isSearching = false
+            if latestSearchID == searchID {
+                isSearching = false
+            }
+        }
+    }
+
+    /// 検索 `searchID` の結果 `products` を、今の時刻で取得したものとして並べる。
+    /// 結果を待つ間に検索し直した時 (同じ語を含む) は、前の検索の結果で上書きしない。
+    private func applySearchResult(searchID: UUID, products: [ShopifyCatalogProduct]) {
+        if latestSearchID == searchID {
+            searchResult = (products, .now)
         }
     }
 }

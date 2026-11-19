@@ -22,6 +22,8 @@ struct CatalogAddFavoriteView: View {
     @State private var storefrontProductFetchedAt: Date?
     /// 店の入口を呼んでいる間は true。
     @State private var isLoading = false
+    /// 最後に始めた店の入口の呼び出しの識別子。結果を受けた時に、この値と違う (後から別の呼び出しを始めた) 呼び出しの結果は捨てる。
+    @State private var latestLoadID = UUID()
     /// 店の入口を呼べなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 名前の欄の文字列。検索の結果の商品の名前から始まる。
@@ -79,10 +81,8 @@ struct CatalogAddFavoriteView: View {
                     Button {
                         finish(choice: .add)
                     } label: {
-                        // 店の入口は選んだ値の組の商品バリアントを 1 件だけ返し、商品バリアントの数を返さない。
-                        // `favoriteAdditionButtonTitle` が見るのは数が 2 以上かだけなので、種類の選び方があるかを 2 と 1 で渡す。
                         Text(favoriteAdditionButtonTitle(
-                            variantCount: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options) ? 2 : 1,
+                            hasVariantChoices: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options),
                             selectedVariantCount: selectedVariants.count
                         ))
                         .bold()
@@ -119,7 +119,7 @@ struct CatalogAddFavoriteView: View {
         }
         // 画面を開いたまま価格を出してよい時間を過ぎたら、価格を消して同じ値の組で読み直す (Shopify の「Caching limits」)。
         .task(id: storefrontProductFetchedAt) {
-            guard let storefrontProductFetchedAt, let storefrontProduct else {
+            guard let storefrontProductFetchedAt else {
                 return
             }
             try? await Task.sleep(for: .seconds(shopifyCatalogPriceRemainingSeconds(fetchedAt: storefrontProductFetchedAt, now: .now)))
@@ -127,7 +127,10 @@ struct CatalogAddFavoriteView: View {
                 return
             }
             self.storefrontProductFetchedAt = nil
-            await loadStorefrontProduct(productID: storefrontProduct.id, selected: storefrontProduct.selected)
+            // 選び直しの読み込みの最中なら、その結果が新しい価格を出すので、前の値の組で読み直さない。
+            if !isLoading, let storefrontProduct {
+                await loadStorefrontProduct(productID: storefrontProduct.id, selected: storefrontProduct.selected)
+            }
         }
     }
 
@@ -139,7 +142,7 @@ struct CatalogAddFavoriteView: View {
                     if option.values.count >= 2 {
                         Picker(option.name, selection: selectedLabelBinding(storefrontProduct: storefrontProduct, optionName: option.name)) {
                             ForEach(option.values, id: \.label) { value in
-                                Text(value.label).tag(value.label)
+                                Text(value.label).tag(Optional(value.label))
                             }
                         }
                         .disabled(isLoading)
@@ -179,12 +182,12 @@ struct CatalogAddFavoriteView: View {
             if let errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
-                Button("もう一度読み込む") {
-                    Task {
-                        await loadStorefrontProduct(
-                            productID: storefrontProduct?.id ?? searchedProduct.variants.first?.id ?? "",
-                            selected: storefrontProduct?.selected
-                        )
+                // 読み直す商品は、読み込めた商品か、まだ無ければ検索の結果の商品バリアント。検索の結果は商品バリアントのある商品だけなので、どちらかが必ずある。
+                if let reloadProductID = storefrontProduct?.id ?? searchedProduct.variants.first?.id {
+                    Button("もう一度読み込む") {
+                        Task {
+                            await loadStorefrontProduct(productID: reloadProductID, selected: storefrontProduct?.selected)
+                        }
                     }
                 }
             }
@@ -193,11 +196,14 @@ struct CatalogAddFavoriteView: View {
         }
     }
 
-    /// 種類の選び方 `optionName` で今選んでいる値を、選び直すと店の入口を呼び直す値にして返す。
-    private func selectedLabelBinding(storefrontProduct: ShopifyCatalogProduct, optionName: String) -> Binding<String> {
+    /// 種類の選び方 `optionName` で今選んでいる値 (店が返さなかった時は nil で、どれも選ばれていない表示) を、選び直すと店の入口を呼び直す値にして返す。
+    private func selectedLabelBinding(storefrontProduct: ShopifyCatalogProduct, optionName: String) -> Binding<String?> {
         Binding(
-            get: { storefrontProduct.selected?.first { $0.name == optionName }?.label ?? "" },
+            get: { storefrontProduct.selected?.first { $0.name == optionName }?.label },
             set: { newLabel in
+                guard let newLabel else {
+                    return
+                }
                 Task {
                     await loadStorefrontProduct(
                         productID: storefrontProduct.id,
@@ -218,23 +224,39 @@ struct CatalogAddFavoriteView: View {
     }
 
     /// 店の入口の `get_product` を呼び、返った商品を画面に出す。呼べなかった時は理由を出し、前に出していた商品はそのまま残す。
+    /// 呼び出しを重ねた時 (選び直しの最中に価格の期限で読み直した時など) は、最後に始めた呼び出しの結果だけを出す。
     private func loadStorefrontProduct(productID: String, selected: [ShopifyCatalogSelectedOption]?) async {
+        let loadID = UUID()
+        latestLoadID = loadID
         isLoading = true
         errorMessage = nil
         do {
-            storefrontProduct = try await loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: productID, selected: selected, urlSession: urlSession)
-            storefrontProductFetchedAt = .now
-            // 種類の選び方が 1 つも無い商品 (商品バリアントが 1 つだけ) は、選ぶ操作を挟まずに選んだ状態にする。
-            if let storefrontProduct, !hasShopifyCatalogVariantChoices(options: storefrontProduct.options), selectedVariants.isEmpty,
-               let variant = storefrontProduct.variants.first, shopifyVariantNumericID(variantGID: variant.id) != nil
-            {
-                selectVariant(variant: variant)
-            }
+            try await applyStorefrontProduct(
+                loadID: loadID,
+                product: loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: productID, selected: selected, urlSession: urlSession)
+            )
         } catch {
-            // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-            errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+            if latestLoadID == loadID {
+                // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
+                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+            }
         }
-        isLoading = false
+        if latestLoadID == loadID {
+            isLoading = false
+        }
+    }
+
+    /// 呼び出し `loadID` が返した商品 `product` を、今の時刻で取得したものとして出す。後から別の呼び出しを始めていた時は何もしない。
+    /// 種類の選び方が無い商品は、選ぶ操作を挟まずに選んだ状態にする (`shopifyCatalogAutoSelectedVariant`)。
+    private func applyStorefrontProduct(loadID: UUID, product: ShopifyCatalogProduct) {
+        guard latestLoadID == loadID else {
+            return
+        }
+        storefrontProduct = product
+        storefrontProductFetchedAt = .now
+        if let autoSelectedVariant = shopifyCatalogAutoSelectedVariant(product: product, selectedVariants: selectedVariants) {
+            selectVariant(variant: autoSelectedVariant)
+        }
     }
 
     /// 利用者が選んだ操作を保存に反映して画面を閉じる。

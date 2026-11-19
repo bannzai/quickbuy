@@ -156,7 +156,7 @@ struct AddFavoriteView: View {
                 Button {
                     finish(choice: .add)
                 } label: {
-                    Text(favoriteAdditionButtonTitle(variantCount: product.variants.count, selectedVariantCount: quantitiesByVariantID.count))
+                    Text(favoriteAdditionButtonTitle(hasVariantChoices: product.variants.count >= 2, selectedVariantCount: quantitiesByVariantID.count))
                         .bold()
                         .frame(maxWidth: .infinity)
                 }

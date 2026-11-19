@@ -371,6 +371,62 @@ import Testing
         #expect(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(3600)) == 0)
     }
 
+    /// 検索の結果が 0 件の時と、商品バリアントの無い商品は、空の並びになる。
+    @Test func 検索の結果が空と商品バリアントの無い商品は空の並びになる() async throws {
+        let emptyURL = Self.endpointURL(name: "search-empty")
+        let noVariantURL = Self.endpointURL(name: "search-no-variant")
+        StubURLProtocol.stubResponses.withLock {
+            $0[emptyURL.absoluteString] = .http(statusCode: 200, body: Data(#"{"jsonrpc":"2.0","id":1,"result":{"structuredContent":{"products":[]}}}"#.utf8))
+            $0[noVariantURL.absoluteString] = .http(
+                statusCode: 200,
+                body: Data(#"{"jsonrpc":"2.0","id":1,"result":{"structuredContent":{"products":[{"id":"p","title":"t","variants":[]}]}}}"#.utf8)
+            )
+        }
+        #expect(try await searchShopifyCatalog(query: "a", endpointURL: emptyURL, urlSession: StubURLProtocol.urlSession()) == [])
+        #expect(try await searchShopifyCatalog(query: "a", endpointURL: noVariantURL, urlSession: StubURLProtocol.urlSession()) == [])
+    }
+
+    /// 検索に使う語は前後の空白と改行を除いたもので、空白・改行だけの時は検索しない。
+    @Test(arguments: [("紅茶", "紅茶"), ("  紅茶 \n", "紅茶"), ("紅 茶", "紅 茶"), ("", nil), ("   ", nil), ("\n", nil)] as [(String, String?)])
+    func 検索に使う語は前後の空白を除き空なら検索しない(text: String, expectedQuery: String?) {
+        #expect(shopifyCatalogSearchQuery(text: text) == expectedQuery)
+    }
+
+    /// 結果がまだ無い時と 10 分たった時は取り直し、10 分より前と検索中は取り直さない。
+    @Test func 検索の結果を取り直すのは結果が無いか10分たった時だけ() {
+        let fetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: false, now: fetchedAt))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: true, now: fetchedAt))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, now: fetchedAt.addingTimeInterval(599)))
+        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, now: fetchedAt.addingTimeInterval(600)))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: true, now: fetchedAt.addingTimeInterval(600)))
+    }
+
+    /// 種類の選び方が無く、まだ何も選んでいない商品だけ、選ぶ操作を挟まずに商品バリアントを選ぶ。
+    @Test func 種類の選び方が無い商品だけ選ぶ操作を挟まずに選ぶ() {
+        let singleVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")
+        let singleProduct = ShopifyCatalogProduct(
+            id: "gid://shopify/Product/1", title: "豆", media: nil,
+            options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])], selected: nil, variants: [singleVariant]
+        )
+        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, selectedVariants: []) == singleVariant)
+        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, selectedVariants: [singleVariant]) == nil)
+        #expect(shopifyCatalogAutoSelectedVariant(
+            product: ShopifyCatalogProduct(
+                id: "gid://shopify/Product/2", title: "豆", media: nil,
+                options: [ShopifyCatalogOption(name: "挽き", values: [.init(label: "豆"), .init(label: "粉")])], selected: nil, variants: [singleVariant]
+            ),
+            selectedVariants: []
+        ) == nil)
+        #expect(shopifyCatalogAutoSelectedVariant(
+            product: ShopifyCatalogProduct(
+                id: "gid://shopify/Product/3", title: "豆", media: nil, options: nil, selected: nil,
+                variants: [Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "Default Title")]
+            ),
+            selectedVariants: []
+        ) == nil)
+    }
+
     /// `urlText` へ送った各リクエストの本文の `params.arguments.catalog` を、送った順に返す。
     static func requestedCatalogArguments(urlText: String) throws -> [[String: Any]] {
         try StubURLProtocol.requestedBodiesByURLText.withLock { $0[urlText] ?? [] }.map { body in
