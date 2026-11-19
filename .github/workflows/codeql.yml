@@ -54,7 +54,8 @@ jobs:
         run: scripts/restore-google-service-info-plist.sh
       - name: アプリをビルドする (CI の release-build と同じ scheme のビルド)
         if: matrix.build-mode == 'manual'
-        # DerivedData (依存パッケージの checkout を含む) は checkout の外に置き、依存のコードを自分のソースとして解析に取り込まないようにする
+        # DerivedData (依存パッケージの checkout を含む) は checkout の外に置く。依存の Swift のコードもコンパイルされる限り CodeQL が抽出するが、
+        # パスが checkout の外になる (checkout の外のファイルの結果を code scanning がどう扱うかは確かめていない)
         run: |
           xcodebuild build -project QuickBuy.xcodeproj -scheme QuickBuy -configuration Release \
             -destination 'generic/platform=iOS Simulator' \
