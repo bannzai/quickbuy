@@ -24,6 +24,9 @@ struct CatalogAddFavoriteView: View {
     @State private var isStorefrontPriceExpired = false
     /// 店の入口を呼んでいる間は true。
     @State private var isLoading = false
+    /// 最後に始めた店の入口の呼び出しの商品の ID と値の組 (`selected` は値の組を指定しない最初の呼び出しでは nil)。
+    /// 「もう一度読み込む」は、失敗した呼び出しと同じ要求をやり直すためにこの値を使う (前に出せた商品の値の組ではなく、利用者が選び直した値の組を読む)。
+    @State private var latestLoadRequest: (productID: String, selected: [ShopifyCatalogSelectedOption]?)?
     /// 最後に始めた店の入口の呼び出しの識別子。結果を受けた時に、この値と違う (後から別の呼び出しを始めた) 呼び出しの結果は捨てる。
     @State private var latestLoadID = UUID()
     /// 店の入口を呼べなかった理由の文言。出していない時は nil。
@@ -188,11 +191,11 @@ struct CatalogAddFavoriteView: View {
             if let errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
-                // 読み直す商品は、読み込めた商品か、まだ無ければ検索の結果の商品バリアント。検索の結果は商品バリアントのある商品だけなので、どちらかが必ずある。
-                if let reloadProductID = storefrontProduct?.id ?? searchedProduct.variants.first?.id {
+                // 失敗した呼び出しと同じ商品と値の組でやり直す。失敗の文言は呼び出しを始めた後にだけ出るので、要求は必ずある。
+                if let latestLoadRequest {
                     Button("もう一度読み込む") {
                         Task {
-                            await loadStorefrontProduct(productID: reloadProductID, selected: storefrontProduct?.selected)
+                            await loadStorefrontProduct(productID: latestLoadRequest.productID, selected: latestLoadRequest.selected)
                         }
                     }
                 }
@@ -234,6 +237,7 @@ struct CatalogAddFavoriteView: View {
     private func loadStorefrontProduct(productID: String, selected: [ShopifyCatalogSelectedOption]?) async {
         let loadID = UUID()
         latestLoadID = loadID
+        latestLoadRequest = (productID, selected)
         isLoading = true
         errorMessage = nil
         do {
