@@ -28,6 +28,8 @@ struct HomeView: View {
     @State private var searchResult: (products: [ShopifyCatalogProduct], fetchedAt: Date)?
     /// 検索している間は true。
     @State private var isSearching = false
+    /// 最後に始めた検索の識別子。結果を受けた時に、この値と違う (後から別の検索を始めた) 検索の結果は捨てる。
+    @State private var latestSearchID = UUID()
     /// 検索できなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 追加の画面を開いている商品と店のドメイン。開いていない時は nil。
@@ -68,6 +70,16 @@ struct HomeView: View {
         .onAppear(perform: refreshIfPriceExpired)
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
+                refreshIfPriceExpired()
+            }
+        }
+        // 画面を開いたまま (追加の画面を重ねている間を含む) 価格を出してよい時間を過ぎたら、同じ検索語で取り直す。
+        .task(id: searchResult?.fetchedAt) {
+            guard let fetchedAt = searchResult?.fetchedAt else {
+                return
+            }
+            try? await Task.sleep(for: .seconds(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: .now)))
+            if !Task.isCancelled {
                 refreshIfPriceExpired()
             }
         }
@@ -212,6 +224,8 @@ struct HomeView: View {
         guard !trimmedQuery.isEmpty else {
             return
         }
+        let searchID = UUID()
+        latestSearchID = searchID
         shownQuery = trimmedQuery
         isSearching = true
         errorMessage = nil
@@ -219,19 +233,19 @@ struct HomeView: View {
         Task {
             do {
                 let products = try await searchShopifyCatalog(query: trimmedQuery, endpointURL: shopifyGlobalCatalogEndpointURL, urlSession: .shared)
-                // 結果を待つ間に別の語で検索し直した時は、古い語の結果で上書きしない。
-                if shownQuery == trimmedQuery {
-                    searchResult = (products, .now)
+                // 結果を待つ間に検索し直した時 (同じ語を含む) は、前の検索の結果で上書きしない。
+                guard latestSearchID == searchID else {
+                    return
                 }
+                searchResult = (products, .now)
             } catch {
-                if shownQuery == trimmedQuery {
-                    // `searchShopifyCatalog` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-                    errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+                guard latestSearchID == searchID else {
+                    return
                 }
+                // `searchShopifyCatalog` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
+                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
             }
-            if shownQuery == trimmedQuery {
-                isSearching = false
-            }
+            isSearching = false
         }
     }
 }

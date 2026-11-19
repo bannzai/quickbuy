@@ -219,7 +219,12 @@ import Testing
         ]))
     }
 
-    /// Catalog の画像の URL と価格は保存せず、識別子の無い種類はお気に入りにしない。
+    /// 店の入口が返した形の商品バリアントを返す (価格つき。お気に入りに価格が入らないことを確かめるため)。
+    static func storefrontVariant(variantGID: String, title: String) -> ShopifyCatalogVariant {
+        ShopifyCatalogVariant(id: variantGID, title: title, price: ShopifyCatalogMoney(amount: 2700, currency: "JPY"), availability: nil, seller: nil)
+    }
+
+    /// Catalog の画像の URL と価格は保存せず、識別子・個数の無い種類と ID が数字で終わらない種類はお気に入りにしない。
     @Test func 検索の結果から作るお気に入りはCatalogの画像と価格を持たない() {
         let firstID = UUID()
         let secondID = UUID()
@@ -228,12 +233,24 @@ import Testing
             name: "いつものコーヒー",
             hasVariantChoices: true,
             selectedVariants: [
-                ShopifyCatalogSelectedVariant(variantID: "45476749770930", title: "MILD / 粉"),
-                ShopifyCatalogSelectedVariant(variantID: "45476745412786", title: "BITTER / 豆"),
-                ShopifyCatalogSelectedVariant(variantID: "999", title: "識別子の無い種類"),
+                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/45476749770930", title: "MILD / 粉"),
+                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/45476745412786", title: "BITTER / 豆"),
+                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/999", title: "識別子の無い種類"),
+                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/998", title: "個数の無い種類"),
+                Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "ID の形が違う種類"),
             ],
-            quantitiesByVariantID: ["45476749770930": 2, "45476745412786": 1, "999": 1],
-            favoriteIDsByVariantID: ["45476749770930": firstID, "45476745412786": secondID]
+            quantitiesByVariantID: [
+                "gid://shopify/ProductVariant/45476749770930": 2,
+                "gid://shopify/ProductVariant/45476745412786": 1,
+                "gid://shopify/ProductVariant/999": 1,
+                "gid://shopify/p/abc/v1": 1,
+            ],
+            favoriteIDsByVariantID: [
+                "gid://shopify/ProductVariant/45476749770930": firstID,
+                "gid://shopify/ProductVariant/45476745412786": secondID,
+                "gid://shopify/ProductVariant/998": UUID(),
+                "gid://shopify/p/abc/v1": UUID(),
+            ]
         ) == [
             Favorite(
                 id: firstID, name: "いつものコーヒー", variantName: "MILD / 粉", imageURL: nil, quantity: 2,
@@ -259,9 +276,9 @@ import Testing
                 shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
                 name: "いつものコーヒー",
                 hasVariantChoices: true,
-                selectedVariants: [ShopifyCatalogSelectedVariant(variantID: try #require(shopifyVariantNumericID(variantGID: searchedVariant.id)), title: "BITTER / 豆")],
-                quantitiesByVariantID: ["45476745412786": 3],
-                favoriteIDsByVariantID: ["45476745412786": UUID()]
+                selectedVariants: [searchedVariant],
+                quantitiesByVariantID: [searchedVariant.id: 3],
+                favoriteIDsByVariantID: [searchedVariant.id: UUID()]
             ),
             fileURL: fileURL
         )
@@ -277,9 +294,9 @@ import Testing
             shopDomain: "chimney-coffee.com",
             name: "豆",
             hasVariantChoices: false,
-            selectedVariants: [ShopifyCatalogSelectedVariant(variantID: "1", title: "Default Title")],
-            quantitiesByVariantID: ["1": 1],
-            favoriteIDsByVariantID: ["1": UUID()]
+            selectedVariants: [Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")],
+            quantitiesByVariantID: ["gid://shopify/ProductVariant/1": 1],
+            favoriteIDsByVariantID: ["gid://shopify/ProductVariant/1": UUID()]
         ).map(\.variantName) == [nil])
     }
 
@@ -293,5 +310,75 @@ import Testing
             product: try JSONDecoder().decode(ShopifyCatalogProduct.self, from: Data(#"{"id":"p","title":"t","media":[{"url":"https://tracker.example.com/a.jpg"}],"variants":[]}"#.utf8)),
             shopDomain: "chimney-coffee.com"
         ) == nil)
+    }
+
+    /// 検索は、検索語・日本へ配送・日本の店の絞り込み・件数 20 を送る。
+    @Test func 検索は日本の店の絞り込みと件数を送る() async throws {
+        let endpointURL = Self.endpointURL(name: "search-request")
+        StubURLProtocol.stubResponses.withLock { $0[endpointURL.absoluteString] = .http(statusCode: 200, body: Self.searchResponseJSON) }
+        _ = try await searchShopifyCatalog(query: "紅茶", endpointURL: endpointURL, urlSession: StubURLProtocol.urlSession())
+        let catalog = try #require(try Self.requestedCatalogArguments(urlText: endpointURL.absoluteString).first)
+        #expect(catalog["query"] as? String == "紅茶")
+        #expect(catalog["filters"] as? NSDictionary == ["ships_to": ["country": "JP"], "ships_from": [["country": "JP"]]] as NSDictionary)
+        #expect(catalog["pagination"] as? [String: Int] == ["limit": 20])
+    }
+
+    /// 店の入口へは、選んだ値の組がある時だけ `selected` を送り、無い時は送らない。
+    @Test func 店の入口へは選んだ値の組がある時だけselectedを送る() async throws {
+        let shopDomain = "storefront-request.example.com"
+        let urlText = "https://\(shopDomain)/api/ucp/mcp"
+        StubURLProtocol.stubResponses.withLock { $0[urlText] = .http(statusCode: 200, body: Self.storefrontProductJSON) }
+        _ = try await loadShopifyStorefrontProduct(
+            shopDomain: shopDomain,
+            productID: "gid://shopify/Product/8503532617906",
+            selected: [ShopifyCatalogSelectedOption(name: "豆・粉", label: "粉")],
+            urlSession: StubURLProtocol.urlSession()
+        )
+        _ = try await loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: "gid://shopify/ProductVariant/1", selected: nil, urlSession: StubURLProtocol.urlSession())
+        let catalogs = try Self.requestedCatalogArguments(urlText: urlText)
+        #expect(catalogs.count == 2)
+        #expect(catalogs.first?["id"] as? String == "gid://shopify/Product/8503532617906")
+        #expect(catalogs.first?["selected"] as? [[String: String]] == [["name": "豆・粉", "label": "粉"]])
+        #expect(catalogs.last?["id"] as? String == "gid://shopify/ProductVariant/1")
+        #expect(catalogs.last?["selected"] == nil)
+    }
+
+    /// HTTP 429 の `Retry-After` の秒数を失敗に添える。
+    @Test func 呼び出しの上限の応答はRetry_Afterの秒数を添える() async {
+        let endpointURL = Self.endpointURL(name: "search-429-retry-after")
+        StubURLProtocol.stubResponses.withLock {
+            $0[endpointURL.absoluteString] = .httpWithHeaders(statusCode: 429, headerFields: ["Retry-After": "120"], body: Data())
+        }
+        await #expect(throws: ShopifyCatalogError.rateLimited(retryAfterSeconds: 120)) {
+            try await searchShopifyCatalog(query: "a", endpointURL: endpointURL, urlSession: StubURLProtocol.urlSession())
+        }
+    }
+
+    /// 失敗の理由ごとに別の文言を出し、`Retry-After` の秒数がある時は文言に入れる。
+    @Test func 失敗の理由ごとに文言が違う() {
+        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: 120)) == "混み合っています\n120 秒ほど待ってからもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: nil)) == "混み合っています\n少し待ってからもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .connectionFailed) == "通信できませんでした\n電波の良い所でもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .failed) == "商品を読み込めませんでした\n少し待ってからもう一度お試しください")
+    }
+
+    /// 価格を出してよい残りの秒数は、取得した時が 600 秒で、10 分たった後は 0 のまま。
+    @Test func 価格を出してよい残りの秒数() {
+        let fetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        #expect(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt) == 600)
+        #expect(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(599)) == 1)
+        #expect(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(600)) == 0)
+        #expect(shopifyCatalogPriceRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(3600)) == 0)
+    }
+
+    /// `urlText` へ送った各リクエストの本文の `params.arguments.catalog` を、送った順に返す。
+    static func requestedCatalogArguments(urlText: String) throws -> [[String: Any]] {
+        try StubURLProtocol.requestedBodiesByURLText.withLock { $0[urlText] ?? [] }.map { body in
+            try #require(
+                ((try JSONSerialization.jsonObject(with: body) as? [String: Any])?["params"] as? [String: Any])
+                    .flatMap { $0["arguments"] as? [String: Any] }
+                    .flatMap { $0["catalog"] as? [String: Any] }
+            )
+        }
     }
 }

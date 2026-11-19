@@ -18,15 +18,17 @@ struct CatalogAddFavoriteView: View {
 
     /// 店の入口が返した、今選んでいる値の組の商品 (種類の選び方と 1 件の商品バリアント)。読み込む前と読み込めなかった時は nil。
     @State private var storefrontProduct: ShopifyCatalogProduct?
+    /// `storefrontProduct` を取得した時刻。価格を出してよい時間を過ぎた時と、まだ取得していない時は nil (価格を出さない)。
+    @State private var storefrontProductFetchedAt: Date?
     /// 店の入口を呼んでいる間は true。
     @State private var isLoading = false
     /// 店の入口を呼べなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 名前の欄の文字列。検索の結果の商品の名前から始まる。
     @State private var name = ""
-    /// 選んだ商品バリアントの並び (選んだ順)。
-    @State private var selectedVariants: [ShopifyCatalogSelectedVariant] = []
-    /// 選んだ商品バリアントの、商品バリアントの ID ごとの個数。
+    /// 選んだ商品バリアント (店の入口が返したもの) の並び (選んだ順)。
+    @State private var selectedVariants: [ShopifyCatalogVariant] = []
+    /// 選んだ商品バリアントの、商品バリアントの ID (`ShopifyCatalogVariant.id`) ごとの個数。
     @State private var quantitiesByVariantID: [String: Int] = [:]
     /// 選んだ商品バリアントをお気に入りにする時の識別子。選んだ時に 1 回だけ作り、保存まで変えない (保存が 2 回動いても二重に保存しない)。
     @State private var favoriteIDsByVariantID: [String: UUID] = [:]
@@ -50,16 +52,16 @@ struct CatalogAddFavoriteView: View {
                 variantChoiceSection
                 if !selectedVariants.isEmpty {
                     Section {
-                        ForEach(selectedVariants, id: \.variantID) { selectedVariant in
+                        ForEach(selectedVariants, id: \.id) { selectedVariant in
                             VStack(alignment: .leading, spacing: 4) {
                                 if hasShopifyCatalogVariantChoices(options: storefrontProduct?.options) {
                                     Text(selectedVariant.title)
                                         .font(.subheadline.weight(.bold))
                                 }
-                                if let quantity = quantitiesByVariantID[selectedVariant.variantID] {
+                                if let quantity = quantitiesByVariantID[selectedVariant.id] {
                                     QuantityStepperRow(quantity: Binding(
                                         get: { quantity },
-                                        set: { quantitiesByVariantID[selectedVariant.variantID] = $0 }
+                                        set: { quantitiesByVariantID[selectedVariant.id] = $0 }
                                     ))
                                 }
                             }
@@ -77,6 +79,8 @@ struct CatalogAddFavoriteView: View {
                     Button {
                         finish(choice: .add)
                     } label: {
+                        // 店の入口は選んだ値の組の商品バリアントを 1 件だけ返し、商品バリアントの数を返さない。
+                        // `favoriteAdditionButtonTitle` が見るのは数が 2 以上かだけなので、種類の選び方があるかを 2 と 1 で渡す。
                         Text(favoriteAdditionButtonTitle(
                             variantCount: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options) ? 2 : 1,
                             selectedVariantCount: selectedVariants.count
@@ -113,6 +117,18 @@ struct CatalogAddFavoriteView: View {
                 await loadStorefrontProduct(productID: searchedVariantID, selected: nil)
             }
         }
+        // 画面を開いたまま価格を出してよい時間を過ぎたら、価格を消して同じ値の組で読み直す (Shopify の「Caching limits」)。
+        .task(id: storefrontProductFetchedAt) {
+            guard let storefrontProductFetchedAt, let storefrontProduct else {
+                return
+            }
+            try? await Task.sleep(for: .seconds(shopifyCatalogPriceRemainingSeconds(fetchedAt: storefrontProductFetchedAt, now: .now)))
+            guard !Task.isCancelled else {
+                return
+            }
+            self.storefrontProductFetchedAt = nil
+            await loadStorefrontProduct(productID: storefrontProduct.id, selected: storefrontProduct.selected)
+        }
     }
 
     /// 種類の選び方ごとの値の選択と、選んだ値の組の商品バリアントを「お気に入りにする種類」へ足すボタン。
@@ -134,7 +150,7 @@ struct CatalogAddFavoriteView: View {
                         Text(variant.title)
                             .font(.subheadline)
                         HStack(spacing: 6) {
-                            if let price = variant.price {
+                            if storefrontProductFetchedAt != nil, let price = variant.price {
                                 Text(shopifyCatalogPriceText(money: price))
                             }
                             if variant.availability?.available == false {
@@ -149,11 +165,11 @@ struct CatalogAddFavoriteView: View {
                         ProgressView()
                     }
                 }
-                if let variantID = shopifyVariantNumericID(variantGID: variant.id) {
-                    Button(selectedVariants.contains { $0.variantID == variantID } ? "この種類は選んであります" : "この種類を選ぶ") {
-                        selectVariant(ShopifyCatalogSelectedVariant(variantID: variantID, title: variant.title))
+                if shopifyVariantNumericID(variantGID: variant.id) != nil {
+                    Button(selectedVariants.contains { $0.id == variant.id } ? "この種類は選んであります" : "この種類を選ぶ") {
+                        selectVariant(variant: variant)
                     }
-                    .disabled(isLoading || selectedVariants.contains { $0.variantID == variantID })
+                    .disabled(isLoading || selectedVariants.contains { $0.id == variant.id })
                     .accessibilityIdentifier("selectVariantButton")
                 }
             } else if isLoading {
@@ -193,11 +209,11 @@ struct CatalogAddFavoriteView: View {
     }
 
     /// 選んだ商品バリアントを「お気に入りにする種類」の末尾に個数 `initialVariantQuantity` で足す。足した時に識別子を 1 回だけ作る。
-    private func selectVariant(_ selectedVariant: ShopifyCatalogSelectedVariant) {
-        selectedVariants.append(selectedVariant)
-        quantitiesByVariantID[selectedVariant.variantID] = initialVariantQuantity
-        if favoriteIDsByVariantID[selectedVariant.variantID] == nil {
-            favoriteIDsByVariantID[selectedVariant.variantID] = UUID()
+    private func selectVariant(variant: ShopifyCatalogVariant) {
+        selectedVariants.append(variant)
+        quantitiesByVariantID[variant.id] = initialVariantQuantity
+        if favoriteIDsByVariantID[variant.id] == nil {
+            favoriteIDsByVariantID[variant.id] = UUID()
         }
     }
 
@@ -207,11 +223,12 @@ struct CatalogAddFavoriteView: View {
         errorMessage = nil
         do {
             storefrontProduct = try await loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: productID, selected: selected, urlSession: urlSession)
+            storefrontProductFetchedAt = .now
             // 種類の選び方が 1 つも無い商品 (商品バリアントが 1 つだけ) は、選ぶ操作を挟まずに選んだ状態にする。
             if let storefrontProduct, !hasShopifyCatalogVariantChoices(options: storefrontProduct.options), selectedVariants.isEmpty,
-               let variant = storefrontProduct.variants.first, let variantID = shopifyVariantNumericID(variantGID: variant.id)
+               let variant = storefrontProduct.variants.first, shopifyVariantNumericID(variantGID: variant.id) != nil
             {
-                selectVariant(ShopifyCatalogSelectedVariant(variantID: variantID, title: variant.title))
+                selectVariant(variant: variant)
             }
         } catch {
             // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。

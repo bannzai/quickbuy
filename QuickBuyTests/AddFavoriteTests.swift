@@ -11,6 +11,8 @@ final class StubURLProtocol: URLProtocol {
     enum StubResponse: Sendable {
         /// 指定した HTTP ステータスと本文の応答。
         case http(statusCode: Int, body: Data)
+        /// 指定した HTTP ステータス・ヘッダー・本文の応答。
+        case httpWithHeaders(statusCode: Int, headerFields: [String: String], body: Data)
         /// 通信の失敗 (圏外など)。
         case connectionFailure
         /// 指定した URL への転送 (HTTP 302)。
@@ -21,6 +23,8 @@ final class StubURLProtocol: URLProtocol {
     static let stubResponses = OSAllocatedUnfairLock<[String: StubResponse]>(initialState: [:])
     /// 差し替えが受けたリクエストの URL の文字列 (受けた順)。
     static let requestedURLTexts = OSAllocatedUnfairLock<[String]>(initialState: [])
+    /// 差し替えが受けたリクエストの本文 (URL の文字列ごとに、受けた順)。本文の無いリクエストは記録しない。
+    static let requestedBodiesByURLText = OSAllocatedUnfairLock<[String: [Data]]>(initialState: [:])
 
     /// この差し替えを通る `URLSession` を返す。
     static func urlSession() -> URLSession {
@@ -43,11 +47,23 @@ final class StubURLProtocol: URLProtocol {
     override func startLoading() {
         let requestedURLText = request.url?.absoluteString ?? ""
         Self.requestedURLTexts.withLock { $0.append(requestedURLText) }
+        // URLSession は送る本文を `httpBody` ではなく `httpBodyStream` に移して渡すため、ストリームから読む。
+        if let requestedBody = request.httpBodyStream.map(readAllData(inputStream:)) {
+            Self.requestedBodiesByURLText.withLock { $0[requestedURLText, default: []].append(requestedBody) }
+        }
         switch Self.stubResponses.withLock({ $0[requestedURLText] }) {
         case let .http(statusCode, body):
             client?.urlProtocol(
                 self,
                 didReceive: HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: nil)!,
+                cacheStoragePolicy: .notAllowed
+            )
+            client?.urlProtocol(self, didLoad: body)
+            client?.urlProtocolDidFinishLoading(self)
+        case let .httpWithHeaders(statusCode, headerFields, body):
+            client?.urlProtocol(
+                self,
+                didReceive: HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headerFields)!,
                 cacheStoragePolicy: .notAllowed
             )
             client?.urlProtocol(self, didLoad: body)
@@ -68,6 +84,22 @@ final class StubURLProtocol: URLProtocol {
 
     /// 途中で止めるものが無いため何もしない。
     override func stopLoading() {}
+}
+
+/// `inputStream` を最後まで読んだ内容を返す。
+private func readAllData(inputStream: InputStream) -> Data {
+    inputStream.open()
+    defer { inputStream.close() }
+    var data = Data()
+    var buffer = [UInt8](repeating: 0, count: 4096)
+    while inputStream.hasBytesAvailable {
+        let readCount = inputStream.read(&buffer, maxLength: buffer.count)
+        guard readCount > 0 else {
+            break
+        }
+        data.append(buffer, count: readCount)
+    }
+    return data
 }
 
 /// 商品ページの URL から確認の画面に出す商品を取得する流れと、確認の画面の「お気に入りに追加」「やめる」が保存に与える結果を確かめる。

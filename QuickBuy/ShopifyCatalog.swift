@@ -300,9 +300,14 @@ private func currencyFractionDigits(currencyCode: String) -> Int {
     return numberFormatter.maximumFractionDigits
 }
 
-/// 検索の結果に出している価格を、まだ出してよいかを返す。取得した時刻 `fetchedAt` から `shopifyCatalogPriceCacheSeconds` 秒より前なら true。
+/// 画面に出している価格を、まだ出してよいかを返す。取得した時刻 `fetchedAt` から `shopifyCatalogPriceCacheSeconds` 秒より前なら true。
 func isShopifyCatalogPriceFresh(fetchedAt: Date, now: Date) -> Bool {
     now.timeIntervalSince(fetchedAt) < shopifyCatalogPriceCacheSeconds
+}
+
+/// 取得した時刻 `fetchedAt` の価格を出してよい残りの秒数を返す。もう出してはいけない時は 0。
+func shopifyCatalogPriceRemainingSeconds(fetchedAt: Date, now: Date) -> TimeInterval {
+    max(0, shopifyCatalogPriceCacheSeconds - now.timeIntervalSince(fetchedAt))
 }
 
 /// Catalog の呼び出しが失敗した理由を、画面に出す文言にして返す。
@@ -319,30 +324,25 @@ func shopifyCatalogErrorMessage(error: ShopifyCatalogError) -> String {
     }
 }
 
-/// 検索の結果から開いた追加の画面で選んだ商品バリアント。
-struct ShopifyCatalogSelectedVariant: Equatable {
-    /// 商品バリアントの ID の数字の部分。
-    let variantID: String
-    /// 商品バリアントの名前 (店の入口が返した `title`)。
-    let title: String
-}
-
-/// 検索の結果から開いた追加の画面で選んだ商品バリアントごとに 1 件ずつ、保存するお気に入りを作って返す。保存はしない。
+/// 検索の結果から開いた追加の画面で選んだ商品バリアント (店の入口が返したもの) ごとに 1 件ずつ、保存するお気に入りを作って返す。保存はしない。
 ///
-/// 店のドメインは `shopDomain` (`seller.url` のホスト。追加の画面で利用者に見せたもの)、名前は `name` (利用者が確かめた名前)、個数は `quantitiesByVariantID` の値。
+/// 店のドメインは `shopDomain` (`seller.url` のホスト。追加の画面で利用者に見せたもの)、名前は `name` (利用者が確かめた名前)。
+/// 個数と識別子は、商品バリアントの ID (`ShopifyCatalogVariant.id`) をキーにした `quantitiesByVariantID`・`favoriteIDsByVariantID` の値で、どちらかが無い商品バリアントと、ID が数字で終わらない商品バリアントのお気に入りは作らない。
 /// 商品バリアントの名前は、種類の選び方に値が 2 つ以上あるもの (`hasVariantChoices`) がある商品でだけ入れる (1 つだけの商品では店が付けた `Default Title` を見分けに使わないため nil)。
-/// Catalog が返した画像の URL と価格は入れない (Shopify の「Caching limits」の時間を超えて持たないため。documents/DIRECTION.md「決めたこと」)。
-/// 識別子は `favoriteIDsByVariantID` の値で、無い商品バリアントのお気に入りは作らない。並びは `selectedVariants` の順。
+/// Catalog が返した画像の URL と価格は入れない (Shopify の「Caching limits」の時間を超えて持たないため。documents/DIRECTION.md「決めたこと」)。並びは `selectedVariants` の順。
 func shopifyCatalogFavorites(
     shopDomain: String,
     name: String,
     hasVariantChoices: Bool,
-    selectedVariants: [ShopifyCatalogSelectedVariant],
+    selectedVariants: [ShopifyCatalogVariant],
     quantitiesByVariantID: [String: Int],
     favoriteIDsByVariantID: [String: UUID]
 ) -> [Favorite] {
     selectedVariants.compactMap { selectedVariant in
-        guard let quantity = quantitiesByVariantID[selectedVariant.variantID], let favoriteID = favoriteIDsByVariantID[selectedVariant.variantID] else {
+        guard let quantity = quantitiesByVariantID[selectedVariant.id],
+              let favoriteID = favoriteIDsByVariantID[selectedVariant.id],
+              let numericVariantID = shopifyVariantNumericID(variantGID: selectedVariant.id)
+        else {
             return nil
         }
         return Favorite(
@@ -351,7 +351,7 @@ func shopifyCatalogFavorites(
             variantName: hasVariantChoices ? selectedVariant.title : nil,
             imageURL: nil,
             quantity: quantity,
-            product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: selectedVariant.variantID)),
+            product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: numericVariantID)),
             reminder: nil
         )
     }
