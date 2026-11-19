@@ -206,12 +206,17 @@ func makeFavoriteIDsByVariantID(product: ShopifyAjaxProduct, makeID: () -> UUID)
     Dictionary(product.variants.map { ($0.id, makeID()) }, uniquingKeysWith: { firstID, _ in firstID })
 }
 
+/// 商品の JSON の商品が、種類を選ぶ商品 (商品バリアントが 2 つ以上ある商品) かを返す。
+func hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct) -> Bool {
+    product.variants.count >= 2
+}
+
 /// 確認の画面の、保存するボタンの文言を返す。
 ///
-/// 商品バリアントが 2 つ以上ある商品で 1 つ以上選んでいる時は、選んだ数を入れる (例: `2 種類をお気に入りに追加`)。
-/// 商品バリアントが 1 つだけの商品と、1 つも選んでいない時は `お気に入りに追加`。
-func favoriteAdditionButtonTitle(variantCount: Int, selectedVariantCount: Int) -> String {
-    variantCount >= 2 && selectedVariantCount >= 1 ? "\(selectedVariantCount) 種類をお気に入りに追加" : "お気に入りに追加"
+/// 種類を選ぶ商品 (`hasVariantChoices`。商品バリアントが 2 つ以上ある商品) で 1 つ以上選んでいる時は、選んだ数を入れる (例: `2 種類をお気に入りに追加`)。
+/// 種類を選ばない商品と、1 つも選んでいない時は `お気に入りに追加`。
+func favoriteAdditionButtonTitle(hasVariantChoices: Bool, selectedVariantCount: Int) -> String {
+    hasVariantChoices && selectedVariantCount >= 1 ? "\(selectedVariantCount) 種類をお気に入りに追加" : "お気に入りに追加"
 }
 
 /// Shopify が商品の画像を配信する CDN のホスト。

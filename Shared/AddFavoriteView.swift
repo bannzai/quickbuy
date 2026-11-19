@@ -162,7 +162,7 @@ struct AddFavoriteView: View {
                 Button {
                     finish(choice: .add)
                 } label: {
-                    Text(favoriteAdditionButtonTitle(variantCount: product.variants.count, selectedVariantCount: quantitiesByVariantID.count))
+                    Text(favoriteAdditionButtonTitle(hasVariantChoices: hasShopifyAjaxVariantChoices(product: product), selectedVariantCount: quantitiesByVariantID.count))
                         .bold()
                         .frame(maxWidth: .infinity)
                 }
@@ -272,7 +272,9 @@ struct AddFavoriteView: View {
 }
 
 /// 確認の画面の、店のドメインを目立つ形で見せる枠。利用者がいつも買っている店かを確かめるために出す (documents/adr/0003)。
-private struct ShopDomainBox: View {
+///
+/// 商品ページの URL からの追加の画面と、トップページの検索の結果からの追加の画面 (`CatalogAddFavoriteView`) が使う。
+struct ShopDomainBox: View {
     /// 見せる店のドメイン。
     let shopDomain: String
 
