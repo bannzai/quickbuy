@@ -68,6 +68,23 @@ check "plist でない中身なら exit 1" test "$status" -eq 1
 check "plist でない中身なら理由を出す" bash -c 'grep -q "plist として読めない" <<<"$1"' _ "$output"
 check "plist でない中身をログに出さない" bash -c '! grep -q not-a-plist-marker-91c2 <<<"$1"' _ "$output"
 
+# 異常系 (境界値): plist として読めるが GOOGLE_APP_ID を持たない
+workdir="$(make_workdir)"
+plist_without_app_id='<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>PROJECT_ID</key><string>marker-project-id-7f3a</string></dict></plist>'
+output="$(GOOGLE_SERVICE_INFO_PLIST_BASE64="$(printf '%s' "$plist_without_app_id" | base64)" bash "$workdir/scripts/restore-google-service-info-plist.sh" 2>&1)"
+status=$?
+check "GOOGLE_APP_ID を持たない plist なら exit 1" test "$status" -eq 1
+check "GOOGLE_APP_ID を持たない plist なら理由を出す" bash -c 'grep -q "GOOGLE_APP_ID を持たない" <<<"$1"' _ "$output"
+check "GOOGLE_APP_ID を持たない plist の中身をログに出さない" bash -c '! grep -q marker-project-id-7f3a <<<"$1"' _ "$output"
+
+# 異常系: base64 として戻せない文字列
+workdir="$(make_workdir)"
+GOOGLE_SERVICE_INFO_PLIST_BASE64='!!!not base64!!!' bash "$workdir/scripts/restore-google-service-info-plist.sh" >/dev/null 2>&1
+status=$?
+check "base64 として戻せない secret なら exit 1" test "$status" -eq 1
+
 if [ "$failures" -ne 0 ]; then
   echo "FAILED: $failures"
   exit 1
