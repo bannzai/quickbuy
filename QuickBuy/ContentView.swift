@@ -8,6 +8,8 @@ struct ContentView: View {
     @State private var selectedTab = AppTab.home
     /// アプリが前面にあるか。前面に来た時の処理を、出しているタブに関わらず行うために見る。
     @Environment(\.scenePhase) private var scenePhase
+    /// 前面に来た時のリマインドの予約の復元 (日数の数え直しを保存に書く) を終えた時刻。まだ終えていない時は nil。
+    @State private var remindersRestoredAt: Date?
 
     /// トップページとお気に入りの一覧のタブ、または保存先を開けないことの表示。
     var body: some View {
@@ -19,7 +21,7 @@ struct ContentView: View {
                         Label("ホーム", systemImage: "magnifyingglass")
                     }
                     .tag(AppTab.home)
-                FavoritesListView(favoritesFileURL: favoritesFileURL)
+                FavoritesListView(favoritesFileURL: favoritesFileURL, remindersRestoredAt: remindersRestoredAt)
                     .tabItem {
                         Label("お気に入り", systemImage: "star")
                     }
@@ -39,6 +41,7 @@ struct ContentView: View {
                     return
                 }
                 await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+                remindersRestoredAt = .now
                 WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
             }
         } else {
@@ -52,6 +55,8 @@ struct ContentView: View {
 struct FavoritesListView: View {
     /// お気に入りの保存先のファイルの URL。
     let favoritesFileURL: URL
+    /// `ContentView` が前面に来た時のリマインドの予約の復元を終えた時刻。変わった時に、数え直した「次の知らせは N 日後」を読み直す。
+    let remindersRestoredAt: Date?
 
     /// 店の購入画面を開く処理 (既定のブラウザで開く)。
     @Environment(\.openURL) private var openURL
@@ -127,6 +132,10 @@ struct FavoritesListView: View {
             }
             reload()
             await presentNotificationPermissionExplanationIfNeeded()
+        }
+        // 復元はタブの外の別の task で行い、上の読み直しより後に保存に書くことがあるため、終えた時にもう一度読み直す。
+        .onChange(of: remindersRestoredAt) {
+            reload()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
