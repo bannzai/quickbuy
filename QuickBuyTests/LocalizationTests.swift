@@ -156,6 +156,12 @@ struct LocalizationTests {
         #expect(textLocale(preferredLocalizations: [], fallback: Locale(identifier: "fr")).identifier == "fr")
     }
 
+    /// ホームの案内の見出しが、日本語と英語で引ける。「1 タップ」と言わず、ストアのサブタイトルと同じ言い方にする (issue #64)。
+    @Test func ホームの案内の見出しは探さずに買い直す() {
+        #expect(String(localized: LocalizedStringResource("いつもの商品を探さずに買い直す", locale: Locale(identifier: "ja"))) == "いつもの商品を探さずに買い直す")
+        #expect(String(localized: LocalizedStringResource("いつもの商品を探さずに買い直す", locale: englishLocale)) == "Rebuy your usual items without searching")
+    }
+
     /// 設定画面の、Firebase に送る記録の説明 (PR #51 で足した文言) が英語で引ける。
     @Test func 設定画面の記録の説明は英語() {
         #expect(
