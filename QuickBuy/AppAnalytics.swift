@@ -27,14 +27,16 @@ enum PurchaseScreenEntryPoint: String {
 func purchaseScreenOpenEvent(entryPoint: PurchaseScreenEntryPoint, product: Favorite.Product) -> AnalyticsEvent {
     AnalyticsEvent(
         name: "purchase_screen_open",
-        parameters: [
-            "entry_point": entryPoint.rawValue,
-            "store": switch product {
-            case .shopify: "shopify"
-            case .amazon: "amazon"
-            },
-        ]
+        parameters: ["entry_point": entryPoint.rawValue, "store": storeName(product: product)]
     )
+}
+
+/// 商品の店の種類の、イベントの引数での名前を返す。店のドメインは返さない。
+func storeName(product: Favorite.Product) -> String {
+    switch product {
+    case .shopify: "shopify"
+    case .amazon: "amazon"
+    }
 }
 
 /// お気に入りのウィジェットを置いている時のイベントを返す。置かれていない時は nil (記録しない)。
@@ -72,13 +74,16 @@ func favoritesWidgetFamilies(widgetInfos: [(kind: String, family: WidgetFamily)]
 /// 置かれているウィジェットを OS から読み、お気に入りのウィジェットを置いていれば `recordAnalyticsEvent` に記録を渡す。アプリが前面に来た時に呼ぶ。
 ///
 /// 読めなかった時は記録しない (置いていない時と区別できないため、置いていない扱いで記録を作らない)。
-func recordWidgetPlacement(recordAnalyticsEvent: (AnalyticsEvent) -> Void) async {
-    guard let widgetInfos = try? await WidgetCenter.shared.currentConfigurations(),
-          let event = widgetPlacedEvent(widgetFamilies: favoritesWidgetFamilies(widgetInfos: widgetInfos.map { ($0.kind, $0.family) }))
-    else {
-        return
+/// async 版の `currentConfigurations()` は iOS 18 からのため、iOS 17 から使える完了ハンドラ版で読む。
+func recordWidgetPlacement(recordAnalyticsEvent: @escaping (AnalyticsEvent) -> Void) {
+    WidgetCenter.shared.getCurrentConfigurations { result in
+        guard case let .success(widgetInfos) = result,
+              let event = widgetPlacedEvent(widgetFamilies: favoritesWidgetFamilies(widgetInfos: widgetInfos.map { ($0.kind, $0.family) }))
+        else {
+            return
+        }
+        recordAnalyticsEvent(event)
     }
-    recordAnalyticsEvent(event)
 }
 
 /// 指定した識別子の保存済みのお気に入りの購入画面を開く時に呼び、開く URL を返す。開く時は `entryPoint` を入口にした購入画面を開いた記録を `recordAnalyticsEvent` に渡す。
