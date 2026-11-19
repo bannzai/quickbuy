@@ -67,7 +67,7 @@ struct FavoritesListView: View {
         .tint(quickBuyAccentColor)
         .onAppear(perform: reload)
         .task(id: cartInConfirmation?.shownAt) {
-            guard cartInConfirmation != nil else {
+            guard let waitingShownAt = cartInConfirmation?.shownAt else {
                 return
             }
             do {
@@ -76,7 +76,10 @@ struct FavoritesListView: View {
                 // 別の行の「カートイン」か「開く」で、この確認の待ちが取り消された。
                 return
             }
-            cartInConfirmation = nil
+            // 取り消しは待ちの後の処理を止めないため、待っている間に押し直されて出し直した確認は消さない。
+            if cartInConfirmation?.shownAt == waitingShownAt {
+                cartInConfirmation = nil
+            }
         }
         .onOpenURL { tapURL in
             // 購入画面を開けない時 (お気に入りが消されている・購入画面の URL を組み立てられない等) は、この一覧をそのまま見せる。
