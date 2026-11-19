@@ -55,27 +55,34 @@ func widgetFavorites(favorites: [Favorite], widgetFamily: WidgetFamily) -> [Favo
     Array(favorites.prefix(favoritesWidgetCapacity(widgetFamily: widgetFamily)))
 }
 
-/// 通知が許可されていない時にウィジェットに出す、ボタンには通知の許可が要ることの文を返す。
+/// 通知が許可されていない時にウィジェットに出す、ボタンには通知の許可が要ることの文を `locale` の言語で返す。
 ///
-/// 文に出すボタンの名前は、並べているお気に入りの店で決める (`cartInButtonTitle(favorite:)`)。Shopify の店の商品だけなら「カートイン」、
+/// 文に出すボタンの名前は、並べているお気に入りの店で決める (`cartInButtonTitle(favorite:locale:)`)。Shopify の店の商品だけなら「カートイン」、
 /// Amazon の商品だけなら「Amazon で開く」、両方を並べている時は両方の名前を出す (Amazon の商品の行に「カートイン」と書かないため)。
 /// お気に入りが空の時は「カートイン」にする。空のウィジェットはこの文を出さず「お気に入りはまだありません」を出すため使われないが、変更前の文言と同じにしておく。
-func widgetNotificationRequiredText(favorites: [Favorite]) -> String {
+func widgetNotificationRequiredText(favorites: [Favorite], locale: Locale) -> String {
     var buttonTitles: [String] = []
-    for buttonTitle in favorites.map(cartInButtonTitle(favorite:)) where !buttonTitles.contains(buttonTitle) {
+    for buttonTitle in favorites.map({ cartInButtonTitle(favorite: $0, locale: locale) }) where !buttonTitles.contains(buttonTitle) {
         buttonTitles.append(buttonTitle)
     }
-    return "\(buttonTitles.isEmpty ? "カートイン" : buttonTitles.joined(separator: "・"))には通知の許可が要ります"
+    return String(
+        localized: LocalizedStringResource(
+            "\(buttonTitles.isEmpty ? String(localized: LocalizedStringResource("カートイン", locale: locale)) : buttonTitles.joined(separator: String(localized: LocalizedStringResource("・", locale: locale))))には通知の許可が要ります",
+            locale: locale
+        )
+    )
 }
 
-/// ウィジェットの行の、名前の下に出す 1 行を返す。
+/// ウィジェットの行の、名前の下に出す 1 行を `locale` の言語で返す。
 ///
 /// Shopify の店の商品は、商品バリアントの名前 (持つお気に入りだけ) と個数を「・」で区切って並べる (documents/design/mock-2026-11-18/project/WidgetPush.dc.html の行の見本「200g / 豆のまま ・ 2 個」)。
 /// Amazon の商品は個数を持たないため (`amazonFavorite(asin:name:id:)`)、店を見分ける `Amazon` を出す。
-func favoriteWidgetRowCaption(favorite: Favorite) -> String {
+func favoriteWidgetRowCaption(favorite: Favorite, locale: Locale) -> String {
     switch favorite.product {
     case .shopify:
-        [favorite.variantName, "\(favorite.quantity) 個"].compactMap { $0 }.joined(separator: " ・ ")
+        [favorite.variantName, String(localized: LocalizedStringResource("\(favorite.quantity) 個", locale: locale))]
+            .compactMap { $0 }
+            .joined(separator: String(localized: LocalizedStringResource(" ・ ", locale: locale)))
     case .amazon:
         "Amazon"
     }

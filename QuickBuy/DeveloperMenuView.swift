@@ -78,7 +78,7 @@
             center.add(
                 UNNotificationRequest(
                     identifier: "developerMenuReminderPreview",
-                    content: reminderNotificationContent(favorite: favorite),
+                    content: reminderNotificationContent(favorite: favorite, locale: appTextLocale),
                     trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
                 )
             )

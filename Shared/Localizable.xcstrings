@@ -1,0 +1,1136 @@
+{
+  "sourceLanguage" : "ja",
+  "strings" : {
+    " ・ " : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        }
+      }
+    },
+    " ・ %lld 個" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · ×%lld"
+          }
+        }
+      }
+    },
+    "%@\nタップすると %@ の商品ページが開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@\nTap to open the product page on %2$@"
+          }
+        }
+      }
+    },
+    "%@\nタップすると Amazon の商品ページが開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\nTap to open the Amazon product page"
+          }
+        }
+      }
+    },
+    "%@\nタップすると購入画面が開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\nTap to open checkout"
+          }
+        }
+      }
+    },
+    "%@\n次の知らせは %@ です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@\nNext reminder: %2$@"
+          }
+        }
+      }
+    },
+    "%@\n次の知らせは %@ です\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@\nNext reminder: %2$@\nNotifications aren't allowed\nAllow notifications for Quick Buy in Settings to get reminders"
+          }
+        }
+      }
+    },
+    "%@ の商品ページを開きます (カートには入りません)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the product page for %@ (not added to cart)"
+          }
+        }
+      }
+    },
+    "%@ へメールでご連絡ください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please email us at %@"
+          }
+        }
+      }
+    },
+    "%@ を %lld 個\nタップすると %@ の購入画面が開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ×%2$lld\nTap to open checkout on %3$@"
+          }
+        }
+      }
+    },
+    "%@ を %lld 個カートに入れて開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens with %1$@ ×%2$lld in the cart"
+          }
+        }
+      }
+    },
+    "%@には通知の許可が要ります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ needs notification permission"
+          }
+        }
+      }
+    },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
+    "%lld 個" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "×%lld"
+          }
+        }
+      }
+    },
+    "%lld 日ごと" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld 種類をお気に入りに追加" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Add %lld Variant to Favorites"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Add %lld Variants to Favorites"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ASIN" : {
+      "shouldTranslate" : false
+    },
+    "Amazon で開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Amazon"
+          }
+        }
+      }
+    },
+    "Amazon の商品ページが開きます\n商品は Amazon の画面でカートに入れてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the Amazon product page\nAdd the item to your cart on Amazon"
+          }
+        }
+      }
+    },
+    "Amazon の商品ページを開いた日から数え直します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The count restarts on the day you open the Amazon product page"
+          }
+        }
+      }
+    },
+    "Amazon の商品ページを開きますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the Amazon product page?"
+          }
+        }
+      }
+    },
+    "Quick Buy" : {
+      "shouldTranslate" : false
+    },
+    "Quick Buy のお気に入り" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Buy Favorites"
+          }
+        }
+      }
+    },
+    "Quick Buy へのお問い合わせ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Buy Inquiry"
+          }
+        }
+      }
+    },
+    "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste a product page URL from a Shopify store or Amazon (www.amazon.co.jp)"
+          }
+        }
+      }
+    },
+    "https://" : {
+      "shouldTranslate" : false
+    },
+    "「%@」の検索結果" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results for “%@”"
+          }
+        }
+      }
+    },
+    "「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap “Open” after “Add to Cart” to open the store's checkout\nAmazon items open the product page\nYou confirm payment in the store"
+          }
+        }
+      }
+    },
+    "「購入画面を開きますか？」の通知を出します。通知をタップすると店の購入画面が開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll get an “Open checkout?” notification. Tap it to open the store's checkout."
+          }
+        }
+      }
+    },
+    "あとで" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        }
+      }
+    },
+    "いつもの商品を 1 タップで" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your usual items in one tap"
+          }
+        }
+      }
+    },
+    "いつもの商品をホーム画面からカートイン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your usual items to cart from the Home Screen"
+          }
+        }
+      }
+    },
+    "いつも買っている店か確かめてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make sure it's the store you usually buy from"
+          }
+        }
+      }
+    },
+    "お問い合わせ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact"
+          }
+        }
+      }
+    },
+    "お気に入り" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
+          }
+        }
+      }
+    },
+    "お気に入りから外す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from Favorites"
+          }
+        }
+      }
+    },
+    "お気に入りごとに決めた日数が過ぎたら知らせます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll be reminded when the days you set for each favorite have passed"
+          }
+        }
+      }
+    },
+    "お気に入りにする種類" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variants to Favorite"
+          }
+        }
+      }
+    },
+    "お気に入りに入れるとホーム画面のウィジェットから買い直せます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add favorites to rebuy them from your Home Screen widget"
+          }
+        }
+      }
+    },
+    "お気に入りに追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Favorites"
+          }
+        }
+      }
+    },
+    "お気に入りの + から商品ページの URL を入れても追加できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can also add a product page URL with + in Favorites"
+          }
+        }
+      }
+    },
+    "お気に入りの保存先を開けません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't open favorites storage"
+          }
+        }
+      }
+    },
+    "お気に入りの編集" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Favorite"
+          }
+        }
+      }
+    },
+    "お気に入りの識別子" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorite ID"
+          }
+        }
+      }
+    },
+    "お気に入りはまだありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No favorites yet"
+          }
+        }
+      }
+    },
+    "お気に入りを読み込めません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't load favorites"
+          }
+        }
+      }
+    },
+    "お気に入りを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Favorite"
+          }
+        }
+      }
+    },
+    "お気に入り追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Favorite"
+          }
+        }
+      }
+    },
+    "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Amazon URL can't be added\nOn an Amazon product page in the app or website, tap Share and choose Quick Buy"
+          }
+        }
+      }
+    },
+    "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This URL can't be added\nEnter a product page URL from a Shopify store or Amazon"
+          }
+        }
+      }
+    },
+    "この商品は登録できません\n商品の情報を取得できない店か、商品が見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This product can't be added\nThe store doesn't share product info or the product wasn't found"
+          }
+        }
+      }
+    },
+    "この店の商品です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This product is from this store"
+          }
+        }
+      }
+    },
+    "この種類は選んであります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        }
+      }
+    },
+    "この種類を選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select This Variant"
+          }
+        }
+      }
+    },
+    "そろそろ買う頃" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to buy again"
+          }
+        }
+      }
+    },
+    "そろそろ買う頃です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to buy again"
+          }
+        }
+      }
+    },
+    "そろそろ買う頃になった時" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When it's time to buy again"
+          }
+        }
+      }
+    },
+    "もう一度検索する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Again"
+          }
+        }
+      }
+    },
+    "もう一度読み込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload"
+          }
+        }
+      }
+    },
+    "やめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "アプリで商品を登録すると\nここに並びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add items in the app\nand they'll appear here"
+          }
+        }
+      }
+    },
+    "ウィジェットで「カートイン」を押した時" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When you tap “Add to Cart” on the widget"
+          }
+        }
+      }
+    },
+    "カートイン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Cart"
+          }
+        }
+      }
+    },
+    "コーヒー豆" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coffee beans"
+          }
+        }
+      }
+    },
+    "シャンプー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shampoo"
+          }
+        }
+      }
+    },
+    "ドッグフード" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dog food"
+          }
+        }
+      }
+    },
+    "バージョン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        }
+      }
+    },
+    "プライバシーポリシー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "プロテイン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protein"
+          }
+        }
+      }
+    },
+    "ホーム" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
+    },
+    "メールを開けませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Open Mail"
+          }
+        }
+      }
+    },
+    "リマインド" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reminder"
+          }
+        }
+      }
+    },
+    "・" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " / "
+          }
+        }
+      }
+    },
+    "保存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        }
+      }
+    },
+    "保存できませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Save"
+          }
+        }
+      }
+    },
+    "個数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quantity"
+          }
+        }
+      }
+    },
+    "利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と開いた画面の URL は送りません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage and crash reports are sent to Google Firebase\nProduct names, store names, and URLs of opened pages are not sent"
+          }
+        }
+      }
+    },
+    "利用規約" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        }
+      }
+    },
+    "右上の + から商品ページの URL を入れると\nここに並びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a product page URL with + at the top right\nand it will appear here"
+          }
+        }
+      }
+    },
+    "名前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
+    "名前 (一覧で見分けられる名前)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name (to tell it apart in the list)"
+          }
+        }
+      }
+    },
+    "商品が見つかりませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No products found"
+          }
+        }
+      }
+    },
+    "商品の情報を取得できませんでした\n少し待ってからもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't get product info\nPlease wait a moment and try again"
+          }
+        }
+      }
+    },
+    "商品を検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search products"
+          }
+        }
+      }
+    },
+    "商品を読み込めませんでした\n少し待ってからもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load products\nPlease wait a moment and try again"
+          }
+        }
+      }
+    },
+    "商品ページの URL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product Page URL"
+          }
+        }
+      }
+    },
+    "在庫なし" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out of stock"
+          }
+        }
+      }
+    },
+    "戻る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "次の知らせは %lld 日後" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next reminder in %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next reminder in %lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "次へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "洗濯洗剤" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laundry detergent"
+          }
+        }
+      }
+    },
+    "混み合っています\n%lld 秒ほど待ってからもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "It's busy right now\nPlease wait about %lld second and try again"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "It's busy right now\nPlease wait about %lld seconds and try again"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "混み合っています\n少し待ってからもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's busy right now\nPlease wait a moment and try again"
+          }
+        }
+      }
+    },
+    "知らせなし" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No reminder"
+          }
+        }
+      }
+    },
+    "知らせる間隔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind Every"
+          }
+        }
+      }
+    },
+    "種類と個数を選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Variants and Quantity"
+          }
+        }
+      }
+    },
+    "種類を選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Variant"
+          }
+        }
+      }
+    },
+    "紅茶" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Black tea"
+          }
+        }
+      }
+    },
+    "設定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "買い直す物から探す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find things you rebuy"
+          }
+        }
+      }
+    },
+    "購入画面を開いた日から数え直します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The count restarts on the day you open checkout"
+          }
+        }
+      }
+    },
+    "購入画面を開きますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open checkout?"
+          }
+        }
+      }
+    },
+    "追加しただけでは購入されません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding doesn't buy anything"
+          }
+        }
+      }
+    },
+    "追加しただけでは購入されません\n定期購入だけの商品は購入画面を開けず店のトップページが開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding doesn't buy anything\nSubscription-only products open the store's home page instead of checkout"
+          }
+        }
+      }
+    },
+    "通信できませんでした\n電波の良い所でもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't connect\nPlease try again where the signal is better"
+          }
+        }
+      }
+    },
+    "通知だけでは購入されません。支払いの確定は毎回店の画面で行います。宣伝の通知は送りません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications never buy anything. You confirm payment in the store every time. No promotional notifications are sent."
+          }
+        }
+      }
+    },
+    "通知をオンにする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On Notifications"
+          }
+        }
+      }
+    },
+    "通知をオンにするとウィジェットから買い直せます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on notifications to rebuy from the widget"
+          }
+        }
+      }
+    },
+    "選んだ種類ごとにお気に入りの行が 1 つできます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each variant you choose becomes its own favorite"
+          }
+        }
+      }
+    },
+    "閉じる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
+    "開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

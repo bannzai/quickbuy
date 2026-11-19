@@ -26,17 +26,17 @@ func nextReminderDate(reminder: Reminder, now: Date) -> Date {
     )
 }
 
-/// 一覧の行に出す、リマインドの状態の文言を返す。
+/// 一覧の行に出す、リマインドの状態の文言を `locale` の言語で返す。
 ///
 /// リマインドを設定していない時は「知らせなし」、日数が過ぎた時は「そろそろ買う頃」、それ以外は次に知らせる日時までの日数 (1 日に満たない端数は切り上げる)。
-func reminderStatusText(reminder: Reminder?, now: Date) -> String {
+func reminderStatusText(reminder: Reminder?, now: Date, locale: Locale) -> String {
     guard let reminder else {
-        return "知らせなし"
+        return String(localized: LocalizedStringResource("知らせなし", locale: locale))
     }
     guard !isReminderDue(reminder: reminder, now: now) else {
-        return "そろそろ買う頃"
+        return String(localized: LocalizedStringResource("そろそろ買う頃", locale: locale))
     }
-    return "次の知らせは \(Int((nextReminderDate(reminder: reminder, now: now).timeIntervalSince(now) / reminderDaySeconds).rounded(.up))) 日後"
+    return String(localized: LocalizedStringResource("次の知らせは \(Int((nextReminderDate(reminder: reminder, now: now).timeIntervalSince(now) / reminderDaySeconds).rounded(.up))) 日後", locale: locale))
 }
 
 /// 保存の操作の後に、通知の予約へ加える変更。

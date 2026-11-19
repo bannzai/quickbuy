@@ -211,12 +211,14 @@ func hasShopifyAjaxVariantChoices(product: ShopifyAjaxProduct) -> Bool {
     product.variants.count >= 2
 }
 
-/// 確認の画面の、保存するボタンの文言を返す。
+/// 確認の画面の、保存するボタンの文言を `locale` の言語で返す。
 ///
 /// 種類を選ぶ商品 (`hasVariantChoices`。商品バリアントが 2 つ以上ある商品) で 1 つ以上選んでいる時は、選んだ数を入れる (例: `2 種類をお気に入りに追加`)。
 /// 種類を選ばない商品と、1 つも選んでいない時は `お気に入りに追加`。
-func favoriteAdditionButtonTitle(hasVariantChoices: Bool, selectedVariantCount: Int) -> String {
-    hasVariantChoices && selectedVariantCount >= 1 ? "\(selectedVariantCount) 種類をお気に入りに追加" : "お気に入りに追加"
+func favoriteAdditionButtonTitle(hasVariantChoices: Bool, selectedVariantCount: Int, locale: Locale) -> String {
+    hasVariantChoices && selectedVariantCount >= 1
+        ? String(localized: LocalizedStringResource("\(selectedVariantCount) 種類をお気に入りに追加", locale: locale))
+        : String(localized: LocalizedStringResource("お気に入りに追加", locale: locale))
 }
 
 /// Shopify が商品の画像を配信する CDN のホスト。

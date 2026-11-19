@@ -1,14 +1,24 @@
 import SwiftUI
 
-/// トップページの、検索の前に並べる買い直す物の検索語。押すとその語で検索する。
+/// トップページの、検索の前に並べる買い直す物の検索語を `locale` の言語で返す。押すとその語で検索する。
 ///
 /// 日用品・食品のうち、同じ物を定期的に買い直す物として agent が選んだ語 (issue #34。documents/DIRECTION.md「決めたこと」)。
-let homeSuggestedSearchQueries = ["コーヒー豆", "紅茶", "シャンプー", "洗濯洗剤", "プロテイン", "ドッグフード"]
+/// 端末の言語の語で出し、その語で検索する (英語の各語でも Catalog が 20 件を返すことを 2026-11-19 に確かめた。issue #54)。
+func homeSuggestedSearchQueries(locale: Locale) -> [String] {
+    [
+        String(localized: LocalizedStringResource("コーヒー豆", locale: locale)),
+        String(localized: LocalizedStringResource("紅茶", locale: locale)),
+        String(localized: LocalizedStringResource("シャンプー", locale: locale)),
+        String(localized: LocalizedStringResource("洗濯洗剤", locale: locale)),
+        String(localized: LocalizedStringResource("プロテイン", locale: locale)),
+        String(localized: LocalizedStringResource("ドッグフード", locale: locale)),
+    ]
+}
 
 /// トップページを開いた時に、検索の前に結果を並べておく決まった検索語。
 ///
-/// 検索語の並び (`homeSuggestedSearchQueries`) の先頭の語。人気の順を返す API が無いため、見出しは「人気の商品」でなく、この語の検索の結果だと分かる言葉にする (issue #34)。
-let homeFeaturedSearchQuery = homeSuggestedSearchQueries[0]
+/// 検索語の並び (`homeSuggestedSearchQueries(locale:)`) の先頭の語。人気の順を返す API が無いため、見出しは「人気の商品」でなく、この語の検索の結果だと分かる言葉にする (issue #34)。
+let homeFeaturedSearchQuery = homeSuggestedSearchQueries(locale: appTextLocale)[0]
 
 /// トップページ。検索窓・買い直す物の検索語・画像つきの商品の並びを見せ、商品の「お気に入り追加」から追加の画面を開く。
 ///
@@ -118,7 +128,7 @@ struct HomeView: View {
                 .font(.headline)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(homeSuggestedSearchQueries, id: \.self) { query in
+                    ForEach(homeSuggestedSearchQueries(locale: appTextLocale), id: \.self) { query in
                         Button(query) {
                             searchText = query
                             search(query: query)
@@ -236,7 +246,7 @@ struct HomeView: View {
                     return
                 }
                 // `searchShopifyCatalog` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed, locale: appTextLocale)
             }
             if latestSearchID == searchID {
                 isSearching = false

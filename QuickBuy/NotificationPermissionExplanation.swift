@@ -143,7 +143,7 @@ struct NotificationPermissionExplanationView: View {
     }
 
     /// 通知を使う場面 1 つ分の行。番号の印・場面の見出し・その場面で何が起きるかの説明。
-    private func usage(number: Int, title: String, description: String) -> some View {
+    private func usage(number: Int, title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(number)")
                 .font(.headline.weight(.black))

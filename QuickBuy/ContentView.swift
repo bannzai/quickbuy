@@ -227,9 +227,9 @@ struct FavoritesListView: View {
         if let confirmingFavorite = cartInConfirmationFavorite(confirmation: cartInConfirmation, favorites: favorites, now: .now) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(cartInConfirmationTitle(favorite: confirmingFavorite))
+                    Text(cartInConfirmationTitle(favorite: confirmingFavorite, locale: appTextLocale))
                         .font(.subheadline.weight(.heavy))
-                    Text(cartInConfirmationText(favorite: confirmingFavorite))
+                    Text(cartInConfirmationText(favorite: confirmingFavorite, locale: appTextLocale))
                         .font(.caption)
                         .foregroundStyle(cartInConfirmationSecondaryTextColor)
                 }
@@ -299,11 +299,11 @@ struct FavoritesListView: View {
                         // 1 分は、文言の最小の単位 (1 日) に対して遅れが目立たず、描き直しの負荷も小さい間隔。
                         TimelineView(.periodic(from: .now, by: 60)) { timeline in
                             if let reminder = favorite.reminder, isReminderDue(reminder: reminder, now: timeline.date) {
-                                Text(reminderStatusText(reminder: reminder, now: timeline.date))
+                                Text(reminderStatusText(reminder: reminder, now: timeline.date, locale: appTextLocale))
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(reminderDueColor)
                             } else {
-                                Text(reminderStatusText(reminder: favorite.reminder, now: timeline.date))
+                                Text(reminderStatusText(reminder: favorite.reminder, now: timeline.date, locale: appTextLocale))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -315,7 +315,7 @@ struct FavoritesListView: View {
             }
             .buttonStyle(.plain)
             if openingURL(favorite: favorite) != nil {
-                Button(cartInButtonTitle(favorite: favorite)) {
+                Button(cartInButtonTitle(favorite: favorite, locale: appTextLocale)) {
                     cartInConfirmation = (favoriteID: favorite.id, shownAt: .now)
                 }
                 .font(.subheadline.weight(.heavy))
@@ -394,16 +394,16 @@ func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?
     return favorites.first { $0.id == confirmation.favoriteID && openingURL(favorite: $0) != nil }
 }
 
-/// 「カートイン」の確認の 2 行目に出す文を返す。
+/// 「カートイン」の確認の 2 行目に出す文を `locale` の言語で返す。
 ///
 /// Shopify の店の商品は、何を何個カートに入れて開くか (商品バリアントの名前を持つお気に入りでは、名前の後ろに足す)。
 /// Amazon の商品は、商品ページを開くことと、開いた時に商品がカートに入っていないこと (個数は出さない)。
-func cartInConfirmationText(favorite: Favorite) -> String {
+func cartInConfirmationText(favorite: Favorite, locale: Locale) -> String {
     switch favorite.product {
     case .shopify:
-        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます"
+        String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます", locale: locale))
     case .amazon:
-        "\(favorite.name) の商品ページを開きます (カートには入りません)"
+        String(localized: LocalizedStringResource("\(favorite.name) の商品ページを開きます (カートには入りません)", locale: locale))
     }
 }
 

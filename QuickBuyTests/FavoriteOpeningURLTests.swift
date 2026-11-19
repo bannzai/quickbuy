@@ -54,9 +54,9 @@ struct FavoriteOpeningURLTests {
     @Test func ボタンと確認の文言は店ごとに変わる() {
         let shopifyFavorite = favorite(quantity: 1, product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")))
         let amazonFavorite = favorite(quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")))
-        #expect(cartInButtonTitle(favorite: shopifyFavorite) == "カートイン")
-        #expect(cartInButtonTitle(favorite: amazonFavorite) == "Amazon で開く")
-        #expect(cartInConfirmationTitle(favorite: shopifyFavorite) == "購入画面を開きますか？")
-        #expect(cartInConfirmationTitle(favorite: amazonFavorite) == "Amazon の商品ページを開きますか？")
+        #expect(cartInButtonTitle(favorite: shopifyFavorite, locale: Locale(identifier: "ja")) == "カートイン")
+        #expect(cartInButtonTitle(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon で開く")
+        #expect(cartInConfirmationTitle(favorite: shopifyFavorite, locale: Locale(identifier: "ja")) == "購入画面を開きますか？")
+        #expect(cartInConfirmationTitle(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon の商品ページを開きますか？")
     }
 }

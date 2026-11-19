@@ -44,16 +44,19 @@ struct EditFavoriteView: View {
                     if let reminder = favorite.reminder {
                         // 上限の 365 日は、いつもの商品を買い直す間隔として 1 年を超える設定を想定しないため。
                         Stepper(value: reminderIntervalDays(reminder: reminder), in: 1 ... 365) {
-                            LabeledContent("知らせる間隔", value: "\(reminder.intervalDays) 日ごと")
+                            LabeledContent("知らせる間隔") {
+                                Text("\(reminder.intervalDays) 日ごと")
+                            }
                         }
                         .accessibilityIdentifier("favoriteReminderIntervalStepper")
                     }
                 } footer: {
                     if let reminder = favorite.reminder {
-                        Text(
-                            "\(reminderRecountText(favorite: favorite))\n次の知らせは \(nextReminderDate(reminder: reminder, now: .now).formatted(.dateTime.month().day())) です"
-                                + (isNotificationDenied ? "\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます" : "")
-                        )
+                        if isNotificationDenied {
+                            Text("\(reminderRecountText(favorite: favorite, locale: appTextLocale))\n次の知らせは \(nextReminderDate(reminder: reminder, now: .now).formatted(.dateTime.month().day())) です\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます")
+                        } else {
+                            Text("\(reminderRecountText(favorite: favorite, locale: appTextLocale))\n次の知らせは \(nextReminderDate(reminder: reminder, now: .now).formatted(.dateTime.month().day())) です")
+                        }
                     }
                 }
                 Section {
@@ -141,12 +144,12 @@ struct EditFavoriteView: View {
     }
 }
 
-/// リマインドの設定の下に出す、日数を数え直す時の文を返す。Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直す (`openingURL(favoriteID:now:fileURL:)`)。
-func reminderRecountText(favorite: Favorite) -> String {
+/// リマインドの設定の下に出す、日数を数え直す時の文を `locale` の言語で返す。Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直す (`openingURL(favoriteID:now:fileURL:)`)。
+func reminderRecountText(favorite: Favorite, locale: Locale) -> String {
     switch favorite.product {
     case .shopify:
-        "購入画面を開いた日から数え直します"
+        String(localized: LocalizedStringResource("購入画面を開いた日から数え直します", locale: locale))
     case .amazon:
-        "Amazon の商品ページを開いた日から数え直します"
+        String(localized: LocalizedStringResource("Amazon の商品ページを開いた日から数え直します", locale: locale))
     }
 }

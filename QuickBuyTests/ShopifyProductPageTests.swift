@@ -365,7 +365,7 @@ struct ShopifyProductPageTests {
         (false, 1, "お気に入りに追加"),
     ])
     func 保存するボタンは選んだ種類の数を出す(hasVariantChoices: Bool, selectedVariantCount: Int, expectedTitle: String) {
-        #expect(favoriteAdditionButtonTitle(hasVariantChoices: hasVariantChoices, selectedVariantCount: selectedVariantCount) == expectedTitle)
+        #expect(favoriteAdditionButtonTitle(hasVariantChoices: hasVariantChoices, selectedVariantCount: selectedVariantCount, locale: Locale(identifier: "ja")) == expectedTitle)
     }
 
     /// 商品バリアントが 2 つ以上の商品だけが種類を選ぶ商品で、1 つだけの商品は種類を選ばない。

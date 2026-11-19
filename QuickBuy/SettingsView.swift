@@ -17,12 +17,12 @@ let termsURL = publicPagesURL.appending(path: "Terms-ja")
 /// プライバシーポリシーのページ (`docs/PrivacyPolicy-ja.md`) の URL。
 let privacyPolicyURL = publicPagesURL.appending(path: "PrivacyPolicy-ja")
 
-/// 問い合わせのメールの作成を開く URL (宛先と件名を入れた `mailto:`) を返す。組み立てられない時は nil。
-func contactMailURL() -> URL? {
+/// 問い合わせのメールの作成を開く URL (宛先と、`locale` の言語の件名を入れた `mailto:`) を返す。組み立てられない時は nil。
+func contactMailURL(locale: Locale) -> URL? {
     var components = URLComponents()
     components.scheme = "mailto"
     components.path = contactMailAddress
-    components.queryItems = [URLQueryItem(name: "subject", value: "Quick Buy へのお問い合わせ")]
+    components.queryItems = [URLQueryItem(name: "subject", value: String(localized: LocalizedStringResource("Quick Buy へのお問い合わせ", locale: locale)))]
     return components.url
 }
 
@@ -59,7 +59,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    if let mailURL = contactMailURL() {
+                    if let mailURL = contactMailURL(locale: appTextLocale) {
                         Button {
                             openURL(mailURL) { isAccepted in
                                 if !isAccepted {

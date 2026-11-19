@@ -90,14 +90,14 @@ struct ReminderTests {
         #expect(
             reminderStatusText(
                 reminder: Reminder(intervalDays: 30, countedFrom: countedFrom),
-                now: countedFrom.addingTimeInterval(elapsedDays * daySeconds)
+                now: countedFrom.addingTimeInterval(elapsedDays * daySeconds), locale: Locale(identifier: "ja")
             ) == expectedText
         )
     }
 
     /// リマインドを設定していないお気に入りの行には「知らせなし」を出す。
     @Test func リマインドが無い時の文言は知らせなし() {
-        #expect(reminderStatusText(reminder: nil, now: countedFrom) == "知らせなし")
+        #expect(reminderStatusText(reminder: nil, now: countedFrom, locale: Locale(identifier: "ja")) == "知らせなし")
     }
 
     // MARK: - 通知の予約と取り消しの判断
@@ -546,7 +546,7 @@ struct ReminderTests {
 
     /// 通知には見本どおりの 3 行と識別子だけを載せ、店のドメインを含む値を載せない。
     @Test func 通知の内容はお気に入りの名前と識別子だけを持ち購入画面のURLを持たない() {
-        let content = reminderNotificationContent(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)))
+        let content = reminderNotificationContent(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)), locale: Locale(identifier: "ja"))
 
         #expect(content.title == "そろそろ買う頃です")
         #expect(content.body == "コーヒー豆 1\nタップすると購入画面が開きます")
@@ -563,9 +563,9 @@ struct ReminderTests {
         var largeFavorite = smallFavorite
         largeFavorite.variantName = "1kg"
 
-        #expect(reminderNotificationContent(favorite: smallFavorite).body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
-        #expect(reminderNotificationContent(favorite: largeFavorite).body == "コーヒー豆 1 1kg\nタップすると購入画面が開きます")
-        #expect(try #require(reminderNotificationRequest(favorite: smallFavorite)).content.body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
+        #expect(reminderNotificationContent(favorite: smallFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
+        #expect(reminderNotificationContent(favorite: largeFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1 1kg\nタップすると購入画面が開きます")
+        #expect(try #require(reminderNotificationRequest(favorite: smallFavorite, locale: Locale(identifier: "ja"))).content.body == "コーヒー豆 1 200g / 豆のまま\nタップすると購入画面が開きます")
     }
 
     /// 商品バリアントの名前を持たないお気に入りの通知の本文は、名前の行と案内の文言の行だけ (名前の後ろに空白を足さない)。
@@ -573,7 +573,7 @@ struct ReminderTests {
         var favoriteWithoutVariantName = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
         favoriteWithoutVariantName.variantName = nil
 
-        #expect(reminderNotificationContent(favorite: favoriteWithoutVariantName).body == "コーヒー豆 1\nタップすると購入画面が開きます")
+        #expect(reminderNotificationContent(favorite: favoriteWithoutVariantName, locale: Locale(identifier: "ja")).body == "コーヒー豆 1\nタップすると購入画面が開きます")
     }
 
     /// 編集の画面の、日数を数え直す時の文は、Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直すと書く。
@@ -581,8 +581,8 @@ struct ReminderTests {
         var amazonFavorite = favorite(idSuffix: "1", reminder: nil)
         amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
 
-        #expect(reminderRecountText(favorite: favorite(idSuffix: "2", reminder: nil)) == "購入画面を開いた日から数え直します")
-        #expect(reminderRecountText(favorite: amazonFavorite) == "Amazon の商品ページを開いた日から数え直します")
+        #expect(reminderRecountText(favorite: favorite(idSuffix: "2", reminder: nil), locale: Locale(identifier: "ja")) == "購入画面を開いた日から数え直します")
+        #expect(reminderRecountText(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon の商品ページを開いた日から数え直します")
     }
 
     /// Amazon の商品の通知の本文は、名前の行と、タップで Amazon の商品ページが開く案内の行。
@@ -591,7 +591,7 @@ struct ReminderTests {
         amazonFavorite.variantName = nil
         amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
 
-        #expect(reminderNotificationContent(favorite: amazonFavorite).body == "コーヒー豆 1\nタップすると Amazon の商品ページが開きます")
+        #expect(reminderNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1\nタップすると Amazon の商品ページが開きます")
     }
 
     /// 付加情報が空・文字列が識別子の形でない・値が文字列でない時は nil を返す。
@@ -603,7 +603,7 @@ struct ReminderTests {
 
     /// 予約は、お気に入りの識別子を通知の識別子にし、設定した日数 (7 日 = 604800 秒) ごとに繰り返す。
     @Test func 通知の予約はお気に入りの識別子で設定した日数ごとに繰り返す() throws {
-        let request = try #require(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom))))
+        let request = try #require(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)), locale: Locale(identifier: "ja")))
         let trigger = try #require(request.trigger as? UNTimeIntervalNotificationTrigger)
 
         #expect(request.identifier == "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
@@ -614,7 +614,7 @@ struct ReminderTests {
 
     /// リマインドを設定していないお気に入りからは、予約を作らない。
     @Test func リマインドの無いお気に入りの通知の予約は作らない() {
-        #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil)) == nil)
+        #expect(reminderNotificationRequest(favorite: favorite(idSuffix: "1", reminder: nil), locale: Locale(identifier: "ja")) == nil)
     }
 
     /// リマインドがあって予約の識別子が無いお気に入りだけを返す。予約のあるお気に入りと、リマインドの無いお気に入りは返さない。
@@ -721,6 +721,6 @@ struct ReminderTests {
                 favoriteWithoutReminder,
             ]
         )
-        #expect(try loadFavorites(fileURL: fileURL).map { reminderStatusText(reminder: $0.reminder, now: now) } == ["そろそろ買う頃", "知らせなし"])
+        #expect(try loadFavorites(fileURL: fileURL).map { reminderStatusText(reminder: $0.reminder, now: now, locale: Locale(identifier: "ja")) } == ["そろそろ買う頃", "知らせなし"])
     }
 }

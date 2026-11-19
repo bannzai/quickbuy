@@ -312,17 +312,17 @@ func shopifyCatalogPriceRemainingSeconds(fetchedAt: Date, now: Date) -> TimeInte
     max(0, shopifyCatalogPriceCacheSeconds - now.timeIntervalSince(fetchedAt))
 }
 
-/// Catalog の呼び出しが失敗した理由を、画面に出す文言にして返す。
-func shopifyCatalogErrorMessage(error: ShopifyCatalogError) -> String {
+/// Catalog の呼び出しが失敗した理由を、画面に出す文言にして `locale` の言語で返す。
+func shopifyCatalogErrorMessage(error: ShopifyCatalogError, locale: Locale) -> String {
     switch error {
     case let .rateLimited(retryAfterSeconds?):
-        "混み合っています\n\(retryAfterSeconds) 秒ほど待ってからもう一度お試しください"
+        String(localized: LocalizedStringResource("混み合っています\n\(retryAfterSeconds) 秒ほど待ってからもう一度お試しください", locale: locale))
     case .rateLimited(nil):
-        "混み合っています\n少し待ってからもう一度お試しください"
+        String(localized: LocalizedStringResource("混み合っています\n少し待ってからもう一度お試しください", locale: locale))
     case .connectionFailed:
-        "通信できませんでした\n電波の良い所でもう一度お試しください"
+        String(localized: LocalizedStringResource("通信できませんでした\n電波の良い所でもう一度お試しください", locale: locale))
     case .failed:
-        "商品を読み込めませんでした\n少し待ってからもう一度お試しください"
+        String(localized: LocalizedStringResource("商品を読み込めませんでした\n少し待ってからもう一度お試しください", locale: locale))
     }
 }
 

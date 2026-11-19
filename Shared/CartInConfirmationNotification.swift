@@ -9,22 +9,22 @@ func favoriteNotificationFavoriteID(userInfo: [AnyHashable: Any]) -> UUID? {
     (userInfo[favoriteNotificationFavoriteIDKey] as? String).flatMap(UUID.init(uuidString:))
 }
 
-/// ウィジェットの「カートイン」(Amazon の商品は「Amazon で開く」) で出す確認の通知の内容を返す。開く URL を組み立てられないお気に入りでは nil を返す。
+/// ウィジェットの「カートイン」(Amazon の商品は「Amazon で開く」) で出す確認の通知の内容を、文言を `locale` の言語にして返す。開く URL を組み立てられないお気に入りでは nil を返す。
 ///
 /// Shopify の店の商品の文言は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本 (見出し・何を何個・どの店の購入画面が開くか)。
 /// Amazon の商品は、見出しを「Amazon の商品ページを開きますか？」にし、個数を出さずに商品ページが開くことを書く (開いた時に商品はカートに入っていない)。
 /// 載せるのは文言と、タップされた時にお気に入りを探すための識別子だけ。開く URL は載せず、通知をタップされた時に保存済みのお気に入りから組み立てる (.claude/rules/purchase-url.md)。
-func cartInConfirmationNotificationContent(favorite: Favorite) -> UNMutableNotificationContent? {
+func cartInConfirmationNotificationContent(favorite: Favorite, locale: Locale) -> UNMutableNotificationContent? {
     guard openingURL(favorite: favorite) != nil else {
         return nil
     }
     let content = UNMutableNotificationContent()
-    content.title = cartInConfirmationTitle(favorite: favorite)
+    content.title = cartInConfirmationTitle(favorite: favorite, locale: locale)
     content.body = switch favorite.product {
     case let .shopify(shopifyProduct):
-        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個\nタップすると \(shopifyProduct.shopDomain) の購入画面が開きます"
+        String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個\nタップすると \(shopifyProduct.shopDomain) の購入画面が開きます", locale: locale))
     case .amazon:
-        "\(favorite.name)\nタップすると \(amazonHost) の商品ページが開きます"
+        String(localized: LocalizedStringResource("\(favorite.name)\nタップすると \(amazonHost) の商品ページが開きます", locale: locale))
     }
     content.sound = .default
     content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
@@ -39,27 +39,27 @@ func cartInConfirmationNotificationIdentifier(favoriteID: UUID) -> String {
     "cartInConfirmation-\(favoriteID.uuidString)"
 }
 
-/// 「カートイン」の確認の通知を、すぐに出す通知の要求として返す。開く URL を組み立てられないお気に入りでは nil を返す。
-func cartInConfirmationNotificationRequest(favorite: Favorite) -> UNNotificationRequest? {
-    cartInConfirmationNotificationContent(favorite: favorite).map { content in
+/// 「カートイン」の確認の通知を、文言を `locale` の言語にして、すぐに出す通知の要求として返す。開く URL を組み立てられないお気に入りでは nil を返す。
+func cartInConfirmationNotificationRequest(favorite: Favorite, locale: Locale) -> UNNotificationRequest? {
+    cartInConfirmationNotificationContent(favorite: favorite, locale: locale).map { content in
         UNNotificationRequest(identifier: cartInConfirmationNotificationIdentifier(favoriteID: favorite.id), content: content, trigger: nil)
     }
 }
 
-/// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知の要求を返す。
+/// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知の要求を、文言を `locale` の言語にして返す。
 ///
 /// 保存先を読むだけで書かない (リマインドの数え直しは、通知をタップして開いた時に行う)。
 /// その識別子のお気に入りが無い時と、開く URL を組み立てられない時は nil を返す。保存先を読めない時はエラーを投げる。
-func cartInConfirmationNotificationRequest(favoriteID: UUID, fileURL: URL) throws -> UNNotificationRequest? {
-    try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }).flatMap(cartInConfirmationNotificationRequest(favorite:))
+func cartInConfirmationNotificationRequest(favoriteID: UUID, fileURL: URL, locale: Locale) throws -> UNNotificationRequest? {
+    try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }).flatMap { cartInConfirmationNotificationRequest(favorite: $0, locale: locale) }
 }
 
 /// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知を出す。ウィジェットの「カートイン」のボタンの処理が呼ぶ。
 ///
-/// 出す通知は `cartInConfirmationNotificationRequest(favoriteID:fileURL:)` が返すもので、nil の時は何も出さない。
+/// 出す通知は `cartInConfirmationNotificationRequest(favoriteID:fileURL:locale:)` が `appTextLocale` の言語で返すもので、nil の時は何も出さない。
 /// 保存先を読めない時と、通知を出せない時 (通知が許可されていない等) はエラーを投げる。
 func postCartInConfirmationNotification(favoriteID: UUID, fileURL: URL, center: UNUserNotificationCenter) async throws {
-    guard let request = try cartInConfirmationNotificationRequest(favoriteID: favoriteID, fileURL: fileURL) else {
+    guard let request = try cartInConfirmationNotificationRequest(favoriteID: favoriteID, fileURL: fileURL, locale: appTextLocale) else {
         return
     }
     try await center.add(request)

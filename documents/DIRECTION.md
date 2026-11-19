@@ -46,7 +46,7 @@ launched_at:              # 公開日 (YYYY-MM-DD)。公開前は空
 - [x] 開発者メニュー (DEBUG ビルドだけ): 見本のお気に入りを入れる・消す
 - [x] 計測とクラッシュ収集 (アプリ側): 購入画面を開いた・ウィジェットを置いている、を Firebase Analytics に記録し、クラッシュを Crashlytics に送る (https://github.com/bannzai/quickbuy/issues/39 )
 - [ ] 計測の数字の bannzai/dashboard への収集 (公開の後に別の issue で作る)
-- [ ] 多言語化 (日本語・英語) とストアの素材
+- [ ] 多言語化 (日本語・英語) とストアの素材 (アプリ・ウィジェット・共有メニューの拡張・通知の文言の日本語と英語は実装済み (https://github.com/bannzai/quickbuy/issues/54 。文字列カタログ `Shared/Localizable.xcstrings` を 3 つのターゲットで共有する。開発者メニューは訳さない)。ストアの素材 (スクリーンショット・説明文) と、利用規約・プライバシーポリシーの英語版は残っている)
 
 その後:
 

@@ -111,19 +111,19 @@ struct FavoritesWidgetTests {
 
     /// 商品バリアントの名前を持つお気に入りの行は「種類 ・ N 個」(画面の見本 WidgetPush.dc.html の行)。
     @Test func 種類の名前を持つ行は種類と個数() {
-        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "コーヒー豆", variantName: "200g / 豆のまま", quantity: 2)) == "200g / 豆のまま ・ 2 個")
+        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "コーヒー豆", variantName: "200g / 豆のまま", quantity: 2), locale: Locale(identifier: "ja")) == "200g / 豆のまま ・ 2 個")
     }
 
     /// 商品バリアントの名前を持たないお気に入りの行は「N 個」だけで、前に区切りを付けない。
     @Test func 種類の名前の無い行は個数だけ() {
-        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1)) == "1 個")
+        #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1), locale: Locale(identifier: "ja")) == "1 個")
     }
 
     /// Amazon の商品の行は個数を出さず、店を見分ける「Amazon」を出す (Amazon の商品は個数を持たない)。
     @Test func Amazonの商品の行は個数を出さない() {
         #expect(
             favoriteWidgetRowCaption(
-                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil), locale: Locale(identifier: "ja")
             ) == "Amazon"
         )
     }
@@ -131,10 +131,10 @@ struct FavoritesWidgetTests {
     /// 通知の許可が要ることの文は、並べているお気に入りのボタンの名前を出す。Amazon の商品だけなら「カートイン」と書かない。
     @Test func 通知の許可が要ることの文は並べたお気に入りのボタンの名前を出す() {
         let amazonFavorite = Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")]) == "カートインには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: [amazonFavorite]) == "Amazon で開くには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite]) == "カートイン・Amazon で開くには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: []) == "カートインには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")], locale: Locale(identifier: "ja")) == "カートインには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [amazonFavorite], locale: Locale(identifier: "ja")) == "Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite], locale: Locale(identifier: "ja")) == "カートイン・Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [], locale: Locale(identifier: "ja")) == "カートインには通知の許可が要ります")
     }
 
     // MARK: - 「カートイン」を出すか

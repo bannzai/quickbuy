@@ -34,7 +34,7 @@ struct CartInConfirmationNotificationTests {
     @Test func 通知の文言は見出しと何を何個とどの店か() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.title == "購入画面を開きますか？")
@@ -46,7 +46,7 @@ struct CartInConfirmationNotificationTests {
         #expect(
             try #require(
                 cartInConfirmationNotificationContent(
-                    favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
+                    favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1), locale: Locale(identifier: "ja")
                 )
             ).body == "コーヒー豆 を 1 個\nタップすると sukoyaka-soap.example の購入画面が開きます"
         )
@@ -56,7 +56,7 @@ struct CartInConfirmationNotificationTests {
     @Test func 載せるのはお気に入りの識別子だけ() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.userInfo.count == 1)
@@ -70,7 +70,7 @@ struct CartInConfirmationNotificationTests {
     @Test func Amazonの商品の通知は商品ページが開くことを書く() throws {
         let content = try #require(
             cartInConfirmationNotificationContent(
-                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil), locale: Locale(identifier: "ja")
             )
         )
         #expect(content.title == "Amazon の商品ページを開きますか？")
@@ -81,11 +81,11 @@ struct CartInConfirmationNotificationTests {
     /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・ホスト名の形でない店のドメイン) では、確認の通知を作らない。
     @Test func 開くURLを組み立てられないお気に入りでは通知を作らない() {
         let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
-        #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite) == nil)
-        #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite) == nil)
+        #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
+        #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
         #expect(
             cartInConfirmationNotificationContent(
-                favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1)
+                favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1), locale: Locale(identifier: "ja")
             ) == nil
         )
     }
@@ -96,14 +96,15 @@ struct CartInConfirmationNotificationTests {
     /// 別のお気に入りとは違う値で、リマインドの通知の識別子 (お気に入りの識別子) とも違う。すぐに出す (時刻の条件を持たない)。
     @Test func 通知の識別子はお気に入りごとに1つでリマインドと別() throws {
         let coffeeFavorite = shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
-        let firstRequest = try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite))
+        let firstRequest = try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite, locale: Locale(identifier: "ja")))
 
         #expect(firstRequest.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
-        #expect(try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite)).identifier == firstRequest.identifier)
+        #expect(try #require(cartInConfirmationNotificationRequest(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).identifier == firstRequest.identifier)
         #expect(
             try #require(
                 cartInConfirmationNotificationRequest(
-                    favorite: shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1)
+                    favorite: shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "sukoyaka-soap.example", variantID: "70881382", quantity: 1),
+                    locale: Locale(identifier: "ja")
                 )
             ).identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2"
         )
@@ -122,7 +123,7 @@ struct CartInConfirmationNotificationTests {
         )
         let savedData = try Data(contentsOf: fileURL)
 
-        let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL))
+        let request = try #require(try cartInConfirmationNotificationRequest(favoriteID: soapFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")))
 
         #expect(request.identifier == "cartInConfirmation-5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2")
         #expect(request.content.body == "コーヒー豆 を 5 個\nタップすると sukoyaka-soap.example の購入画面が開きます")
@@ -138,8 +139,8 @@ struct CartInConfirmationNotificationTests {
             fileURL: fileURL
         )
 
-        #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL) == nil)
-        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
     }
 
     /// 保存先を読めない時 (中身が JSON でない) はエラーを投げる。
@@ -148,7 +149,7 @@ struct CartInConfirmationNotificationTests {
         try Data("not json".utf8).write(to: fileURL)
 
         #expect(throws: (any Error).self) {
-            try cartInConfirmationNotificationRequest(favoriteID: UUID(), fileURL: fileURL)
+            try cartInConfirmationNotificationRequest(favoriteID: UUID(), fileURL: fileURL, locale: Locale(identifier: "ja"))
         }
     }
 
@@ -169,7 +170,7 @@ struct CartInConfirmationNotificationTests {
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: soapFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: soapFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) },
@@ -201,7 +202,7 @@ struct CartInConfirmationNotificationTests {
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: amazonFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in },
@@ -223,7 +224,7 @@ struct CartInConfirmationNotificationTests {
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in },
@@ -244,7 +245,7 @@ struct CartInConfirmationNotificationTests {
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDismissActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) },
@@ -268,7 +269,7 @@ struct CartInConfirmationNotificationTests {
             try openingURLForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
                 notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: coffeeFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite)).userInfo,
+                userInfo: #require(cartInConfirmationNotificationContent(favorite: coffeeFavorite, locale: Locale(identifier: "ja"))).userInfo,
                 now: tappedAt,
                 fileURL: fileURL,
                 applyChanges: { _ in },

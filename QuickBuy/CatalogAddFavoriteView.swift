@@ -88,7 +88,8 @@ struct CatalogAddFavoriteView: View {
                     } label: {
                         Text(favoriteAdditionButtonTitle(
                             hasVariantChoices: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options),
-                            selectedVariantCount: selectedVariants.count
+                            selectedVariantCount: selectedVariants.count,
+                            locale: appTextLocale
                         ))
                         .bold()
                         .frame(maxWidth: .infinity)
@@ -178,7 +179,7 @@ struct CatalogAddFavoriteView: View {
                     }
                 }
                 if shopifyVariantNumericID(variantGID: variant.id) != nil {
-                    Button(selectedVariants.contains { $0.id == variant.id } ? "この種類は選んであります" : "この種類を選ぶ") {
+                    Button(selectedVariants.contains { $0.id == variant.id } ? LocalizedStringKey("この種類は選んであります") : LocalizedStringKey("この種類を選ぶ")) {
                         selectVariant(variant: variant)
                     }
                     .disabled(isLoading || selectedVariants.contains { $0.id == variant.id })
@@ -248,7 +249,7 @@ struct CatalogAddFavoriteView: View {
         } catch {
             if latestLoadID == loadID {
                 // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed)
+                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed, locale: appTextLocale)
             }
         }
         if latestLoadID == loadID {

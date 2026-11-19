@@ -393,10 +393,10 @@ import Testing
 
     /// 失敗の理由ごとに別の文言を出し、`Retry-After` の秒数がある時は文言に入れる。
     @Test func 失敗の理由ごとに文言が違う() {
-        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: 120)) == "混み合っています\n120 秒ほど待ってからもう一度お試しください")
-        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: nil)) == "混み合っています\n少し待ってからもう一度お試しください")
-        #expect(shopifyCatalogErrorMessage(error: .connectionFailed) == "通信できませんでした\n電波の良い所でもう一度お試しください")
-        #expect(shopifyCatalogErrorMessage(error: .failed) == "商品を読み込めませんでした\n少し待ってからもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: 120), locale: Locale(identifier: "ja")) == "混み合っています\n120 秒ほど待ってからもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: nil), locale: Locale(identifier: "ja")) == "混み合っています\n少し待ってからもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .connectionFailed, locale: Locale(identifier: "ja")) == "通信できませんでした\n電波の良い所でもう一度お試しください")
+        #expect(shopifyCatalogErrorMessage(error: .failed, locale: Locale(identifier: "ja")) == "商品を読み込めませんでした\n少し待ってからもう一度お試しください")
     }
 
     /// 価格を出してよい残りの秒数は、取得した時が 600 秒で、10 分たった後は 0 のまま。

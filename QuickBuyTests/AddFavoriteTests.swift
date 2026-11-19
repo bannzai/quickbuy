@@ -516,12 +516,12 @@ struct AddFavoriteTests {
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
-        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL) == "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください")
+        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL, locale: Locale(identifier: "ja")) == "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください")
         #expect(
-            favoriteAdditionLoadErrorMessage(error: .notAmazonProductPageURL)
+            favoriteAdditionLoadErrorMessage(error: .notAmazonProductPageURL, locale: Locale(identifier: "ja"))
                 == "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください"
         )
-        #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
-        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable, locale: Locale(identifier: "ja")).hasPrefix("商品の情報を取得できませんでした"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable, locale: Locale(identifier: "ja")).hasPrefix("この商品は登録できません"))
     }
 }

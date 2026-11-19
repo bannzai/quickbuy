@@ -188,7 +188,7 @@ struct FavoriteWidgetRowDetail: View {
 
     /// 「種類 ・ 個数」と、日数が過ぎた時だけ「そろそろ買う頃」。
     var body: some View {
-        Text(favoriteWidgetRowCaption(favorite: favorite))
+        Text(favoriteWidgetRowCaption(favorite: favorite, locale: appTextLocale))
             .font(.caption)
             .foregroundStyle(.secondary)
             .lineLimit(1)
@@ -214,7 +214,7 @@ struct FavoriteWidgetCartInButton: View {
     var body: some View {
         if isCartInButtonShown(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized) {
             Button(intent: CartInIntent(favoriteID: favorite.id)) {
-                Text(cartInButtonTitle(favorite: favorite))
+                Text(cartInButtonTitle(favorite: favorite, locale: appTextLocale))
                     .font(.footnote.weight(.heavy))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -228,12 +228,12 @@ struct FavoriteWidgetCartInButton: View {
 
 /// 通知が許可されていない時に出す、ボタン (「カートイン」・「Amazon で開く」) には通知の許可が要ることの 1 行。
 struct FavoritesWidgetNotificationRequiredText: View {
-    /// ウィジェットに並べているお気に入り。文言に出すボタンの名前を決める (`widgetNotificationRequiredText(favorites:)`)。
+    /// ウィジェットに並べているお気に入り。文言に出すボタンの名前を決める (`widgetNotificationRequiredText(favorites:locale:)`)。
     let favorites: [Favorite]
 
     /// 補足の色の小さい文字の 1 行。
     var body: some View {
-        Text(widgetNotificationRequiredText(favorites: favorites))
+        Text(widgetNotificationRequiredText(favorites: favorites, locale: appTextLocale))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(2)
@@ -260,9 +260,9 @@ struct FavoritesWidgetMessage: View {
     /// 上に出すアイコンの SF Symbols の名前。
     let systemImageName: String
     /// 見出し。
-    let title: String
+    let title: LocalizedStringKey
     /// 見出しの下の説明。無ければ nil。
-    let description: String?
+    let description: LocalizedStringKey?
 
     /// アイコン・見出し・説明。
     var body: some View {
