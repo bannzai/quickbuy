@@ -24,7 +24,9 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ matrix.language == 'swift' && 'macos-26' || 'ubuntu-latest' }}
-    timeout-minutes: 45
+    # swift の job は 2026-11-19 の初回の run (44511193861) で 38 分 50 秒かかった (CodeQL の追跡の下のビルドだけで約 36 分)。
+    # cache は無く毎回この程度かかる見込みのため、runner の速さのばらつきを見込んで実測の 2 倍強にした
+    timeout-minutes: 90
     permissions:
       security-events: write # 解析の結果を code scanning に送るため
       contents: read
@@ -52,11 +54,15 @@ jobs:
         run: scripts/restore-google-service-info-plist.sh
       - name: アプリをビルドする (CI の release-build と同じ scheme のビルド)
         if: matrix.build-mode == 'manual'
+        # DerivedData (依存パッケージの checkout を含む) は checkout の外に置き、依存のコードを自分のソースとして解析に取り込まないようにする
         run: |
           xcodebuild build -project QuickBuy.xcodeproj -scheme QuickBuy -configuration Release \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO
       - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: "/language:${{ matrix.language }}"
+          # データベースは secret から書き出した GoogleService-Info.plist のある checkout から作るため、code scanning へ送らない
+          # (解析の結果の送信は別の入力 upload で、こちらは止めない)
+          upload-database: false
