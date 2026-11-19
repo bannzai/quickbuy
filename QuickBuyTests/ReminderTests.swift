@@ -324,6 +324,7 @@ struct ReminderTests {
     @Test func 保存先を読めない時の通知のタップでは購入画面を開かない() throws {
         let fileURL = temporaryFavoritesFileURL()
         try Data("壊れた中身".utf8).write(to: fileURL)
+        var recordedEvents: [AnalyticsEvent] = []
 
         #expect(
             purchaseURLForNotificationResponse(
@@ -333,9 +334,10 @@ struct ReminderTests {
                 now: countedFrom,
                 fileURL: fileURL,
                 applyChanges: { _ in },
-                recordAnalyticsEvent: { _ in }
+                recordAnalyticsEvent: { recordedEvents.append($0) }
             ) == nil
         )
+        #expect(recordedEvents.isEmpty)
     }
 
     /// 保存先を読めない時 (中身が壊れている時) は、一覧の確認の「開く」が使う関数は URL を返さずにエラーを投げる (一覧は「保存できませんでした」を出して購入画面を開かない)。

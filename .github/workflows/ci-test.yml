@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: 設定ファイルを書き出すスクリプトのテスト
+        run: bash scripts/test/test-restore-google-service-info-plist.sh
       - name: Firebase の設定ファイルを secret から書き出す
         env:
           GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}

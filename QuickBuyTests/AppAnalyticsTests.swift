@@ -135,6 +135,32 @@ struct AppAnalyticsTests {
         )
     }
 
+    /// 小・中・大以外の大きさは `other` にまとめる (WidgetKit が大きさを足しても記録を落とさない)。
+    @Test func 小中大以外の大きさはotherにまとめる() {
+        #expect(widgetFamilyName(widgetFamily: .systemExtraLarge) == "other")
+        #expect(widgetFamilyName(widgetFamily: .accessoryCircular) == "other")
+        #expect(
+            widgetPlacedEvent(widgetFamilies: [.systemSmall, .systemExtraLarge])
+                == AnalyticsEvent(name: "widget_placed", parameters: ["widget_families": "other,small"])
+        )
+    }
+
+    /// ウィジェットの構成を読めた時は、お気に入りのウィジェットだけからイベントを作る。
+    @Test func 構成を読めた時はお気に入りのウィジェットからイベントを作る() {
+        #expect(
+            widgetPlacedEvent(widgetInfosResult: .success([
+                (kind: "OtherWidget", family: .systemLarge),
+                (kind: favoritesWidgetKind, family: .systemMedium),
+            ])) == AnalyticsEvent(name: "widget_placed", parameters: ["widget_families": "medium"])
+        )
+        #expect(widgetPlacedEvent(widgetInfosResult: .success([(kind: "OtherWidget", family: .systemLarge)])) == nil)
+    }
+
+    /// ウィジェットの構成を読めなかった時は記録しない (置いていない時と区別できないため)。
+    @Test func 構成を読めなかった時は記録しない() {
+        #expect(widgetPlacedEvent(widgetInfosResult: .failure(CocoaError(.fileReadUnknown))) == nil)
+    }
+
     /// お気に入りのウィジェットを 1 つも置いていない時は、記録しない (nil)。
     @Test func ウィジェットを置いていない時は記録しない() {
         #expect(widgetPlacedEvent(widgetFamilies: []) == nil)

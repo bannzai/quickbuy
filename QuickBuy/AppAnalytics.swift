@@ -71,18 +71,24 @@ func favoritesWidgetFamilies(widgetInfos: [(kind: String, family: WidgetFamily)]
     widgetInfos.filter { $0.kind == favoritesWidgetKind }.map(\.family)
 }
 
+/// 置かれているウィジェットの構成を読んだ結果から、記録するイベントを返す。記録しない時は nil。
+///
+/// 読めなかった時 (`.failure`) は記録しない (置いていない時と区別できないため、置いていない扱いで記録を作らない)。
+func widgetPlacedEvent(widgetInfosResult: Result<[(kind: String, family: WidgetFamily)], any Error>) -> AnalyticsEvent? {
+    guard case let .success(widgetInfos) = widgetInfosResult else {
+        return nil
+    }
+    return widgetPlacedEvent(widgetFamilies: favoritesWidgetFamilies(widgetInfos: widgetInfos))
+}
+
 /// 置かれているウィジェットを OS から読み、お気に入りのウィジェットを置いていれば `recordAnalyticsEvent` に記録を渡す。アプリが前面に来た時に呼ぶ。
 ///
-/// 読めなかった時は記録しない (置いていない時と区別できないため、置いていない扱いで記録を作らない)。
 /// async 版の `currentConfigurations()` は iOS 18 からのため、iOS 17 から使える完了ハンドラ版で読む。
 func recordWidgetPlacement(recordAnalyticsEvent: @escaping (AnalyticsEvent) -> Void) {
     WidgetCenter.shared.getCurrentConfigurations { result in
-        guard case let .success(widgetInfos) = result,
-              let event = widgetPlacedEvent(widgetFamilies: favoritesWidgetFamilies(widgetInfos: widgetInfos.map { ($0.kind, $0.family) }))
-        else {
-            return
+        if let event = widgetPlacedEvent(widgetInfosResult: result.map { $0.map { (kind: $0.kind, family: $0.family) } }.mapError { $0 as any Error }) {
+            recordAnalyticsEvent(event)
         }
-        recordAnalyticsEvent(event)
     }
 }
 
