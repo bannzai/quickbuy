@@ -139,7 +139,8 @@ struct AppStoreScreenshotPage: View {
             }
             .multilineTextAlignment(.center)
             .lineSpacing(4)
-            .minimumScaleFactor(0.8)
+            // 縦に必要な分だけ広げる。付けないと `ImageRenderer` が 2 行の見出しを 1 行に切り詰める (2026-11-20 に PR #60 の CI で描いた画像で確かめた)。
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 24)
             .padding(.top, 60)
             .padding(.bottom, 32)
@@ -153,7 +154,7 @@ struct AppStoreScreenshotPage: View {
     }
 }
 
-/// 端末の枠と、その中の画面。下端は 1 枚の外にはみ出させて切る。
+/// 端末の枠と、その中の画面。
 private struct AppStoreScreenshotDevice: View {
     /// 写す画面。
     let screen: AppStoreScreenshotScreen
@@ -165,7 +166,7 @@ private struct AppStoreScreenshotDevice: View {
     /// 枠と画面。
     var body: some View {
         content
-            .frame(width: 350, height: 760, alignment: .top)
+            .frame(width: 350, height: 710, alignment: .top)
             .clipShape(RoundedRectangle(cornerRadius: 46))
             .padding(10)
             .background(Color.black, in: RoundedRectangle(cornerRadius: 56))
@@ -275,6 +276,14 @@ private struct AppStoreScreenshotWidgetScreen: View {
             }
             widget
                 .padding(.horizontal, 18)
+            // ウィジェットの下の、ほかのアプリのアイコンの代わりの 2 列。
+            ForEach(0..<2, id: \.self) { _ in
+                HStack(spacing: 22) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)).frame(width: 60, height: 60)
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(appStoreScreenshotWallpaperColor)
@@ -295,12 +304,14 @@ private struct AppStoreScreenshotWidgetScreen: View {
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                     Spacer(minLength: 4)
                     Text(cartInButtonTitle(favorite: favorite, locale: locale))
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
+                        .fixedSize()
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .background(quickBuyAccentColor, in: Capsule())
                 }
@@ -351,21 +362,25 @@ private struct AppStoreScreenshotFavoritesScreen: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(favorite.name).font(.system(size: 15, weight: .bold))
                 if let variantName = favorite.variantName {
-                    Text(variantName).font(.system(size: 13, weight: .bold)).foregroundStyle(quickBuyAccentColor)
+                    Text(variantName).font(.system(size: 13, weight: .bold)).foregroundStyle(quickBuyAccentColor).lineLimit(1).minimumScaleFactor(0.7)
                 }
                 Text("\(shopDomainText(favorite: favorite))\(localized(key: " ・ \(favorite.quantity) 個", locale: locale))")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(reminderStatusText(reminder: favorite.reminder, now: now, locale: locale))
                     .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? reminderDueColor : .secondary)
             }
             Spacer(minLength: 4)
             Text(cartInButtonTitle(favorite: favorite, locale: locale))
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 12)
+                .fixedSize()
+                .padding(.horizontal, 10)
                 .padding(.vertical, 9)
                 .background(quickBuyAccentColor, in: Capsule())
         }
