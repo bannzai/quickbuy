@@ -85,6 +85,13 @@
         }
     }
 
+    /// 通知の許可の説明の画面を出した記録を消す (説明の画面をもう一度出して確かめるために使う)。記録が無い時は何も変わらない。
+    ///
+    /// 端末の通知の許可そのものは変えない (アプリから許可を聞かれる前の状態へ戻す手段は無い)。
+    func resetNotificationPermissionExplanationPresented(userDefaults: UserDefaults) {
+        userDefaults.removeObject(forKey: notificationPermissionExplanationPresentedKey)
+    }
+
     /// 追加の画面の見本に使う商品ページの URL。店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン)。
     let sampleProductPageURLText = "https://mori-coffee.example/products/coffee-beans"
 
@@ -145,7 +152,7 @@
         /// 見本の商品の追加の画面を出している間は true。
         @State private var isAddingSampleProduct = false
 
-        /// 見本のお気に入りを入れる・消すのボタン、見本の商品で追加の画面を開くボタン、リマインドの状態と通知を作るボタン。
+        /// 見本のお気に入りを入れる・消すのボタン、見本の商品で追加の画面を開くボタン、リマインドの状態と通知を作るボタン、通知の許可の説明の画面を出した記録を消すボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -199,6 +206,15 @@
                         }
                     } header: {
                         Text("リマインド")
+                    }
+                    Section {
+                        Button("説明の画面を出した記録を消す") {
+                            finish {
+                                resetNotificationPermissionExplanationPresented(userDefaults: .standard)
+                            }
+                        }
+                    } header: {
+                        Text("通知の許可の説明")
                     }
                 }
                 .navigationTitle("開発者メニュー")

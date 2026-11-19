@@ -35,6 +35,8 @@ struct FavoritesListView: View {
     @State private var isAddingFavorite = false
     /// 設定画面を出している間は true。
     @State private var isSettingsPresented = false
+    /// 通知の許可の説明の画面を出している間は true。
+    @State private var isNotificationPermissionExplanationSheetPresented = false
 
     /// 一覧と、追加・編集・設定の画面への入口。
     var body: some View {
@@ -77,20 +79,28 @@ struct FavoritesListView: View {
             }
             await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
             reload()
+            // 共有メニューの拡張の中で最初のお気に入りを保存した時は、次にアプリが前面に来たここで説明の画面を出す。
+            await presentNotificationPermissionExplanationIfNeeded()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in
             EditFavoriteView(favorite: favorite, favoritesFileURL: favoritesFileURL) {
                 editingFavorite = nil
             }
         }
-        .sheet(isPresented: $isAddingFavorite, onDismiss: reload) {
+        .sheet(isPresented: $isAddingFavorite, onDismiss: reloadAndPresentNotificationPermissionExplanationIfNeeded) {
             AddFavoriteView(initialText: "", favoritesFileURL: favoritesFileURL, urlSession: .shared) {
                 isAddingFavorite = false
             }
         }
-        .sheet(isPresented: $isSettingsPresented, onDismiss: reload) {
+        // 設定画面の先の開発者メニュー (DEBUG ビルドだけ) でお気に入りを入れた時にも、追加の画面と同じく説明の画面を出す。
+        .sheet(isPresented: $isSettingsPresented, onDismiss: reloadAndPresentNotificationPermissionExplanationIfNeeded) {
             SettingsView(favoritesFileURL: favoritesFileURL) {
                 isSettingsPresented = false
+            }
+        }
+        .fullScreenCover(isPresented: $isNotificationPermissionExplanationSheetPresented) {
+            NotificationPermissionExplanationView(userDefaults: .standard) {
+                isNotificationPermissionExplanationSheetPresented = false
             }
         }
         .alert("保存できませんでした", isPresented: $isSaveFailed) {}
@@ -191,6 +201,29 @@ struct FavoritesListView: View {
         } catch {
             isLoadFailed = true
         }
+    }
+
+    /// 保存先からお気に入りを読み直し、通知の許可の説明の画面を出す条件を満たしていれば出す。追加の画面と設定画面を閉じた後に呼ぶ。
+    private func reloadAndPresentNotificationPermissionExplanationIfNeeded() {
+        reload()
+        Task {
+            await presentNotificationPermissionExplanationIfNeeded()
+        }
+    }
+
+    /// 通知の許可の説明の画面を出す条件 (`shouldPresentNotificationPermissionExplanation`) を満たしていれば出す。
+    ///
+    /// 追加・編集・設定の画面が出ている間は出さない (同時には表示されず、出したつもりのまま表示されないため)。次にこの関数が呼ばれた時に出す。
+    private func presentNotificationPermissionExplanationIfNeeded() async {
+        guard shouldPresentNotificationPermissionExplanation(
+            favoriteCount: favorites.count,
+            authorizationStatus: await UNUserNotificationCenter.current().notificationSettings().authorizationStatus,
+            isExplanationPresented: isNotificationPermissionExplanationPresented(userDefaults: .standard),
+            isAnotherScreenPresented: editingFavorite != nil || isAddingFavorite || isSettingsPresented
+        ) else {
+            return
+        }
+        isNotificationPermissionExplanationSheetPresented = true
     }
 
     /// 保存の操作を実行し、失敗した時はその旨を知らせる。成否にかかわらず、保存先の今の並びを表示に反映する。
