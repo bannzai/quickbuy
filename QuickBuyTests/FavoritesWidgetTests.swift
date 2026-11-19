@@ -125,6 +125,11 @@ struct FavoritesWidgetTests {
         )
     }
 
+    /// 表示内容の作り直しは、今の 1 時間後に頼む (設定アプリで通知の許可を変えた後、アプリを開かなくても 1 時間以内に「カートイン」の出し方が合う)。
+    @Test func 作り直しは1時間後に頼む() {
+        #expect(favoritesWidgetTimelineReloadDate(now: countedFrom) == countedFrom.addingTimeInterval(60 * 60))
+    }
+
     /// お気に入りが無い時は今の時刻だけを返す。
     @Test func お気に入りが無い時は今だけ() {
         #expect(favoritesWidgetTimelineDates(favorites: [], now: countedFrom) == [countedFrom])

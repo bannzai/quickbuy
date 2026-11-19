@@ -56,3 +56,11 @@ func isCartInAvailable(authorizationStatus: UNAuthorizationStatus) -> Bool {
 func isCartInButtonShown(favorite: Favorite, isNotificationAuthorized: Bool) -> Bool {
     isNotificationAuthorized && purchaseURL(favorite: favorite) != nil
 }
+
+/// ウィジェットの表示内容の作り直しを OS に頼む時刻を返す。`now` の 1 時間後。
+///
+/// 通知の許可の状態はアプリを開かずに設定アプリで変わり得て、ウィジェットはその変化を知らされない。作り直すまで「カートイン」の出し方が古いままになるため、時刻で作り直す。
+/// 1 時間は、許可した後にボタンが出るまでの遅れを 1 時間以内に収めつつ、1 日 24 回で WidgetKit の作り直しの回数の目安 (1 日 40〜70 回。https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date ) に収まる値。
+func favoritesWidgetTimelineReloadDate(now: Date) -> Date {
+    now.addingTimeInterval(3600)
+}

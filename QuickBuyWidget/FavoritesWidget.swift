@@ -30,6 +30,7 @@ struct FavoritesTimelineEntry: TimelineEntry {
 /// ウィジェットに表示内容を渡す。保存済みのお気に入りの今の並びを、今と、リマインドの日数が過ぎる各時刻の分だけ返す。
 ///
 /// 並びが変わった時の表示の更新は、`saveFavorites(favorites:fileURL:)` とアプリが前面に来た時の更新の依頼で行う。
+/// 設定アプリで通知の許可を変えてアプリを開かずにホーム画面へ戻った時のため、`favoritesWidgetTimelineReloadDate(now:)` の時刻に作り直しを OS に頼む。
 struct FavoritesTimelineProvider: TimelineProvider {
     /// 読み込み中に出す仮の表示内容を返す。お気に入りが無い時の表示を仮の表示にする。
     func placeholder(in _: Context) -> FavoritesTimelineEntry {
@@ -46,7 +47,8 @@ struct FavoritesTimelineProvider: TimelineProvider {
     /// 表示内容の並びを completion に渡す。
     func getTimeline(in _: Context, completion: @escaping (Timeline<FavoritesTimelineEntry>) -> Void) {
         Task {
-            await completion(Timeline(entries: savedFavoritesTimelineEntries(now: .now), policy: .never))
+            let now = Date.now
+            await completion(Timeline(entries: savedFavoritesTimelineEntries(now: now), policy: .after(favoritesWidgetTimelineReloadDate(now: now))))
         }
     }
 
