@@ -253,6 +253,28 @@ private struct AppStoreScreenshotNotification: View {
     }
 }
 
+/// 一覧やフォームの画面の地の色。`Color(uiColor: .systemGroupedBackground)` の明るい外観の色 `#F2F2F7`。
+private let appStoreScreenshotGroupedBackgroundColor = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
+
+/// 「カートイン」のボタンの見た目 (強調の色の地に白い太字、角の丸み 10)。アプリの一覧 (QuickBuy/ContentView.swift) とウィジェット (QuickBuyWidget/FavoritesWidget.swift) のボタンに合わせる。
+private struct AppStoreScreenshotCartInButton: View {
+    /// ボタンが指すお気に入り。
+    let favorite: Favorite
+    /// 文言の言語。
+    let locale: Locale
+
+    /// 「カートイン」(Amazon の商品は「Amazon で開く」)。
+    var body: some View {
+        Text(cartInButtonTitle(favorite: favorite, locale: locale))
+            .font(.system(size: 13, weight: .heavy))
+            .foregroundStyle(.white)
+            .fixedSize()
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(quickBuyAccentColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
 /// ホーム画面のウィジェット (大) と、上から届いた「カートイン」の確認の通知。
 private struct AppStoreScreenshotWidgetScreen: View {
     /// ウィジェットに並べるお気に入り。
@@ -268,52 +290,44 @@ private struct AppStoreScreenshotWidgetScreen: View {
                 AppStoreScreenshotNotification(title: content.title, message: content.body)
                     .padding(.horizontal, 12)
             }
-            // ほかのアプリのアイコンの代わりの、中身の無い角丸の正方形の 1 列。
-            HStack(spacing: 22) {
-                ForEach(0..<4, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)).frame(width: 60, height: 60)
-                }
-            }
+            iconRow
             widget
                 .padding(.horizontal, 18)
-            // ウィジェットの下の、ほかのアプリのアイコンの代わりの 2 列。
-            ForEach(0..<2, id: \.self) { _ in
-                HStack(spacing: 22) {
-                    ForEach(0..<4, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)).frame(width: 60, height: 60)
-                    }
-                }
-            }
+            iconRow
+            iconRow
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(appStoreScreenshotWallpaperColor)
     }
 
-    /// お気に入りの行を並べたウィジェット (QuickBuyWidget/FavoritesWidget.swift の行と同じ文言)。
+    /// ほかのアプリのアイコンの代わりの、中身の無い角丸の正方形の 1 列。
+    private var iconRow: some View {
+        HStack(spacing: 22) {
+            ForEach(0..<4, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.18)).frame(width: 60, height: 60)
+            }
+        }
+    }
+
+    /// お気に入りの行を並べたウィジェット (QuickBuyWidget/FavoritesWidget.swift の大サイズの行と同じ並びと文言。左は買い物袋のアイコン)。
     private var widget: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(localized(key: "Quick Buy のお気に入り", locale: locale))
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(quickBuyAccentColor)
-            ForEach(Array(favorites.enumerated()), id: \.element.id) { index, favorite in
+            ForEach(favorites) { favorite in
                 HStack(spacing: 10) {
-                    AppStoreScreenshotThumbnail(systemName: appStoreScreenshotFavoriteSymbols[index], size: 44)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(favorite.name).font(.system(size: 15, weight: .bold))
+                    AppStoreScreenshotThumbnail(systemName: "bag", size: 48)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(favorite.name).font(.system(size: 15, weight: .bold)).lineLimit(1)
                         Text(favoriteWidgetRowCaption(favorite: favorite, locale: locale))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
-                    Spacer(minLength: 4)
-                    Text(cartInButtonTitle(favorite: favorite, locale: locale))
-                        .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .fixedSize()
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(quickBuyAccentColor, in: Capsule())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    AppStoreScreenshotCartInButton(favorite: favorite, locale: locale)
                 }
             }
         }
@@ -323,7 +337,7 @@ private struct AppStoreScreenshotWidgetScreen: View {
     }
 }
 
-/// アプリのお気に入りの一覧と、先頭のお気に入りの「カートイン」を押した後の確認 (QuickBuy/ContentView.swift の一覧と確認と同じ文言)。
+/// アプリのお気に入りの一覧と、先頭のお気に入りの「カートイン」を押した後の確認 (QuickBuy/ContentView.swift の `FavoritesListView` と同じ並びと文言)。
 private struct AppStoreScreenshotFavoritesScreen: View {
     /// 一覧に並べるお気に入り。
     let favorites: [Favorite]
@@ -332,33 +346,50 @@ private struct AppStoreScreenshotFavoritesScreen: View {
     /// リマインドの状態を数える日時。
     let now: Date
 
-    /// 見出し・一覧・確認・タブ。
+    /// 上のボタン・見出し・一覧・補足・確認・タブ。
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             AppStoreScreenshotStatusBar(color: .black)
+            HStack(spacing: 18) {
+                Image(systemName: "gearshape")
+                // `EditButton` の文言 (iOS が言語ごとに出す「編集」/「Edit」)。
+                Text(verbatim: isJapanese(locale: locale) ? "編集" : "Edit")
+                Spacer()
+                Image(systemName: "plus")
+            }
+            .font(.system(size: 17))
+            .foregroundStyle(quickBuyAccentColor)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 6)
             Text(localized(key: "お気に入り", locale: locale))
-                .font(.system(size: 32, weight: .heavy))
+                .font(.system(size: 30, weight: .bold))
                 .padding(.horizontal, 18)
-                .padding(.bottom, 12)
-            VStack(spacing: 0) {
+                .padding(.bottom, 8)
+            VStack(spacing: 10) {
                 ForEach(Array(favorites.enumerated()), id: \.element.id) { index, favorite in
                     row(favorite: favorite, systemName: appStoreScreenshotFavoriteSymbols[index])
-                    Divider().padding(.leading, 84)
                 }
             }
+            .padding(.horizontal, 16)
+            Text(localized(key: "「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います", locale: locale))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
             Spacer(minLength: 0)
             confirmation
             AppStoreScreenshotTabBar(locale: locale, selectedTabTitleKey: "お気に入り")
         }
         .foregroundStyle(.black)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(.white)
+        .background(appStoreScreenshotGroupedBackgroundColor)
     }
 
-    /// お気に入り 1 件の行。
+    /// お気に入り 1 件の行。白い角丸の地に、画像・名前・種類・店と個数・リマインドの状態・「カートイン」。
     private func row(favorite: Favorite, systemName: String) -> some View {
         HStack(spacing: 12) {
-            AppStoreScreenshotThumbnail(systemName: systemName, size: 54)
+            AppStoreScreenshotThumbnail(systemName: systemName, size: 56)
             VStack(alignment: .leading, spacing: 3) {
                 Text(favorite.name).font(.system(size: 15, weight: .bold))
                 if let variantName = favorite.variantName {
@@ -370,41 +401,35 @@ private struct AppStoreScreenshotFavoritesScreen: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(reminderStatusText(reminder: favorite.reminder, now: now, locale: locale))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? .bold : .regular))
+                    .foregroundStyle(favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? reminderDueColor : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .foregroundStyle(favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? reminderDueColor : .secondary)
             }
             Spacer(minLength: 4)
-            Text(cartInButtonTitle(favorite: favorite, locale: locale))
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(.white)
-                .fixedSize()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .background(quickBuyAccentColor, in: Capsule())
+            AppStoreScreenshotCartInButton(favorite: favorite, locale: locale)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
+        .padding(12)
+        .background(.white, in: RoundedRectangle(cornerRadius: 14))
     }
 
-    /// 先頭のお気に入りの「カートイン」を押した後の確認。
+    /// 先頭のお気に入りの「カートイン」を押した後に画面の下に出る確認 (見出し・説明・「開く」)。
     private var confirmation: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(cartInConfirmationTitle(favorite: favorites[0], locale: locale)).font(.system(size: 15, weight: .heavy))
                 Text(cartInConfirmationText(favorite: favorites[0], locale: locale))
                     .font(.system(size: 12))
                     .foregroundStyle(cartInConfirmationSecondaryTextColor)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 4)
-            Text(localized(key: "やめる", locale: locale)).font(.system(size: 14, weight: .bold))
+            Spacer(minLength: 0)
             Text(localized(key: "開く", locale: locale))
-                .font(.system(size: 14, weight: .heavy))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundStyle(cartInConfirmationBackgroundColor)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 40)
+                .fixedSize()
+                .padding(.horizontal, 16)
+                .frame(minHeight: 44)
                 .background(.white, in: RoundedRectangle(cornerRadius: 10))
         }
         .foregroundStyle(.white)
@@ -415,17 +440,17 @@ private struct AppStoreScreenshotFavoritesScreen: View {
     }
 }
 
-/// 画面の下端のタブ (ホーム・お気に入り・設定)。
+/// 画面の下端のタブ (「ホーム」と「お気に入り」。QuickBuy/ContentView.swift の `TabView` と同じ名前とアイコン)。
 private struct AppStoreScreenshotTabBar: View {
     /// 文言の言語。
     let locale: Locale
     /// 選んでいるタブの文字列カタログのキー。
     let selectedTabTitleKey: String
 
-    /// 3 つのタブ。
+    /// 2 つのタブ。
     var body: some View {
         HStack {
-            ForEach([("ホーム", "house.fill"), ("お気に入り", "heart.fill"), ("設定", "gearshape.fill")], id: \.0) { titleKey, systemName in
+            ForEach([("ホーム", "magnifyingglass"), ("お気に入り", "star.fill")], id: \.0) { titleKey, systemName in
                 VStack(spacing: 3) {
                     Image(systemName: systemName).font(.system(size: 20))
                     Text(localized(key: String.LocalizationValue(titleKey), locale: locale)).font(.system(size: 10, weight: .semibold))
@@ -435,136 +460,213 @@ private struct AppStoreScreenshotTabBar: View {
             }
         }
         .padding(.top, 8)
-        .padding(.bottom, 26)
-        .background(Color(white: 0.97))
+        .padding(.bottom, 24)
+        .background(Color(white: 0.98))
     }
 }
 
-/// ホームの商品の検索の結果 (QuickBuy/HomeView.swift の検索と同じ文言)。
+/// トップページの商品の検索の結果 (QuickBuy/HomeView.swift と同じ並びと文言。検索語を入れた後なので上の案内は出ていない)。
 private struct AppStoreScreenshotSearchScreen: View {
     /// 文言の言語。
     let locale: Locale
 
-    /// 検索の欄・結果の見出し・結果の格子・タブ。
+    /// 見出し・検索窓・検索語の並び・結果の見出しと商品の 2 列の並び・タブ。
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             AppStoreScreenshotStatusBar(color: .black)
-            Text(localized(key: "買い直す物から探す", locale: locale))
-                .font(.system(size: 26, weight: .heavy))
-                .padding(.horizontal, 18)
-                .padding(.bottom, 12)
-            HStack(spacing: 8) {
+            Text(verbatim: "Quick Buy")
+                .font(.system(size: 30, weight: .bold))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                Text(localized(key: "コーヒー豆", locale: locale)).font(.system(size: 16))
+                Text(homeSuggestedSearchQueries(locale: locale)[0]).font(.system(size: 16))
                 Spacer()
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
             }
-            .padding(12)
-            .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 18)
-            Text(localized(key: "「\(localized(key: "コーヒー豆", locale: locale))」の検索結果", locale: locale))
-                .font(.system(size: 15, weight: .bold))
-                .padding(.horizontal, 18)
-                .padding(.top, 18)
-                .padding(.bottom, 10)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 14) {
-                ForEach(searchResults(), id: \.name) { result in
-                    VStack(alignment: .leading, spacing: 4) {
-                        AppStoreScreenshotThumbnail(systemName: "cup.and.saucer.fill", size: 145)
-                        Text(result.name).font(.system(size: 13, weight: .bold)).lineLimit(1)
-                        Text(verbatim: result.shopDomain).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(Color(white: 0.89), in: RoundedRectangle(cornerRadius: 11))
+            .padding(.horizontal, 16)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(localized(key: "買い直す物から探す", locale: locale)).font(.system(size: 16, weight: .semibold))
+                HStack(spacing: 8) {
+                    ForEach(homeSuggestedSearchQueries(locale: locale), id: \.self) { query in
+                        Text(query)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(quickBuyAccentColor)
+                            .fixedSize()
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .background(quickBuyAccentColor.opacity(0.14), in: Capsule())
                     }
                 }
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            // 横に流れる検索語の並びは、画面の右端で切れる。
+            .frame(width: 350, alignment: .leading)
+            .clipped()
+            Text(localized(key: "「\(homeSuggestedSearchQueries(locale: locale)[0])」の検索結果", locale: locale))
+                .font(.system(size: 16, weight: .semibold))
+                .padding(.horizontal, 16)
+                .padding(.top, 18)
+                .padding(.bottom, 10)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(searchResults(), id: \.name) { result in
+                    VStack(alignment: .leading, spacing: 5) {
+                        Image(systemName: "cup.and.saucer.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(quickBuyAccentColor)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 104)
+                            .background(appStoreScreenshotBackgroundColor, in: RoundedRectangle(cornerRadius: 12))
+                        Text(verbatim: result.shopDomain).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                        Text(result.name).font(.system(size: 14, weight: .bold)).lineLimit(1)
+                        Text(verbatim: result.price).font(.system(size: 14))
+                        Text(localized(key: "お気に入り追加", locale: locale))
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 32)
+                            .background(quickBuyAccentColor, in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .padding(10)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 14))
+                }
+            }
+            .padding(.horizontal, 16)
             Spacer(minLength: 0)
-            AppStoreScreenshotTabBar(locale: locale, selectedTabTitleKey: "ホーム")
         }
         .foregroundStyle(.black)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(.white)
+        .background(appStoreScreenshotGroupedBackgroundColor)
+        .overlay(alignment: .bottom) {
+            AppStoreScreenshotTabBar(locale: locale, selectedTabTitleKey: "ホーム")
+        }
     }
 
-    /// 検索の結果に並べる見本の商品の名前と店のドメイン。店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン) にする。
-    private func searchResults() -> [(name: String, shopDomain: String)] {
+    /// 検索の結果に並べる見本の商品の名前・店のドメイン・価格。店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン) にし、価格も見本の値。
+    private func searchResults() -> [(name: String, shopDomain: String, price: String)] {
         isJapanese(locale: locale)
-            ? [("いつものブレンド", "mori-coffee.example"), ("深煎り 200g", "mori-coffee.example"), ("浅煎り 200g", "hoshi-roast.example"), ("デカフェ 150g", "hoshi-roast.example")]
-            : [("House Blend", "mori-coffee.example"), ("Dark Roast 200g", "mori-coffee.example"), ("Light Roast 200g", "hoshi-roast.example"), ("Decaf 150g", "hoshi-roast.example")]
+            ? [("いつものブレンド", "mori-coffee.example", "¥1,480"), ("深煎り 200g", "mori-coffee.example", "¥1,280"), ("浅煎り 200g", "hoshi-roast.example", "¥1,350"), ("デカフェ 150g", "hoshi-roast.example", "¥1,200")]
+            : [("House Blend", "mori-coffee.example", "¥1,480"), ("Dark Roast 200g", "mori-coffee.example", "¥1,280"), ("Light Roast 200g", "hoshi-roast.example", "¥1,350"), ("Decaf 150g", "hoshi-roast.example", "¥1,200")]
     }
 }
 
-/// 種類と個数を選んでお気に入りに追加する画面 (Shared/AddFavoriteView.swift と同じ文言)。
+/// 検索の結果から開く、種類と個数を選んでお気に入りに追加する画面 (QuickBuy/CatalogAddFavoriteView.swift と同じ並びと文言)。
 private struct AppStoreScreenshotAddFavoriteScreen: View {
-    /// 追加するお気に入り (商品バリアントの名前と個数と店を出す)。
+    /// 追加するお気に入り (名前・商品バリアントの名前・個数・店を出す)。
     let favorite: Favorite
     /// 文言の言語。
     let locale: Locale
 
-    /// 見出し・店・種類・個数・追加のボタン。
+    /// 上の「やめる」と見出し・店のドメイン・名前・種類の選び方・選んだ種類と個数・追加のボタン。
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             AppStoreScreenshotStatusBar(color: .black)
-            Text(localized(key: "種類と個数を選ぶ", locale: locale))
-                .font(.system(size: 24, weight: .heavy))
-                .padding(.horizontal, 18)
+            ZStack {
+                Text(localized(key: "お気に入りに追加", locale: locale)).font(.system(size: 16, weight: .semibold))
+                HStack {
+                    Text(localized(key: "やめる", locale: locale)).font(.system(size: 16)).foregroundStyle(quickBuyAccentColor)
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 18)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(localized(key: "この店の商品です", locale: locale)).font(.system(size: 12)).foregroundStyle(.secondary)
+                Text(verbatim: shopDomainText(favorite: favorite)).font(.system(size: 21, weight: .bold))
+                Text(localized(key: "いつも買っている店か確かめてください", locale: locale)).font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(quickBuyAccentColor, lineWidth: 2))
+            .padding(.horizontal, 16)
             HStack(spacing: 12) {
-                AppStoreScreenshotThumbnail(systemName: appStoreScreenshotFavoriteSymbols[0], size: 64)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(favorite.name).font(.system(size: 17, weight: .bold))
-                    Text(localized(key: "この店の商品です", locale: locale)).font(.system(size: 12)).foregroundStyle(.secondary)
-                    Text(verbatim: shopDomainText(favorite: favorite)).font(.system(size: 13, weight: .bold)).foregroundStyle(quickBuyAccentColor)
-                }
-            }
-            .padding(.horizontal, 18)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(localized(key: "お気に入りにする種類", locale: locale))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 8)
-                ForEach(variantNames(), id: \.self) { variantName in
-                    HStack {
-                        Text(variantName).font(.system(size: 15))
-                        Spacer()
-                        Image(systemName: variantName == favorite.variantName ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(variantName == favorite.variantName ? quickBuyAccentColor : Color.gray)
-                    }
-                    .padding(.vertical, 11)
-                    Divider()
-                }
-            }
-            .padding(.horizontal, 18)
-            HStack {
-                Text(localized(key: "個数", locale: locale)).font(.system(size: 15))
+                AppStoreScreenshotThumbnail(systemName: appStoreScreenshotFavoriteSymbols[0], size: 52)
+                Text(favorite.name).font(.system(size: 16))
                 Spacer()
-                Image(systemName: "minus.circle").font(.system(size: 24)).foregroundStyle(quickBuyAccentColor)
-                Text(verbatim: "\(favorite.quantity)").font(.system(size: 18, weight: .bold)).frame(width: 36)
-                Image(systemName: "plus.circle").font(.system(size: 24)).foregroundStyle(quickBuyAccentColor)
             }
-            .padding(.horizontal, 18)
-            Spacer(minLength: 0)
-            VStack(spacing: 8) {
-                Text(localized(key: "追加しただけでは購入されません", locale: locale))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Text(localized(key: "\(1) 種類をお気に入りに追加", locale: locale))
-                    .font(.system(size: 16, weight: .heavy))
+            .padding(10)
+            .background(.white, in: RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 16)
+            section(headerKey: "種類を選ぶ") {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text(verbatim: isJapanese(locale: locale) ? "内容量" : "Size").font(.system(size: 15))
+                        Spacer()
+                        Text(verbatim: "200g").font(.system(size: 15)).foregroundStyle(.secondary)
+                        Image(systemName: "chevron.up.chevron.down").font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                    .frame(height: 40)
+                    Divider()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(favorite.variantName ?? "").font(.system(size: 14))
+                        Text(verbatim: "¥1,480").font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                    .frame(height: 46)
+                    Divider()
+                    Text(localized(key: "この種類は選んであります", locale: locale))
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.gray)
+                        .frame(height: 40)
+                }
+            }
+            section(headerKey: "お気に入りにする種類") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(favorite.variantName ?? "").font(.system(size: 14, weight: .bold))
+                    HStack {
+                        Text(localized(key: "個数", locale: locale)).font(.system(size: 15))
+                        Spacer()
+                        Text(localized(key: "\(favorite.quantity) 個", locale: locale)).font(.system(size: 15))
+                        // `Stepper` の増減のボタン。
+                        HStack(spacing: 14) {
+                            Image(systemName: "minus")
+                            Divider().frame(height: 16)
+                            Image(systemName: "plus")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .frame(height: 30)
+                        .background(Color(white: 0.92), in: Capsule())
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(favoriteAdditionButtonTitle(hasVariantChoices: true, selectedVariantCount: 1, locale: locale))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(quickBuyAccentColor, in: RoundedRectangle(cornerRadius: 14))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(quickBuyAccentColor, in: RoundedRectangle(cornerRadius: 12))
+                Text(localized(key: "追加しただけでは購入されません\n定期購入だけの商品は購入画面を開けず店のトップページが開きます", locale: locale))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 34)
+            .padding(.horizontal, 16)
+            Spacer(minLength: 0)
         }
         .foregroundStyle(.black)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(.white)
+        .background(appStoreScreenshotGroupedBackgroundColor)
     }
 
-    /// 選べる商品バリアントの名前。選んでいる `favorite.variantName` を含む、同じ商品の見本の商品バリアント。
-    private func variantNames() -> [String] {
-        isJapanese(locale: locale)
-            ? ["200g / 豆のまま", "200g / 粉 (中挽き)", "500g / 豆のまま"]
-            : ["200g / Whole bean", "200g / Ground (medium)", "500g / Whole bean"]
+    /// フォームの 1 つのまとまり。小さい見出し (文字列カタログのキー `headerKey` の文言) の下に、白い角丸の地で `content` を出す。
+    private func section(headerKey: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(localized(key: String.LocalizationValue(headerKey), locale: locale))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 14)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .background(.white, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .padding(.horizontal, 16)
     }
 }
 
