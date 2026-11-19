@@ -155,16 +155,19 @@ struct CatalogAddFavoriteView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(variant.title)
                             .font(.subheadline)
-                        HStack(spacing: 6) {
-                            if storefrontProductFetchedAt != nil, !isStorefrontPriceExpired, let price = variant.price {
-                                Text(shopifyCatalogPriceText(money: price))
+                        // 価格と在庫は Shopify の「Caching limits」で同じ 10 分の上限があるため、どちらも期限の間だけ出す。
+                        if storefrontProductFetchedAt != nil, !isStorefrontPriceExpired {
+                            HStack(spacing: 6) {
+                                if let price = variant.price {
+                                    Text(shopifyCatalogPriceText(money: price))
+                                }
+                                if variant.availability?.available == false {
+                                    Text("在庫なし")
+                                }
                             }
-                            if variant.availability?.available == false {
-                                Text("在庫なし")
-                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     }
                     Spacer()
                     if isLoading {
