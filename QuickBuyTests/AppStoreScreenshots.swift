@@ -234,7 +234,7 @@ private struct AppStoreScreenshotNotification: View {
     /// 角を丸めた白の地に並べた通知。
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "bag.fill")
+            Image(systemName: "cart.fill")
                 .font(.system(size: 18))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
