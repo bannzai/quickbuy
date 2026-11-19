@@ -50,6 +50,9 @@
 		B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B50000000000000000000007 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
 		B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ ={isa = PBXBuildFile; fileRef = A50000000000000000000003 /* FavoritesWidgetTests.swift */; };
+		B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000001 /* NotificationPermissionExplanation.swift */; };
+		B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000003 /* PrivacyInfo.xcprivacy */; };
+		B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,6 +133,9 @@
 		A50000000000000000000001 /* FavoritesWidgetContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidgetContent.swift; sourceTree = "<group>"; };
 		A50000000000000000000002 /* QuickBuyAccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickBuyAccentColor.swift; sourceTree = "<group>"; };
 		A50000000000000000000003 /* FavoritesWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidgetTests.swift; sourceTree = "<group>"; };
+		A60000000000000000000001 /* NotificationPermissionExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanation.swift; sourceTree = "<group>"; };
+		A60000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -137,8 +143,10 @@
 			isa = PBXGroup;
 			children = (
 				B5E40B1782B9401D57C38BBA /* Assets.xcassets */,
+				A60000000000000000000003 /* PrivacyInfo.xcprivacy */,
 				DB475B718CDC27643AF3FAA8 /* ContentView.swift */,
 				A20000000000000000000005 /* DeveloperMenuView.swift */,
+				A60000000000000000000001 /* NotificationPermissionExplanation.swift */,
 				A40000000000000000000002 /* ReminderNotifications.swift */,
 				A20000000000000000000004 /* EditFavoriteView.swift */,
 				A30000000000000000000001 /* SettingsView.swift */,
@@ -203,6 +211,7 @@
 				A2000000000000000000000A /* FavoritePurchaseURLTests.swift */,
 				A2000000000000000000000C /* FavoritesListTests.swift */,
 				A50000000000000000000003 /* FavoritesWidgetTests.swift */,
+				A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */,
 				A40000000000000000000003 /* ReminderTests.swift */,
 				A2000000000000000000000B /* ShopifyProductPageTests.swift */,
 				A30000000000000000000002 /* SettingsTests.swift */,
@@ -352,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1E510AF7F06AF7D287B04471 /* Assets.xcassets in Resources */,
+				B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +407,7 @@
 				B2000000000000000000000E /* ShopifyProductPageTests.swift in Sources */,
 				B2000000000000000000000F /* FavoritesListTests.swift in Sources */,
 				B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */,
+				B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */,
 				B40000000000000000000003 /* ReminderTests.swift in Sources */,
 				B30000000000000000000002 /* SettingsTests.swift in Sources */,
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
@@ -415,6 +426,7 @@
 				B20000000000000000000001 /* FavoritePurchaseURL.swift in Sources */,
 				B40000000000000000000001 /* ReminderSchedule.swift in Sources */,
 				B40000000000000000000002 /* ReminderNotifications.swift in Sources */,
+				B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */,
 				B20000000000000000000002 /* ShopifyProductPage.swift in Sources */,
 				B20000000000000000000004 /* AddFavoriteView.swift in Sources */,
 				B20000000000000000000006 /* EditFavoriteView.swift in Sources */,
