@@ -88,16 +88,19 @@ func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) ->
 }
 
 /// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く URL (`openingURL(favorite:)`。Shopify の店は購入画面、Amazon は商品ページ) を返す。
-/// 開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に渡す。
+/// 開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、開いた記録を `recordAnalyticsEvent` に渡す。
 ///
-/// 次の時は何も保存せずに nil を返す (呼び出し側は何も開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
+/// `notificationIdentifier` は通知の識別子。「カートイン」の確認の通知の識別子 (`cartInConfirmationNotificationIdentifier(favoriteID:)`) なら入口を確認の通知、それ以外ならリマインドの通知として記録する。
+/// 次の時は何も保存も記録もせずに nil を返す (呼び出し側は何も開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
 /// 通知の付加情報からお気に入りの識別子を取り出せない、通知が指すお気に入りが保存されていない、開く URL を組み立てられない、保存先を読めない・書けない。
 func openingURLForNotificationResponse(
     actionIdentifier: String,
+    notificationIdentifier: String,
     userInfo: [AnyHashable: Any],
     now: Date,
     fileURL: URL,
-    applyChanges: ([ReminderNotificationChange]) -> Void
+    applyChanges: ([ReminderNotificationChange]) -> Void,
+    recordAnalyticsEvent: (AnalyticsEvent) -> Void
 ) -> URL? {
     guard actionIdentifier == UNNotificationDefaultActionIdentifier, let favoriteID = favoriteNotificationFavoriteID(userInfo: userInfo) else {
         return nil
@@ -105,7 +108,13 @@ func openingURLForNotificationResponse(
     var favoriteOpeningURL: URL?
     do {
         try performSaving(fileURL: fileURL, applyChanges: applyChanges) {
-            favoriteOpeningURL = try openingURL(favoriteID: favoriteID, now: now, fileURL: fileURL)
+            favoriteOpeningURL = try openingURL(
+                favoriteID: favoriteID,
+                entryPoint: notificationIdentifier == cartInConfirmationNotificationIdentifier(favoriteID: favoriteID) ? .cartInNotification : .reminderNotification,
+                now: now,
+                fileURL: fileURL,
+                recordAnalyticsEvent: recordAnalyticsEvent
+            )
         }
     } catch {
         return nil
@@ -197,10 +206,12 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
             guard let favoritesFileURL = sharedFavoritesFileURL(),
                   let openingURL = openingURLForNotificationResponse(
                       actionIdentifier: response.actionIdentifier,
+                      notificationIdentifier: response.notification.request.identifier,
                       userInfo: response.notification.request.content.userInfo,
                       now: .now,
                       fileURL: favoritesFileURL,
-                      applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) }
+                      applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) },
+                      recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:)
                   )
             else {
                 completionHandler()

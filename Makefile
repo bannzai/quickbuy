@@ -5,17 +5,25 @@ DERIVED_DATA := tmp/DerivedData
 APP := $(DERIVED_DATA)/Build/Products/$(CONFIGURATION)-iphonesimulator/QuickBuy.app
 IOS_APP := $(DERIVED_DATA)/Build/Products/$(CONFIGURATION)-iphoneos/QuickBuy.app
 BUNDLE_ID := com.bannzai.QuickBuy
+# Firebase の設定ファイル。リポジトリに入れない (.gitignore) ため、手元に無ければ Firebase CLI で書き出す
+# (手順: firebase-project-setup skill「アプリの Firebase 設定ファイル」。CI は scripts/restore-google-service-info-plist.sh で secret から書き出す)
+FIREBASE_PROJECT := quickbuy-app-prod
+FIREBASE_IOS_APP_ID := 1:916145290189:ios:6052f313a11d7b2736e284
+GOOGLE_SERVICE_INFO_PLIST := QuickBuy/GoogleService-Info.plist
 SIMULATOR_UDID ?= $(shell SCRIPT_QUIET=1 sim-boot | sed -n 's/^DEVICE_UDID=//p' | tail -n 1)
 DESTINATION ?= platform=iOS Simulator,id=$(SIMULATOR_UDID)
 
 .PHONY: build-ios device install-device ios test clean
 
+$(GOOGLE_SERVICE_INFO_PLIST):
+	firebase apps:sdkconfig IOS $(FIREBASE_IOS_APP_ID) --project $(FIREBASE_PROJECT) --out $@
+
 # Simulator 向けビルド。generic destination なら simulator の起動なしでビルドできる
-build-ios:
+build-ios: $(GOOGLE_SERVICE_INFO_PLIST)
 	xcodebuild -project $(XCODEPROJ) -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(DERIVED_DATA) -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
 # 実機向けビルド。code signing が必要なため、provisioning profile の自動生成とこの Mac へのデバイス登録を CLI から行えるようにする
-device:
+device: $(GOOGLE_SERVICE_INFO_PLIST)
 	xcodebuild -project $(XCODEPROJ) -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(DERIVED_DATA) -destination 'generic/platform=iOS' -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
 
 # 実機ビルドを実機にインストールして起動する。インストール先の解決順: DEVICE 変数 (名前 / UDID) > 環境変数 IOS_DEVICE_UDID > devicectl の JSON から実機を自動解決
@@ -41,7 +49,7 @@ ios: build-ios
 	xcrun simctl install "$$simulator_udid" $(APP); \
 	xcrun simctl launch "$$simulator_udid" $(BUNDLE_ID)
 
-test:
+test: $(GOOGLE_SERVICE_INFO_PLIST)
 	@set -e; \
 	destination="$(DESTINATION)"; \
 	[ -n "$$destination" ] && [ "$$destination" != "platform=iOS Simulator,id=" ] || { echo "Error: sim-boot で simulator を解決できません (sim-boot が PATH にあるか確認するか、DESTINATION='<destination>' または SIMULATOR_UDID=<UDID> を指定してください)" >&2; exit 1; }; \

@@ -291,6 +291,40 @@ import Testing
         #expect(savedFavorites.first.flatMap(openingURL(favorite:))?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3")
     }
 
+    /// 検索の結果から保存したお気に入りの購入画面を一覧の確認の「開く」で開くと、入口が一覧・店が Shopify の記録を 1 件だけ取る (記録の引数に店のドメインと商品バリアントの ID を入れない)。
+    @Test func 検索の結果から保存したお気に入りの購入画面を開くと記録を取る() async throws {
+        let endpointURL = Self.endpointURL(name: "search-save-record")
+        StubURLProtocol.stubResponses.withLock { $0[endpointURL.absoluteString] = .http(statusCode: 200, body: Self.searchResponseJSON) }
+        let searchedVariant = try #require(try await searchShopifyCatalog(query: "コーヒー豆", endpointURL: endpointURL, urlSession: StubURLProtocol.urlSession()).first?.variants.first)
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("catalog-favorites-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let favoriteID = UUID()
+        try finishFavoriteAddition(
+            choice: .add,
+            favorites: shopifyCatalogFavorites(
+                shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
+                name: "いつものコーヒー",
+                hasVariantChoices: true,
+                selectedVariants: [searchedVariant],
+                quantitiesByVariantID: [searchedVariant.id: 3],
+                favoriteIDsByVariantID: [searchedVariant.id: favoriteID]
+            ),
+            fileURL: fileURL
+        )
+        var recordedEvents: [AnalyticsEvent] = []
+
+        #expect(
+            try openingURL(
+                favoriteID: favoriteID,
+                entryPoint: .favoritesList,
+                now: Date(timeIntervalSince1970: 1_800_000_000),
+                fileURL: fileURL,
+                recordAnalyticsEvent: { recordedEvents.append($0) }
+            )?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3"
+        )
+        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "shopify"])])
+    }
+
     /// 種類の選び方が無い商品では、店が付けた `Default Title` を種類の名前に入れない。
     @Test func 種類の無い商品のお気に入りは種類の名前を持たない() {
         #expect(shopifyCatalogFavorites(

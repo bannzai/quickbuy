@@ -38,7 +38,7 @@ func appVersionText(infoDictionary: [String: Any]?) -> String? {
     return "\(shortVersion) (\(buildNumber))"
 }
 
-/// 設定画面。問い合わせのメールの作成・利用規約・プライバシーポリシーを開く入口と、アプリのバージョンを表示する。
+/// 設定画面。問い合わせのメールの作成・利用規約・プライバシーポリシーを開く入口と、Firebase に送る記録の説明と、アプリのバージョンを表示する。
 struct SettingsView: View {
     /// お気に入りの保存先のファイルの URL。開発者メニュー (DEBUG ビルドだけ) に渡す。
     let favoritesFileURL: URL
@@ -72,6 +72,9 @@ struct SettingsView: View {
                     }
                     Link("利用規約", destination: termsURL)
                     Link("プライバシーポリシー", destination: privacyPolicyURL)
+                } footer: {
+                    // 送る内容の詳細は docs/PrivacyPolicy-ja.md「利用状況の解析と不具合の記録」
+                    Text("利用の状況とアプリが落ちた時の記録を Google の Firebase に送ります\n商品や店の名前と開いた画面の URL は送りません")
                 }
                 if let versionText = appVersionText(infoDictionary: Bundle.main.infoDictionary) {
                     Section {
