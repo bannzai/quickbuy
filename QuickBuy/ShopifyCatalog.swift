@@ -364,9 +364,11 @@ func shopifyCatalogSearchQuery(text: String) -> String? {
     Optional(text.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
 }
 
-/// 検索の結果を取り直すかを返す。検索中は取り直さない。まだ結果が無い (`fetchedAt` が nil) 時と、価格を出してよい時間を過ぎた時は取り直す。
-func shouldRefreshShopifyCatalogSearch(fetchedAt: Date?, isSearching: Bool, now: Date) -> Bool {
-    !isSearching && fetchedAt.map { !isShopifyCatalogPriceFresh(fetchedAt: $0, now: now) } ?? true
+/// 検索の結果を自動で取り直すかを返す。検索中と、前の検索が失敗して文言を出している間 (`isShowingError`) は取り直さない。
+/// それ以外で、まだ結果が無い (`fetchedAt` が nil) 時と、価格を出してよい時間を過ぎた時は取り直す。
+/// 失敗の後は、利用者の「もう一度検索する」か検索し直しを待つ (HTTP 429 の間に呼ぶ回数を増やさず、`Retry-After` の文言と合わせるため)。
+func shouldRefreshShopifyCatalogSearch(fetchedAt: Date?, isSearching: Bool, isShowingError: Bool, now: Date) -> Bool {
+    !isSearching && !isShowingError && fetchedAt.map { !isShopifyCatalogPriceFresh(fetchedAt: $0, now: now) } ?? true
 }
 
 /// 追加の画面で、選ぶ操作を挟まずに選んだ状態にする商品バリアントを返す。

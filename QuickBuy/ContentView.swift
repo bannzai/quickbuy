@@ -6,6 +6,8 @@ import WidgetKit
 struct ContentView: View {
     /// 出しているタブ。開いた時はトップページで、ウィジェットのタップで開いた時はお気に入りの一覧にする。
     @State private var selectedTab = AppTab.home
+    /// アプリが前面にあるか。前面に来た時の処理を、出しているタブに関わらず行うために見る。
+    @Environment(\.scenePhase) private var scenePhase
 
     /// トップページとお気に入りの一覧のタブ、または保存先を開けないことの表示。
     var body: some View {
@@ -28,6 +30,16 @@ struct ContentView: View {
                 if let openedTab = appTab(openedURL: openedURL) {
                     selectedTab = openedTab
                 }
+            }
+            // 選んでいないタブの task は動かないため、前面に来た時にどのタブでも行う処理はタブの外に置く。
+            // 通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約し、
+            // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
+            .task(id: scenePhase) {
+                guard scenePhase == .active else {
+                    return
+                }
+                await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+                WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
             }
         } else {
             FavoritesStoreUnavailableView()
@@ -106,21 +118,14 @@ struct FavoritesListView: View {
                 cartInConfirmation = nil
             }
         }
-        .onChange(of: scenePhase) { _, newScenePhase in
-            if newScenePhase == .active {
-                reload()
-                // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
-                WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
-            }
-        }
-        // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
+        // リマインドの予約とウィジェットの更新は、どのタブでも行うため ContentView が前面に来た時に行う。
+        // この一覧のタブを出している間に前面に来た時は、共有メニューから足したお気に入りを読み直し、
+        // 共有メニューの拡張の中で最初のお気に入りを保存した時は説明の画面を出す (別のタブにいた時は、このタブを開いた時の `onAppear` で行う)。
         .task(id: scenePhase) {
             guard scenePhase == .active else {
                 return
             }
-            await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
             reload()
-            // 共有メニューの拡張の中で最初のお気に入りを保存した時は、次にアプリが前面に来たここで説明の画面を出す。
             await presentNotificationPermissionExplanationIfNeeded()
         }
         .sheet(item: $editingFavorite, onDismiss: reload) { favorite in

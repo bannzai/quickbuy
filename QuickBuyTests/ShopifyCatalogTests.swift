@@ -395,14 +395,16 @@ import Testing
         #expect(shopifyCatalogSearchQuery(text: text) == expectedQuery)
     }
 
-    /// 結果がまだ無い時と 10 分たった時は取り直し、10 分より前と検索中は取り直さない。
+    /// 結果がまだ無い時と 10 分たった時は取り直し、10 分より前・検索中・失敗の文言を出している間は取り直さない。
     @Test func 検索の結果を取り直すのは結果が無いか10分たった時だけ() {
         let fetchedAt = Date(timeIntervalSince1970: 1_000_000)
-        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: false, now: fetchedAt))
-        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: true, now: fetchedAt))
-        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, now: fetchedAt.addingTimeInterval(599)))
-        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, now: fetchedAt.addingTimeInterval(600)))
-        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: true, now: fetchedAt.addingTimeInterval(600)))
+        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: false, isShowingError: false, now: fetchedAt))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: true, isShowingError: false, now: fetchedAt))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, isShowingError: false, now: fetchedAt.addingTimeInterval(599)))
+        #expect(shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: false, isShowingError: false, now: fetchedAt.addingTimeInterval(600)))
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: fetchedAt, isSearching: true, isShowingError: false, now: fetchedAt.addingTimeInterval(600)))
+        // 失敗の文言を出している間は、結果が無くても自動で取り直さない (HTTP 429 の間に呼ぶ回数を増やさない)。
+        #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: false, isShowingError: true, now: fetchedAt))
     }
 
     /// 最初に読み込んだ、種類の選び方が無い商品だけ、選ぶ操作を挟まずに商品バリアントを選ぶ。2 回目以降の読み込みでは選ばない。

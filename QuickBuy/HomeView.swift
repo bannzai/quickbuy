@@ -208,7 +208,7 @@ struct HomeView: View {
 
     /// 並べている結果の価格を取得してから `shopifyCatalogPriceCacheSeconds` 秒たっていれば、同じ検索語で取り直す。まだ取得していなければ取得する。
     private func refreshIfPriceExpired() {
-        if shouldRefreshShopifyCatalogSearch(fetchedAt: searchResult?.fetchedAt, isSearching: isSearching, now: .now) {
+        if shouldRefreshShopifyCatalogSearch(fetchedAt: searchResult?.fetchedAt, isSearching: isSearching, isShowingError: errorMessage != nil, now: .now) {
             search(query: shownQuery)
         }
     }
