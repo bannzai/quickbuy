@@ -4,21 +4,31 @@ import WidgetKit
 
 /// アプリの最初の画面。お気に入りの保存先を開ければトップページ (検索) とお気に入りの一覧のタブを、開けなければその旨を表示する。
 struct ContentView: View {
+    /// 出しているタブ。開いた時はトップページで、ウィジェットのタップで開いた時はお気に入りの一覧にする。
+    @State private var selectedTab = AppTab.home
+
     /// トップページとお気に入りの一覧のタブ、または保存先を開けないことの表示。
     var body: some View {
         if let favoritesFileURL = sharedFavoritesFileURL() {
-            TabView {
+            TabView(selection: $selectedTab) {
                 // `Tab` は iOS 18 からのため、iOS 17 でも使える `tabItem` で並べる。
                 HomeView(favoritesFileURL: favoritesFileURL)
                     .tabItem {
                         Label("ホーム", systemImage: "magnifyingglass")
                     }
+                    .tag(AppTab.home)
                 FavoritesListView(favoritesFileURL: favoritesFileURL)
                     .tabItem {
                         Label("お気に入り", systemImage: "star")
                     }
+                    .tag(AppTab.favorites)
             }
             .tint(quickBuyAccentColor)
+            .onOpenURL { openedURL in
+                if let openedTab = appTab(openedURL: openedURL) {
+                    selectedTab = openedTab
+                }
+            }
         } else {
             FavoritesStoreUnavailableView()
         }

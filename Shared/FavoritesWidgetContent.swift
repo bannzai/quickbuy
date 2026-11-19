@@ -114,3 +114,23 @@ func isCartInButtonShown(favorite: Favorite, isNotificationAuthorized: Bool) -> 
 func favoritesWidgetTimelineReloadDate(now: Date) -> Date {
     now.addingTimeInterval(3600)
 }
+
+/// アプリの下のタブ。
+enum AppTab: Hashable {
+    /// トップページ (検索)。アプリを開いた時に出す。
+    case home
+    /// お気に入りの一覧。
+    case favorites
+}
+
+/// ウィジェットの「カートイン」以外の場所をタップした時に、アプリへ渡す URL。アプリはこの URL を受けるとお気に入りのタブを出す。
+///
+/// ウィジェットのタップでアプリの一覧を開く決まり (documents/DIRECTION.md「決めたこと」の 2026-11-18 のウィジェットの実装の行) を、
+/// アプリを開いた時にトップページを出すようにした後も保つため (https://github.com/bannzai/quickbuy/pull/48 )。
+/// アプリの中で行き先を表すだけの値で、外から渡された URL として開く処理には使わない。
+let favoritesWidgetTapURL = URL(string: "quickbuy-widget://favorites")!
+
+/// アプリが受け取った URL `openedURL` から、出すタブを返す。ウィジェットのタップの URL (`favoritesWidgetTapURL`) ならお気に入りのタブ、それ以外は nil (タブを変えない)。
+func appTab(openedURL: URL) -> AppTab? {
+    openedURL == favoritesWidgetTapURL ? .favorites : nil
+}

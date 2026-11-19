@@ -10,6 +10,7 @@ struct FavoritesWidget: Widget {
         StaticConfiguration(kind: favoritesWidgetKind, provider: FavoritesTimelineProvider()) { favoritesTimelineEntry in
             FavoritesWidgetView(entry: favoritesTimelineEntry)
                 .containerBackground(.background, for: .widget)
+                .widgetURL(favoritesWidgetTapURL)
         }
         .configurationDisplayName("お気に入り")
         .description("いつもの商品をホーム画面からカートイン")
