@@ -169,11 +169,14 @@ struct AmazonProductPageTests {
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(text) }.count } == requestedCountBefore)
     }
 
-    /// Amazon の URL を含まない文字列 (Shopify の店の URL・ホストに amazon を含むが区切りの一部でないドメイン・URL でない文字列) では nil を返し、Shopify の店の URL として扱わせる。
+    /// Amazon の URL を含まない文字列 (Shopify の店の URL・ホストに amazon を含むが区切りの一部でないドメイン・ホストに amazon の部分や a.co を持つ Shopify の店の商品ページの URL・URL でない文字列) では nil を返し、Shopify の店の URL として扱わせる。
     @Test(arguments: [
         "https://mori-coffee.example/products/coffee-beans",
         "https://notamazon.example/dp/4065356113",
         "https://amazonfan.example/products/x",
+        "https://amazon.example/products/coffee-beans",
+        "https://shop.amazon.example/products/coffee-beans?variant=1",
+        "https://a.co/products/coffee-beans",
         "コーヒー豆",
         "",
     ])

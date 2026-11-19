@@ -560,6 +560,15 @@ struct ReminderTests {
         #expect(reminderNotificationContent(favorite: favoriteWithoutVariantName).body == "コーヒー豆 1\nタップすると購入画面が開きます")
     }
 
+    /// 編集の画面の、日数を数え直す時の文は、Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直すと書く。
+    @Test func 数え直す時の文は店ごとに開くものを書く() {
+        var amazonFavorite = favorite(idSuffix: "1", reminder: nil)
+        amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
+
+        #expect(reminderRecountText(favorite: favorite(idSuffix: "2", reminder: nil)) == "購入画面を開いた日から数え直します")
+        #expect(reminderRecountText(favorite: amazonFavorite) == "Amazon の商品ページを開いた日から数え直します")
+    }
+
     /// Amazon の商品の通知の本文は、名前の行と、タップで Amazon の商品ページが開く案内の行。
     @Test func Amazonの商品の通知の本文は商品ページが開く案内() {
         var amazonFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))

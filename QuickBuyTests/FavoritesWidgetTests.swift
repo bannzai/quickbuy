@@ -76,6 +76,14 @@ struct FavoritesWidgetTests {
         )
     }
 
+    /// 通知の許可が要ることの文は、並べているお気に入りのボタンの名前を出す。Amazon の商品だけなら「カートイン」と書かない。
+    @Test func 通知の許可が要ることの文は並べたお気に入りのボタンの名前を出す() {
+        let amazonFavorite = Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")]) == "カートインには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [amazonFavorite]) == "Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite]) == "カートイン・Amazon で開くには通知の許可が要ります")
+    }
+
     // MARK: - 「カートイン」を出すか
 
     /// 通知が許可 (authorized) の時だけ「カートイン」を出せる。仮の許可・一時的な許可・拒否・未決定では出せない。

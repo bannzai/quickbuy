@@ -112,7 +112,7 @@ struct FavoritesWidgetView: View {
                     }
                     Spacer(minLength: 0)
                     if !entry.isNotificationAuthorized {
-                        FavoritesWidgetNotificationRequiredText()
+                        FavoritesWidgetNotificationRequiredText(favorites: widgetFavorites(favorites: favorites, widgetFamily: widgetFamily))
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -171,7 +171,7 @@ struct FavoriteWidgetSmallRow: View {
                 FavoriteWidgetCartInButton(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                FavoritesWidgetNotificationRequiredText()
+                FavoritesWidgetNotificationRequiredText(favorites: [favorite])
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -225,11 +225,14 @@ struct FavoriteWidgetCartInButton: View {
     }
 }
 
-/// 通知が許可されていない時に出す、「カートイン」には通知の許可が要ることの 1 行。
+/// 通知が許可されていない時に出す、ボタン (「カートイン」・「Amazon で開く」) には通知の許可が要ることの 1 行。
 struct FavoritesWidgetNotificationRequiredText: View {
+    /// ウィジェットに並べているお気に入り。文言に出すボタンの名前を決める (`widgetNotificationRequiredText(favorites:)`)。
+    let favorites: [Favorite]
+
     /// 補足の色の小さい文字の 1 行。
     var body: some View {
-        Text("カートインには通知の許可が要ります")
+        Text(widgetNotificationRequiredText(favorites: favorites))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(2)

@@ -60,11 +60,12 @@ final class AmazonShortURLRedirectRecorder: NSObject, URLSessionTaskDelegate, @u
 ///
 /// 商品ページの URL は通信せずに `amazonASIN(text:)` で読む。短い URL は、短い URL への GET を 1 回だけ行い、転送には従わずに転送先を `amazonASIN(text:)` で読む
 /// (Amazon の商品ページそのものは取得しない。Amazon が持つ名前・画像・価格を読まないため)。
-/// 失敗した時は `FavoriteAdditionLoadError` を投げる。受け取らない形の Amazon の URL (`containsAmazonLookingURL(text:)` が true) は `notAmazonProductPageURL`、
+/// 失敗した時は `FavoriteAdditionLoadError` を投げる。受け取らない形の Amazon の URL (`containsAmazonLookingURL(text:)` が true で、Shopify の店の商品ページの URL の形でもない) は `notAmazonProductPageURL`、
 /// 短い URL の転送先が www.amazon.co.jp の商品ページでない時は `notAmazonProductPageURL`、転送を受けられなかった時 (通信の失敗・転送しない応答) は `temporarilyUnavailable`。
+/// ホストに `amazon` の部分を持つ Shopify の店 (`amazon.example` 等) の商品ページの URL は、変更前と同じく nil を返して Shopify の店の URL として扱わせる。
 func loadAmazonASIN(text: String, urlSession: URLSession) async throws -> String? {
     guard let urlText = amazonURLText(text: text) else {
-        if containsAmazonLookingURL(text: text) {
+        if containsAmazonLookingURL(text: text), shopifyProductPage(text: text.trimmingCharacters(in: .whitespacesAndNewlines)) == nil {
             throw FavoriteAdditionLoadError.notAmazonProductPageURL
         }
         return nil
