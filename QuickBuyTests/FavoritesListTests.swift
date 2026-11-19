@@ -134,9 +134,9 @@ struct FavoritesListTests {
         )
     }
 
-    /// 購入画面の URL を組み立てられないお気に入り (Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
+    /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
     @Test(arguments: [
-        Favorite.Product.amazon(AmazonProduct(asin: "B00EXAMPLE")),
+        Favorite.Product.amazon(AmazonProduct(asin: "B00EXAMPL")),
         Favorite.Product.shopify(ShopifyProduct(shopDomain: "mori-coffee.example/evil", variantID: "70881412")),
     ])
     func 購入画面を開けないお気に入りには確認を出さない(product: Favorite.Product) {
@@ -170,6 +170,13 @@ struct FavoritesListTests {
         )
     }
 
+    /// Amazon の商品の確認は、個数を出さずに商品ページを開くことと、カートに入らないことを書く。確認は Amazon の商品も指す。
+    @Test func Amazonの商品の確認は商品ページを開くことを書く() {
+        let amazonFavorite = favorite(name: "単3電池", variantName: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B0DTESTAB1")), reminder: nil)
+        #expect(cartInConfirmationText(favorite: amazonFavorite) == "単3電池 の商品ページを開きます (カートには入りません)")
+        #expect(cartInConfirmationFavorite(confirmation: (favoriteID: amazonFavorite.id, shownAt: pressedAt), favorites: [amazonFavorite], now: pressedAt) == amazonFavorite)
+    }
+
     /// 確認の「開く」で、確認が指すお気に入りの店のドメイン・商品バリアントの ID・保存済みの個数 (確認を出した後に変えた個数を含む) から組み立てた URL が返り、
     /// そのお気に入りのリマインドだけが開いた時刻から数え直される。
     @Test func 開くは確認を出した後に変えた個数で確認が指すお気に入りのURLを返す() throws {
@@ -201,7 +208,7 @@ struct FavoritesListTests {
         let openedAt = countedFrom.addingTimeInterval(864_000)
         try updateFavorite(id: pressedFavorite.id, name: pressedFavorite.name, quantity: 3, fileURL: fileURL)
         #expect(
-            try purchaseURLForOpening(
+            try openingURL(
                 favoriteID: try #require(
                     cartInConfirmationFavorite(
                         confirmation: (favoriteID: pressedFavorite.id, shownAt: openedAt),
@@ -222,13 +229,13 @@ struct FavoritesListTests {
 
     // MARK: - 店のドメインの表示
 
-    /// Shopify の商品は保存した店のドメイン、Amazon の商品は `amazon.co.jp` を表示する。
+    /// Shopify の商品は保存した店のドメイン、Amazon の商品は追加の確認の画面と同じ `www.amazon.co.jp` を表示する。
     @Test func 店のドメインを表示の文字列にする() {
         #expect(shopDomainText(favorite: favorite(name: "コーヒー豆")) == "mori-coffee.example")
         #expect(
             shopDomainText(
                 favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-            ) == "amazon.co.jp"
+            ) == "www.amazon.co.jp"
         )
     }
 
@@ -239,7 +246,7 @@ struct FavoritesListTests {
         #expect(sampleFavorites().map(\.name) == ["コーヒー豆", "洗濯用せっけん", "プロテイン"])
         #expect(sampleFavorites().map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
         #expect(
-            sampleFavorites().map { purchaseURL(favorite: $0)?.absoluteString } == [
+            sampleFavorites().map { openingURL(favorite: $0)?.absoluteString } == [
                 "https://mori-coffee.example/cart/70881412:2",
                 "https://sukoyaka-soap.example/cart/70881382:1",
                 "https://karada-store.example/cart/70881999:1",

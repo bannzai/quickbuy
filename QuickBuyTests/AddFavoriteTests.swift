@@ -135,7 +135,7 @@ struct AddFavoriteTests {
         #expect(favoriteAddition.quantitiesByVariantID == [:])
     }
 
-    /// 商品ページの URL の形でない入力 (Amazon の商品ページ・`http`・カートの URL) は、通信せずに「URL の形でない」で終わる。
+    /// Shopify の商品ページの URL の形でない入力 (Amazon の商品ページと同じパス・カートの URL・トップページ) は、通信せずに「URL の形でない」で終わる。
     @Test(arguments: ["/dp/B00EXAMPLE", "/cart/70881412:1", "/"])
     func 商品ページのURLでない入力は通信せずに断る(path: String) async {
         let shopDomain = uniqueShopDomain()
@@ -484,7 +484,11 @@ struct AddFavoriteTests {
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
-        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL).hasPrefix("この URL は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL) == "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください")
+        #expect(
+            favoriteAdditionLoadErrorMessage(error: .notAmazonProductPageURL)
+                == "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください"
+        )
         #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable).hasPrefix("商品の情報を取得できませんでした"))
         #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable).hasPrefix("この商品は登録できません"))
     }

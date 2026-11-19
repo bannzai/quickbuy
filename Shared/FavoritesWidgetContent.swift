@@ -55,11 +55,30 @@ func widgetFavorites(favorites: [Favorite], widgetFamily: WidgetFamily) -> [Favo
     Array(favorites.prefix(favoritesWidgetCapacity(widgetFamily: widgetFamily)))
 }
 
-/// ウィジェットの行の、名前の下に出す 1 行を返す。商品バリアントの名前 (持つお気に入りだけ) と個数を「・」で区切って並べる。
+/// 通知が許可されていない時にウィジェットに出す、ボタンには通知の許可が要ることの文を返す。
 ///
-/// 並べ方は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の行の見本「200g / 豆のまま ・ 2 個」。
+/// 文に出すボタンの名前は、並べているお気に入りの店で決める (`cartInButtonTitle(favorite:)`)。Shopify の店の商品だけなら「カートイン」、
+/// Amazon の商品だけなら「Amazon で開く」、両方を並べている時は両方の名前を出す (Amazon の商品の行に「カートイン」と書かないため)。
+/// お気に入りが空の時は「カートイン」にする。空のウィジェットはこの文を出さず「お気に入りはまだありません」を出すため使われないが、変更前の文言と同じにしておく。
+func widgetNotificationRequiredText(favorites: [Favorite]) -> String {
+    var buttonTitles: [String] = []
+    for buttonTitle in favorites.map(cartInButtonTitle(favorite:)) where !buttonTitles.contains(buttonTitle) {
+        buttonTitles.append(buttonTitle)
+    }
+    return "\(buttonTitles.isEmpty ? "カートイン" : buttonTitles.joined(separator: "・"))には通知の許可が要ります"
+}
+
+/// ウィジェットの行の、名前の下に出す 1 行を返す。
+///
+/// Shopify の店の商品は、商品バリアントの名前 (持つお気に入りだけ) と個数を「・」で区切って並べる (documents/design/mock-2026-11-18/project/WidgetPush.dc.html の行の見本「200g / 豆のまま ・ 2 個」)。
+/// Amazon の商品は個数を持たないため (`amazonFavorite(asin:name:id:)`)、店を見分ける `Amazon` を出す。
 func favoriteWidgetRowCaption(favorite: Favorite) -> String {
-    [favorite.variantName, "\(favorite.quantity) 個"].compactMap { $0 }.joined(separator: " ・ ")
+    switch favorite.product {
+    case .shopify:
+        [favorite.variantName, "\(favorite.quantity) 個"].compactMap { $0 }.joined(separator: " ・ ")
+    case .amazon:
+        "Amazon"
+    }
 }
 
 /// ウィジェットの表示を切り替える時刻を、早い順に返す。先頭は `now` で、続けて `now` より後にリマインドの日数が過ぎる時刻を返す。
@@ -83,9 +102,9 @@ func isCartInAvailable(authorizationStatus: UNAuthorizationStatus, alertSetting:
     authorizationStatus == .authorized && [alertSetting, notificationCenterSetting, lockScreenSetting].contains(.enabled)
 }
 
-/// ウィジェットの行に「カートイン」のボタンを出すかを返す。通知が許可されていて、購入画面の URL を組み立てられるお気に入り (Amazon の商品以外) の時だけ true。
+/// ウィジェットの行に「カートイン」(Amazon の商品は「Amazon で開く」) のボタンを出すかを返す。通知が許可されていて、開く URL (`openingURL(favorite:)`) を組み立てられるお気に入りの時だけ true。
 func isCartInButtonShown(favorite: Favorite, isNotificationAuthorized: Bool) -> Bool {
-    isNotificationAuthorized && purchaseURL(favorite: favorite) != nil
+    isNotificationAuthorized && openingURL(favorite: favorite) != nil
 }
 
 /// ウィジェットの表示内容の作り直しを OS に頼む時刻を返す。`now` の 1 時間後。

@@ -168,7 +168,7 @@ struct FavoritesListView: View {
                         }
                     }
                 } footer: {
-                    Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います")
+                    Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -183,13 +183,13 @@ struct FavoritesListView: View {
         }
     }
 
-    /// 「カートイン」を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面を開く。
-    /// 確認が指すお気に入りが保存先から消えた時と、購入画面を開けなくなった時は出さない。
+    /// 「カートイン」(Amazon の商品は「Amazon で開く」) を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面 (Amazon の商品は商品ページ) を開く。
+    /// 確認が指すお気に入りが保存先から消えた時と、開く URL を組み立てられなくなった時は出さない。
     @ViewBuilder private var cartInConfirmationView: some View {
         if let confirmingFavorite = cartInConfirmationFavorite(confirmation: cartInConfirmation, favorites: favorites, now: .now) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("購入画面を開きますか？")
+                    Text(cartInConfirmationTitle(favorite: confirmingFavorite))
                         .font(.subheadline.weight(.heavy))
                     Text(cartInConfirmationText(favorite: confirmingFavorite))
                         .font(.caption)
@@ -199,8 +199,8 @@ struct FavoritesListView: View {
                 Button {
                     cartInConfirmation = nil
                     save {
-                        if let openingURL = try purchaseURLForOpening(favoriteID: confirmingFavorite.id, now: .now, fileURL: favoritesFileURL) {
-                            openURL(openingURL)
+                        if let favoriteOpeningURL = try openingURL(favoriteID: confirmingFavorite.id, now: .now, fileURL: favoritesFileURL) {
+                            openURL(favoriteOpeningURL)
                         }
                     }
                 } label: {
@@ -222,7 +222,7 @@ struct FavoritesListView: View {
         }
     }
 
-    /// お気に入り 1 件の行。名前の側を押すと編集の画面が開き、「カートイン」を押すと購入画面を開くかの確認が出る (購入画面はまだ開かない)。
+    /// お気に入り 1 件の行。名前の側を押すと編集の画面が開き、「カートイン」(Amazon の商品は「Amazon で開く」) を押すと開くかの確認が出る (まだ開かない)。
     private func row(favorite: Favorite) -> some View {
         HStack(spacing: 12) {
             Button {
@@ -243,8 +243,11 @@ struct FavoritesListView: View {
                             Text(shopDomainText(favorite: favorite))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
-                            Text(" ・ \(favorite.quantity) 個")
-                                .fixedSize()
+                            // Amazon の商品は個数を持たない (個数は利用者が Amazon の画面で選ぶ。`amazonFavorite(asin:name:id:)`)。
+                            if case .shopify = favorite.product {
+                                Text(" ・ \(favorite.quantity) 個")
+                                    .fixedSize()
+                            }
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -267,8 +270,8 @@ struct FavoritesListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if purchaseURL(favorite: favorite) != nil {
-                Button("カートイン") {
+            if openingURL(favorite: favorite) != nil {
+                Button(cartInButtonTitle(favorite: favorite)) {
                     cartInConfirmation = (favoriteID: favorite.id, shownAt: .now)
                 }
                 .font(.subheadline.weight(.heavy))
@@ -339,17 +342,25 @@ let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 
 ///
 /// `confirmation` は最後に「カートイン」を押した行のお気に入りの識別子と押した時刻 (確認を出していない時は nil)。`now` は表示する時刻。
 /// 押した時刻から `cartInConfirmationSeconds` 秒たった時、その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等)、
-/// 購入画面の URL を組み立てられない時は nil を返す (確認を出さない)。
+/// 開く URL を組み立てられない時は nil を返す (確認を出さない)。
 func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?, favorites: [Favorite], now: Date) -> Favorite? {
     guard let confirmation, now.timeIntervalSince(confirmation.shownAt) < cartInConfirmationSeconds else {
         return nil
     }
-    return favorites.first { $0.id == confirmation.favoriteID && purchaseURL(favorite: $0) != nil }
+    return favorites.first { $0.id == confirmation.favoriteID && openingURL(favorite: $0) != nil }
 }
 
-/// 「カートイン」の確認の 2 行目に出す、何を何個カートに入れて開くかの文を返す。商品バリアントの名前を持つお気に入りでは、名前の後ろに足す。
+/// 「カートイン」の確認の 2 行目に出す文を返す。
+///
+/// Shopify の店の商品は、何を何個カートに入れて開くか (商品バリアントの名前を持つお気に入りでは、名前の後ろに足す)。
+/// Amazon の商品は、商品ページを開くことと、開いた時に商品がカートに入っていないこと (個数は出さない)。
 func cartInConfirmationText(favorite: Favorite) -> String {
-    "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます"
+    switch favorite.product {
+    case .shopify:
+        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます"
+    case .amazon:
+        "\(favorite.name) の商品ページを開きます (カートには入りません)"
+    }
 }
 
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。

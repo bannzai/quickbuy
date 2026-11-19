@@ -9,17 +9,23 @@ func favoriteNotificationFavoriteID(userInfo: [AnyHashable: Any]) -> UUID? {
     (userInfo[favoriteNotificationFavoriteIDKey] as? String).flatMap(UUID.init(uuidString:))
 }
 
-/// ウィジェットの「カートイン」で出す、「購入画面を開きますか？」の確認の通知の内容を返す。購入画面の URL を組み立てられないお気に入り (Amazon の商品) では nil を返す。
+/// ウィジェットの「カートイン」(Amazon の商品は「Amazon で開く」) で出す確認の通知の内容を返す。開く URL を組み立てられないお気に入りでは nil を返す。
 ///
-/// 文言は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本 (見出し・何を何個・どの店の購入画面が開くか)。
-/// 載せるのは文言と、タップされた時にお気に入りを探すための識別子だけ。購入画面の URL は載せず、通知をタップされた時に保存済みのお気に入りから組み立てる (.claude/rules/purchase-url.md)。
+/// Shopify の店の商品の文言は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本 (見出し・何を何個・どの店の購入画面が開くか)。
+/// Amazon の商品は、見出しを「Amazon の商品ページを開きますか？」にし、個数を出さずに商品ページが開くことを書く (開いた時に商品はカートに入っていない)。
+/// 載せるのは文言と、タップされた時にお気に入りを探すための識別子だけ。開く URL は載せず、通知をタップされた時に保存済みのお気に入りから組み立てる (.claude/rules/purchase-url.md)。
 func cartInConfirmationNotificationContent(favorite: Favorite) -> UNMutableNotificationContent? {
-    guard purchaseURL(favorite: favorite) != nil, case let .shopify(shopifyProduct) = favorite.product else {
+    guard openingURL(favorite: favorite) != nil else {
         return nil
     }
     let content = UNMutableNotificationContent()
-    content.title = "購入画面を開きますか？"
-    content.body = "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個\nタップすると \(shopifyProduct.shopDomain) の購入画面が開きます"
+    content.title = cartInConfirmationTitle(favorite: favorite)
+    content.body = switch favorite.product {
+    case let .shopify(shopifyProduct):
+        "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個\nタップすると \(shopifyProduct.shopDomain) の購入画面が開きます"
+    case .amazon:
+        "\(favorite.name)\nタップすると \(amazonHost) の商品ページが開きます"
+    }
     content.sound = .default
     content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
     return content
@@ -33,7 +39,7 @@ func cartInConfirmationNotificationIdentifier(favoriteID: UUID) -> String {
     "cartInConfirmation-\(favoriteID.uuidString)"
 }
 
-/// 「カートイン」の確認の通知を、すぐに出す通知の要求として返す。購入画面の URL を組み立てられないお気に入りでは nil を返す。
+/// 「カートイン」の確認の通知を、すぐに出す通知の要求として返す。開く URL を組み立てられないお気に入りでは nil を返す。
 func cartInConfirmationNotificationRequest(favorite: Favorite) -> UNNotificationRequest? {
     cartInConfirmationNotificationContent(favorite: favorite).map { content in
         UNNotificationRequest(identifier: cartInConfirmationNotificationIdentifier(favoriteID: favorite.id), content: content, trigger: nil)
@@ -42,8 +48,8 @@ func cartInConfirmationNotificationRequest(favorite: Favorite) -> UNNotification
 
 /// 保存済みのお気に入りのうち、指定した識別子のものの「カートイン」の確認の通知の要求を返す。
 ///
-/// 保存先を読むだけで書かない (リマインドの数え直しは、通知をタップして購入画面を開いた時に行う)。
-/// その識別子のお気に入りが無い時と、購入画面の URL を組み立てられない時は nil を返す。保存先を読めない時はエラーを投げる。
+/// 保存先を読むだけで書かない (リマインドの数え直しは、通知をタップして開いた時に行う)。
+/// その識別子のお気に入りが無い時と、開く URL を組み立てられない時は nil を返す。保存先を読めない時はエラーを投げる。
 func cartInConfirmationNotificationRequest(favoriteID: UUID, fileURL: URL) throws -> UNNotificationRequest? {
     try loadFavorites(fileURL: fileURL).first(where: { $0.id == favoriteID }).flatMap(cartInConfirmationNotificationRequest(favorite:))
 }

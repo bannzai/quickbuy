@@ -112,7 +112,7 @@ struct FavoritesWidgetView: View {
                     }
                     Spacer(minLength: 0)
                     if !entry.isNotificationAuthorized {
-                        FavoritesWidgetNotificationRequiredText()
+                        FavoritesWidgetNotificationRequiredText(favorites: widgetFavorites(favorites: favorites, widgetFamily: widgetFamily))
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -171,7 +171,7 @@ struct FavoriteWidgetSmallRow: View {
                 FavoriteWidgetCartInButton(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                FavoritesWidgetNotificationRequiredText()
+                FavoritesWidgetNotificationRequiredText(favorites: [favorite])
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -200,20 +200,20 @@ struct FavoriteWidgetRowDetail: View {
     }
 }
 
-/// ウィジェットの行の「カートイン」のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
+/// ウィジェットの行の「カートイン」(Amazon の商品は「Amazon で開く」) のボタン。押すとアプリを開かずに確認の通知を出す (`CartInIntent`)。
 ///
-/// 通知が許可されていない時と、購入画面の URL を組み立てられないお気に入り (Amazon の商品。開き方が決まるまで) では出さない。
+/// 通知が許可されていない時と、開く URL を組み立てられないお気に入りでは出さない。
 struct FavoriteWidgetCartInButton: View {
     /// ボタンが指すお気に入り。
     let favorite: Favorite
     /// 通知が許可されているか。
     let isNotificationAuthorized: Bool
 
-    /// 強調の色の地に白い文字の「カートイン」。
+    /// 強調の色の地に白い文字の「カートイン」(Amazon の商品は「Amazon で開く」)。
     var body: some View {
         if isCartInButtonShown(favorite: favorite, isNotificationAuthorized: isNotificationAuthorized) {
             Button(intent: CartInIntent(favoriteID: favorite.id)) {
-                Text("カートイン")
+                Text(cartInButtonTitle(favorite: favorite))
                     .font(.footnote.weight(.heavy))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -225,11 +225,14 @@ struct FavoriteWidgetCartInButton: View {
     }
 }
 
-/// 通知が許可されていない時に出す、「カートイン」には通知の許可が要ることの 1 行。
+/// 通知が許可されていない時に出す、ボタン (「カートイン」・「Amazon で開く」) には通知の許可が要ることの 1 行。
 struct FavoritesWidgetNotificationRequiredText: View {
+    /// ウィジェットに並べているお気に入り。文言に出すボタンの名前を決める (`widgetNotificationRequiredText(favorites:)`)。
+    let favorites: [Favorite]
+
     /// 補足の色の小さい文字の 1 行。
     var body: some View {
-        Text("カートインには通知の許可が要ります")
+        Text(widgetNotificationRequiredText(favorites: favorites))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(2)
