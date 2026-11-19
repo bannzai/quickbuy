@@ -1,12 +1,23 @@
 import SwiftUI
 import UserNotifications
 
-/// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
+/// アプリの最初の画面。お気に入りの保存先を開ければトップページ (検索) とお気に入りの一覧のタブを、開けなければその旨を表示する。
 struct ContentView: View {
-    /// お気に入りの一覧、または保存先を開けないことの表示。
+    /// トップページとお気に入りの一覧のタブ、または保存先を開けないことの表示。
     var body: some View {
         if let favoritesFileURL = sharedFavoritesFileURL() {
-            FavoritesListView(favoritesFileURL: favoritesFileURL)
+            TabView {
+                // `Tab` は iOS 18 からのため、iOS 17 でも使える `tabItem` で並べる。
+                HomeView(favoritesFileURL: favoritesFileURL)
+                    .tabItem {
+                        Label("ホーム", systemImage: "magnifyingglass")
+                    }
+                FavoritesListView(favoritesFileURL: favoritesFileURL)
+                    .tabItem {
+                        Label("お気に入り", systemImage: "star")
+                    }
+            }
+            .tint(quickBuyAccentColor)
         } else {
             FavoritesStoreUnavailableView()
         }
@@ -67,7 +78,8 @@ struct FavoritesListView: View {
                 }
         }
         .tint(quickBuyAccentColor)
-        .onAppear(perform: reload)
+        // トップページの検索から足したお気に入りを、このタブを開いた時に読み直し、最初のお気に入りなら通知の許可の説明を出す。
+        .onAppear(perform: reloadAndPresentNotificationPermissionExplanationIfNeeded)
         .task(id: cartInConfirmation?.shownAt) {
             guard let waitingShownAt = cartInConfirmation?.shownAt else {
                 return

@@ -111,23 +111,7 @@ struct AddFavoriteView: View {
     private func confirmationForm(productPage: ShopifyProductPage, product: ShopifyAjaxProduct) -> some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("この店の商品です")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Text(productPage.shopDomain)
-                        .font(.title2.bold())
-                        .accessibilityIdentifier("shopDomain")
-                    Text("いつも買っている店か確かめてください")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: shopDomainBoxShape)
-                .overlay(shopDomainBoxShape.strokeBorder(.tint, lineWidth: 2))
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+                ShopDomainConfirmationBox(shopDomain: productPage.shopDomain)
             }
             Section {
                 HStack(spacing: 12) {
@@ -230,6 +214,35 @@ struct AddFavoriteView: View {
         } catch {
             isSaveFailed = true
         }
+    }
+}
+
+/// 確認の画面で、お気に入りにする商品の店のドメインを目立つ形で見せ、いつも買っている店かを確かめてもらう枠。一覧の 1 行として置く。
+///
+/// 商品ページの URL からの追加と、トップページの検索の結果からの追加の両方の確認の画面が使う (documents/adr/0003)。
+struct ShopDomainConfirmationBox: View {
+    /// 見せる店のドメイン。
+    let shopDomain: String
+
+    /// 「この店の商品です」・店のドメイン・確かめてもらう文言を、強調の色の枠で囲んだもの。
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("この店の商品です")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Text(shopDomain)
+                .font(.title2.bold())
+                .accessibilityIdentifier("shopDomain")
+            Text("いつも買っている店か確かめてください")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: shopDomainBoxShape)
+        .overlay(shopDomainBoxShape.strokeBorder(.tint, lineWidth: 2))
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
     }
 }
 
