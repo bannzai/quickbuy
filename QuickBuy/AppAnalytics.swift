@@ -101,7 +101,7 @@ func recordWidgetPlacement(recordAnalyticsEvent: @escaping (AnalyticsEvent) -> V
 /// 指定した識別子の保存済みのお気に入りを開く時に呼び、開く URL (Shopify の店は購入画面、Amazon は商品ページ) を返す。開く時は `entryPoint` を入口にした開いた記録を `recordAnalyticsEvent` に渡す。
 ///
 /// 保存とリマインドの数え直しは `openingURL(favoriteID:now:fileURL:)` と同じ。nil を返す時 (何も開かない時) は記録しない。
-/// Amazon の商品ページを開いた時も同じイベントを店の種類 `amazon` で記録する (用語「購入画面」は Amazon の商品ページを含まないが、判定基準の「購入画面を開いた」は店の種類で分けて数える。documents/DIRECTION.md「判定基準」)。
+/// Amazon の商品ページを開いた時も同じイベントを店の種類 `amazon` で記録する (用語「購入画面」は Amazon の商品ページを含まないため、判定基準の指標は店の種類が `shopify` のものだけを数える。documents/DIRECTION.md「判定基準」)。
 func openingURL(
     favoriteID: UUID,
     entryPoint: PurchaseScreenEntryPoint,
