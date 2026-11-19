@@ -13,16 +13,27 @@ func amazonURLText(text: String) -> String? {
     text.split(whereSeparator: \.isWhitespace).map(String.init).first { amazonASIN(text: $0) != nil || amazonShortURL(text: $0) != nil }
 }
 
-/// 文字列を空白と改行で区切った部分のどれかが、Amazon のホストの URL なら true を返す。
+/// Amazon が持つドメイン (`amazonOwnedHost(host:)` がそのドメインとサブドメインを Amazon のホストとみなす)。
 ///
-/// Amazon のホストは、ドメインを `.` で区切った部分のどれかが `amazon` のホスト (`www.amazon.co.jp`・`amazon.com`・`smile.amazon.com` 等) と、`amazonLookingShortURLHosts`。
-/// 受け取る形かどうかは見ない (受け取る形は `amazonURLText(text:)` が見分ける)。
-func containsAmazonLookingURL(text: String) -> Bool {
+/// `amazon.co.jp` は受け取る店 (`amazonHost`) のドメイン、`amazon.com` は Amazon の米国の店のドメイン。Shopify の店がこれらのドメインで商品ページを出すことは無いため、
+/// `/products/…` の形でも Shopify の店として通信しない (https://github.com/bannzai/quickbuy/pull/50 のレビューの指摘)。
+private let amazonOwnedDomains = ["amazon.co.jp", "amazon.com"]
+
+/// ホストが Amazon が持つホスト (`amazonLookingShortURLHosts` のどれか、`amazonOwnedDomains` のドメインかそのサブドメイン) なら true を返す。
+func amazonOwnedHost(host: String) -> Bool {
+    amazonLookingShortURLHosts.contains(host) || amazonOwnedDomains.contains { host == $0 || host.hasSuffix(".\($0)") }
+}
+
+/// 文字列を空白と改行で区切った部分のどれかが、受け取らない形の Amazon の URL として断る URL なら true を返す。受け取る形かどうかは見ない (受け取る形は `amazonURLText(text:)` が見分ける)。
+///
+/// 断るのは、ホストが Amazon が持つホスト (`amazonOwnedHost(host:)`) の URL と、ドメインを `.` で区切った部分のどれかが `amazon` のホスト (ほかの国の Amazon 等) で
+/// Shopify の店の商品ページの形 (`shopifyProductPage(text:)`) でない URL。ホストに `amazon` の部分を持つ Shopify の店 (`amazon.example/products/…`) の商品ページの URL は断らない。
+func containsRejectedAmazonURL(text: String) -> Bool {
     text.split(whereSeparator: \.isWhitespace).contains { part in
         guard let host = URLComponents(string: String(part))?.host?.lowercased() else {
             return false
         }
-        return host.split(separator: ".").contains("amazon") || amazonLookingShortURLHosts.contains(host)
+        return amazonOwnedHost(host: host) || (host.split(separator: ".").contains("amazon") && shopifyProductPage(text: String(part)) == nil)
     }
 }
 
@@ -60,12 +71,12 @@ final class AmazonShortURLRedirectRecorder: NSObject, URLSessionTaskDelegate, @u
 ///
 /// 商品ページの URL は通信せずに `amazonASIN(text:)` で読む。短い URL は、短い URL への GET を 1 回だけ行い、転送には従わずに転送先を `amazonASIN(text:)` で読む
 /// (Amazon の商品ページそのものは取得しない。Amazon が持つ名前・画像・価格を読まないため)。
-/// 失敗した時は `FavoriteAdditionLoadError` を投げる。受け取らない形の Amazon の URL (`containsAmazonLookingURL(text:)` が true で、Shopify の店の商品ページの URL の形でもない) は `notAmazonProductPageURL`、
+/// 失敗した時は `FavoriteAdditionLoadError` を投げる。受け取らない形の Amazon の URL (`containsRejectedAmazonURL(text:)` が true) は通信せずに `notAmazonProductPageURL`、
 /// 短い URL の転送先が www.amazon.co.jp の商品ページでない時は `notAmazonProductPageURL`、転送を受けられなかった時 (通信の失敗・転送しない応答) は `temporarilyUnavailable`。
 /// ホストに `amazon` の部分を持つ Shopify の店 (`amazon.example` 等) の商品ページの URL は、変更前と同じく nil を返して Shopify の店の URL として扱わせる。
 func loadAmazonASIN(text: String, urlSession: URLSession) async throws -> String? {
     guard let urlText = amazonURLText(text: text) else {
-        if containsAmazonLookingURL(text: text), shopifyProductPage(text: text.trimmingCharacters(in: .whitespacesAndNewlines)) == nil {
+        if containsRejectedAmazonURL(text: text) {
             throw FavoriteAdditionLoadError.notAmazonProductPageURL
         }
         return nil

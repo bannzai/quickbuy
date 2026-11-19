@@ -153,13 +153,18 @@ struct AmazonProductPageTests {
         }
     }
 
-    /// 受け取らない形の Amazon の URL (ほかの国・カート・ほかの短い URL) は、通信せずに「受け取らない Amazon の URL」で終わる。
+    /// 受け取らない形の Amazon の URL (ほかの国・カート・ほかの短い URL・Amazon が持つホストの Shopify の商品ページの形のパス) は、通信せずに「受け取らない Amazon の URL」で終わる。
     @Test(arguments: [
         "https://www.amazon.com/dp/4065356113",
         "https://www.amazon.co.jp/gp/cart/view.html",
         "https://smile.amazon.co.jp/dp/4065356113",
         "https://amzn.to/3abcDEF",
         "https://a.co/d/8TwVTO3",
+        "https://amzn.asia/products/coffee-beans",
+        "https://a.co/products/coffee-beans",
+        "https://www.amazon.co.jp/products/coffee-beans",
+        "https://amazon.com/products/coffee-beans",
+        "https://www.amazon.de/dp/4065356113",
     ])
     func 受け取らないAmazonのURLは通信せずに断る(text: String) async {
         let requestedCountBefore = StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(text) }.count }
@@ -169,14 +174,13 @@ struct AmazonProductPageTests {
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(text) }.count } == requestedCountBefore)
     }
 
-    /// Amazon の URL を含まない文字列 (Shopify の店の URL・ホストに amazon を含むが区切りの一部でないドメイン・ホストに amazon の部分や a.co を持つ Shopify の店の商品ページの URL・URL でない文字列) では nil を返し、Shopify の店の URL として扱わせる。
+    /// Amazon の URL を含まない文字列 (Shopify の店の URL・ホストに amazon を含むが区切りの一部でないドメイン・ホストに amazon の部分を持つ Shopify の店の商品ページの URL・URL でない文字列) では nil を返し、Shopify の店の URL として扱わせる。
     @Test(arguments: [
         "https://mori-coffee.example/products/coffee-beans",
         "https://notamazon.example/dp/4065356113",
         "https://amazonfan.example/products/x",
         "https://amazon.example/products/coffee-beans",
         "https://shop.amazon.example/products/coffee-beans?variant=1",
-        "https://a.co/products/coffee-beans",
         "コーヒー豆",
         "",
     ])
