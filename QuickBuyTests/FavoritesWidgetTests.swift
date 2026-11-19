@@ -78,7 +78,19 @@ struct FavoritesWidgetTests {
         (UNAuthorizationStatus.notDetermined, false),
     ])
     func 許可の時だけカートインを出せる(authorizationStatus: UNAuthorizationStatus, expected: Bool) {
-        #expect(isCartInAvailable(authorizationStatus: authorizationStatus) == expected)
+        #expect(isCartInAvailable(authorizationStatus: authorizationStatus, alertSetting: .enabled, notificationCenterSetting: .enabled, lockScreenSetting: .enabled) == expected)
+    }
+
+    /// 許可されていても、バナー・通知センター・ロック画面の表示がすべて無効なら出せない。どれか 1 つでも有効なら出せる (その場所で確認の通知をタップできる)。
+    @Test(arguments: [
+        (UNNotificationSetting.disabled, UNNotificationSetting.disabled, UNNotificationSetting.disabled, false),
+        (UNNotificationSetting.notSupported, UNNotificationSetting.disabled, UNNotificationSetting.disabled, false),
+        (UNNotificationSetting.enabled, UNNotificationSetting.disabled, UNNotificationSetting.disabled, true),
+        (UNNotificationSetting.disabled, UNNotificationSetting.enabled, UNNotificationSetting.disabled, true),
+        (UNNotificationSetting.disabled, UNNotificationSetting.disabled, UNNotificationSetting.enabled, true),
+    ])
+    func 表示がどれか有効な時だけカートインを出せる(alertSetting: UNNotificationSetting, notificationCenterSetting: UNNotificationSetting, lockScreenSetting: UNNotificationSetting, expected: Bool) {
+        #expect(isCartInAvailable(authorizationStatus: .authorized, alertSetting: alertSetting, notificationCenterSetting: notificationCenterSetting, lockScreenSetting: lockScreenSetting) == expected)
     }
 
     /// Shopify の商品は通知が許可されている時だけボタンを出し、Amazon の商品は許可されていても出さない。

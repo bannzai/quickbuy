@@ -57,7 +57,13 @@ struct FavoritesTimelineProvider: TimelineProvider {
     /// 保存先を得られない・読めない時は、お気に入りを nil にした `now` の表示内容 1 つを返す。
     private func savedFavoritesTimelineEntries(now: Date) async -> [FavoritesTimelineEntry] {
         let favorites = sharedFavoritesFileURL().flatMap { try? loadFavorites(fileURL: $0) }
-        let isNotificationAuthorized = await isCartInAvailable(authorizationStatus: UNUserNotificationCenter.current().notificationSettings().authorizationStatus)
+        let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+        let isNotificationAuthorized = isCartInAvailable(
+            authorizationStatus: notificationSettings.authorizationStatus,
+            alertSetting: notificationSettings.alertSetting,
+            notificationCenterSetting: notificationSettings.notificationCenterSetting,
+            lockScreenSetting: notificationSettings.lockScreenSetting
+        )
         return favoritesWidgetTimelineDates(favorites: favorites ?? [], now: now).map {
             FavoritesTimelineEntry(date: $0, favorites: favorites, isNotificationAuthorized: isNotificationAuthorized)
         }

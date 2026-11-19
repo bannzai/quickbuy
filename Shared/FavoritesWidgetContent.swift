@@ -45,11 +45,12 @@ func favoritesWidgetTimelineDates(favorites: [Favorite], now: Date) -> [Date] {
     ).sorted()
 }
 
-/// 通知の許可の状態から、ウィジェットに「カートイン」を出せるかを返す。許可 (authorized) の時だけ true。
+/// 通知の許可の状態と表示の設定から、ウィジェットに「カートイン」を出せるかを返す。許可 (authorized) で、バナー・通知センター・ロック画面のどれかの表示が有効な時だけ true。
 ///
 /// 仮の許可 (provisional) と一時的な許可 (ephemeral) は、通知を通知センターにだけ静かに届ける・App Clip 向けの許可で、押した直後にバナーで確認を見せられないため false にする。
-func isCartInAvailable(authorizationStatus: UNAuthorizationStatus) -> Bool {
-    authorizationStatus == .authorized
+/// 許可されていても表示をすべて無効にした端末では、確認の通知をタップできる場所が無く購入画面へ進めないため false にする (許可と表示は別の設定。https://developer.apple.com/documentation/usernotifications/unnotificationsettings/alertsetting )。
+func isCartInAvailable(authorizationStatus: UNAuthorizationStatus, alertSetting: UNNotificationSetting, notificationCenterSetting: UNNotificationSetting, lockScreenSetting: UNNotificationSetting) -> Bool {
+    authorizationStatus == .authorized && [alertSetting, notificationCenterSetting, lockScreenSetting].contains(.enabled)
 }
 
 /// ウィジェットの行に「カートイン」のボタンを出すかを返す。通知が許可されていて、購入画面の URL を組み立てられるお気に入り (Amazon の商品以外) の時だけ true。
