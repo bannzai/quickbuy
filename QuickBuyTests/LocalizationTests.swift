@@ -9,9 +9,14 @@ struct LocalizationTests {
         try #require(Bundle.main.url(forResource: languageCode, withExtension: "lproj"))
     }
 
+    /// アプリの bundle の言語ごとの lproj の Bundle。
+    private func lprojBundle(languageCode: String) throws -> Bundle {
+        try #require(Bundle(url: lprojURL(languageCode: languageCode)))
+    }
+
     /// 日本語の lproj から日本語の文言 (単数・複数・埋め込み) を引ける。
     @Test func japaneseBundleLookup() throws {
-        let japaneseBundle = try #require(Bundle(url: lprojURL(languageCode: "ja")))
+        let japaneseBundle = try lprojBundle(languageCode: "ja")
         #expect(String(localized: "カートイン", bundle: japaneseBundle) == "カートイン")
         #expect(String(localized: "\(2) 種類をお気に入りに追加", bundle: japaneseBundle) == "2 種類をお気に入りに追加")
     }
@@ -26,12 +31,8 @@ struct LocalizationTests {
 
     /// LocalizedStringResource の bundle に lproj の URL を入れると、その言語が選ばれるか。
     @Test func resourceBundleAtLprojURL() throws {
-        var japaneseResource = LocalizedStringResource("カートイン")
-        japaneseResource.bundle = .atURL(try lprojURL(languageCode: "ja"))
-        #expect(String(localized: japaneseResource) == "カートイン")
-        var englishResource = LocalizedStringResource("\(2) 種類をお気に入りに追加")
-        englishResource.bundle = .atURL(try lprojURL(languageCode: "en"))
-        #expect(String(localized: englishResource) == "Add 2 Variants to Favorites")
+        #expect(String(localized: LocalizedStringResource("カートイン", bundle: .atURL(try lprojURL(languageCode: "ja")))) == "カートイン")
+        #expect(String(localized: LocalizedStringResource("\(2) 種類をお気に入りに追加", bundle: .atURL(try lprojURL(languageCode: "en")))) == "Add 2 Variants to Favorites")
     }
 
     /// LocalizedStringResource の locale を変えると、その言語が選ばれるか。
@@ -43,6 +44,6 @@ struct LocalizationTests {
 
     /// String(localized:bundle:locale:) の bundle に lproj を渡すと、複数形の規則が locale で決まるか。
     @Test func englishBundleWithJapaneseLocalePlural() throws {
-        #expect(String(localized: "\(1) 種類をお気に入りに追加", bundle: try #require(Bundle(url: lprojURL(languageCode: "en"))), locale: Locale(identifier: "en")) == "Add 1 Variant to Favorites")
+        #expect(String(localized: "\(1) 種類をお気に入りに追加", bundle: try lprojBundle(languageCode: "en"), locale: Locale(identifier: "en")) == "Add 1 Variant to Favorites")
     }
 }
