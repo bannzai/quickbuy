@@ -248,15 +248,17 @@ struct CatalogProductImage: View {
 
     /// 枠いっぱいに切り抜いた画像。
     var body: some View {
-        Group {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+        // 読み込む前は中身が空で、空の `Group` には `task` が動かないため、透明な下地に重ねる。
+        Color.clear
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
             }
-        }
-        .task(id: imageURL) {
-            image = await loadProductImage(url: imageURL, urlSession: productImageURLSession)
-        }
+            .task(id: imageURL) {
+                image = await loadProductImage(url: imageURL, urlSession: productImageURLSession)
+            }
     }
 }
