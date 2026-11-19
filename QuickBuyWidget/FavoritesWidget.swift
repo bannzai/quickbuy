@@ -13,7 +13,7 @@ struct FavoritesWidget: Widget {
         }
         .configurationDisplayName("お気に入り")
         .description("いつもの商品をホーム画面からカートイン")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies(favoritesWidgetSupportedFamilies())
     }
 }
 
@@ -96,8 +96,8 @@ struct FavoritesWidgetView: View {
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: widgetFamily == .systemLarge ? 10 : 8) {
-                    if widgetFamily == .systemLarge {
+                VStack(alignment: .leading, spacing: isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) ? 10 : 8) {
+                    if isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) {
                         Text("Quick Buy のお気に入り")
                             .font(.footnote.weight(.heavy))
                             .foregroundStyle(quickBuyAccentColor)
@@ -107,7 +107,7 @@ struct FavoritesWidgetView: View {
                             favorite: favorite,
                             now: entry.date,
                             isNotificationAuthorized: entry.isNotificationAuthorized,
-                            iconSideLength: widgetFamily == .systemLarge ? 48 : 40
+                            iconSideLength: isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) ? 48 : 40
                         )
                     }
                     Spacer(minLength: 0)
@@ -123,7 +123,7 @@ struct FavoritesWidgetView: View {
     }
 }
 
-/// 中サイズと大サイズのウィジェットの、お気に入り 1 件の行。左に買い物袋のアイコン、中に名前と「種類 ・ 個数」、右に「カートイン」を横に並べる。
+/// 中サイズ・大サイズ・縦長の特大サイズのウィジェットの、お気に入り 1 件の行。左に買い物袋のアイコン、中に名前と「種類 ・ 個数」、右に「カートイン」を横に並べる。
 struct FavoriteWidgetRow: View {
     /// 表示するお気に入り。
     let favorite: Favorite
