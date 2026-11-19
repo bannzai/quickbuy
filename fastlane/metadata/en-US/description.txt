@@ -1,0 +1,32 @@
+Quick Buy keeps the items you buy again and again from Shopify stores and Amazon as favorites, so you can rebuy them from the app or from a Home Screen widget. Every time you tap "Add to Cart", you are asked to confirm before anything opens. When you confirm, a Shopify store's checkout opens with the item already in the cart, and Amazon items open their product page. You always confirm payment yourself in the store.
+
+HOW IT WORKS
+1. Search and save favorites
+Search Shopify store products on the app's Home tab, choose the variant and quantity, and save them as favorites. Add the things you buy regularly, like coffee beans, detergent or pet food. You can also paste a product page URL or send one from the Share menu. Amazon items are added this way.
+
+2. Tap "Add to Cart" and confirm
+Tap "Add to Cart" in your favorites to see "Open checkout?". Your favorites also appear in a Home Screen widget. Tapping "Add to Cart" on the widget sends the same confirmation as a notification, so using the widget requires notification permission.
+
+3. Checkout opens
+After you confirm, the store's checkout opens with the item in the cart. Review it and confirm payment yourself. For Amazon items, tap "Open in Amazon" and confirm to open the Amazon product page. The item is not added to the cart there, so choose the quantity and add it to your cart on Amazon.
+
+4. Get reminded when it's time to buy
+Set how many days to wait for each favorite, and you'll get a notification when those days have passed. Tap it to open checkout (or the product page for Amazon items). The count restarts when you open checkout or the product page.
+
+MADE FOR PEOPLE WHO
+- Don't want a subscription and prefer to rebuy when they actually need something
+- Want to decide every purchase themselves. Quick Buy never buys anything on its own
+- Want to skip searching the store and adding the item to the cart every time
+
+PEACE OF MIND
+- The app never completes a purchase. It only opens checkout (or the Amazon product page)
+- It never asks for your store login
+- Favorites are stored only on your device, and no account is needed
+- Notifications never buy anything, and no promotional notifications are sent
+
+SUPPORTED STORES
+- Shopify stores that make their product information public
+- Amazon Japan (www.amazon.co.jp) items
+Search finds products from Shopify stores in Japan that ship within Japan. Subscription-only products open the store's home page instead of checkout.
+
+Quick Buy is free. For questions, contact us by email from Settings in the app.

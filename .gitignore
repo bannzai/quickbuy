@@ -9,6 +9,9 @@ tmp/
 # simtunnel mcp-config が worktree ごとに書き込む接続設定 (セッション固有のためコミットしない)
 .mcp.json
 
+# 審査の連絡先 (氏名・電話番号・メールアドレス) は個人情報のためコミットしない (fastlane deliver が読む場所)
+fastlane/metadata/review_information/
+
 # Firebase のクライアント設定ファイル (API キーを含む。Firebase を使う時もコミットせず、CI では secret から復元する)
 lib/firebase_options.dart
 **/GoogleService-Info.plist

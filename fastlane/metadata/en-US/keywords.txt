@@ -1,0 +1,1 @@
+rebuy,reorder,widget,shopify,amazon,favorites,reminder,shopping,repeat,cart,essentials
