@@ -82,6 +82,7 @@ struct FavoritesWidgetTests {
         #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")]) == "カートインには通知の許可が要ります")
         #expect(widgetNotificationRequiredText(favorites: [amazonFavorite]) == "Amazon で開くには通知の許可が要ります")
         #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite]) == "カートイン・Amazon で開くには通知の許可が要ります")
+        #expect(widgetNotificationRequiredText(favorites: []) == "カートインには通知の許可が要ります")
     }
 
     // MARK: - 「カートイン」を出すか

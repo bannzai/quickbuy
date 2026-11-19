@@ -126,7 +126,7 @@ struct AmazonProductPageTests {
         StubURLProtocol.stubResponses.withLock { $0[shortURLText] = .redirect(locationURLText: redirectedURLText) }
 
         #expect(try await loadAmazonASIN(text: "おすすめ \(shortURLText)", urlSession: StubURLProtocol.urlSession()) == "B0DTESTAB2")
-        #expect(StubURLProtocol.requestedURLTexts.withLock { $0.contains(shortURLText) })
+        #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0 == shortURLText }.count } == 1)
         #expect(StubURLProtocol.requestedURLTexts.withLock { !$0.contains(redirectedURLText) })
     }
 
