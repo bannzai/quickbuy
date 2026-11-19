@@ -50,10 +50,62 @@ struct FavoritesWidgetTests {
         #expect(widgetFavorites(favorites: favorites(count: savedCount), widgetFamily: widgetFamily).map(\.name) == expectedNames)
     }
 
-    /// ウィジェットが対応していない特大サイズには、お気に入りを並べない。
+    /// ウィジェットが対応していない横長の特大サイズには、お気に入りを並べない。
     @Test func 対応していない大きさには並べない() {
         #expect(widgetFavorites(favorites: favorites(count: 4), widgetFamily: .systemExtraLarge) == [])
     }
+
+    // MARK: - 置ける大きさと並べ方
+
+    /// 小・中・大サイズはどの OS でも置け、横長の特大サイズはどの OS でも置けない。
+    @Test func 小中大サイズを置けて横長の特大サイズは置けない() {
+        let supportedFamilies = favoritesWidgetSupportedFamilies()
+        #expect(supportedFamilies.contains(.systemSmall))
+        #expect(supportedFamilies.contains(.systemMedium))
+        #expect(supportedFamilies.contains(.systemLarge))
+        #expect(!supportedFamilies.contains(.systemExtraLarge))
+    }
+
+    /// 見出しと大きいアイコンで並べるのは大サイズで、小・中サイズと横長の特大サイズは並べない。
+    @Test(arguments: [
+        (WidgetFamily.systemSmall, false),
+        (WidgetFamily.systemMedium, false),
+        (WidgetFamily.systemLarge, true),
+        (WidgetFamily.systemExtraLarge, false),
+    ])
+    func 大きい並べ方は大サイズ(widgetFamily: WidgetFamily, expected: Bool) {
+        #expect(isFavoritesWidgetLargeLayout(widgetFamily: widgetFamily) == expected)
+    }
+
+    #if compiler(>=6.4)
+        /// iOS 27 以降では縦長の特大サイズを置け、iOS 26 以前では小・中・大サイズだけを置ける。
+        @Test func 縦長の特大サイズはiOS27以降だけ置ける() {
+            if #available(iOS 27.0, *) {
+                #expect(favoritesWidgetSupportedFamilies().contains(.systemExtraLargePortrait))
+            } else {
+                #expect(favoritesWidgetSupportedFamilies() == [.systemSmall, .systemMedium, .systemLarge])
+            }
+        }
+
+        /// 縦長の特大サイズは先頭から 5 行までを保存した並びのまま並べ、見出しと大きいアイコンで並べる。
+        /// 保存が上限より少ない時はある分だけ、0 件の時は何も並べない。
+        @Test(arguments: [
+            (0, [String]()),
+            (4, ["洗剤", "電池", "水", "米"]),
+            (5, ["洗剤", "電池", "水", "米", "茶"]),
+            (6, ["洗剤", "電池", "水", "米", "茶"]),
+        ])
+        @available(iOS 27.0, *)
+        func 縦長の特大サイズは先頭から5行(savedCount: Int, expectedNames: [String]) {
+            #expect(
+                widgetFavorites(
+                    favorites: ["洗剤", "電池", "水", "米", "茶", "塩"].prefix(savedCount).map { favorite(name: $0) },
+                    widgetFamily: .systemExtraLargePortrait
+                ).map(\.name) == expectedNames
+            )
+            #expect(isFavoritesWidgetLargeLayout(widgetFamily: .systemExtraLargePortrait))
+        }
+    #endif
 
     // MARK: - 行の説明
 
