@@ -83,7 +83,8 @@ struct AddFavoriteView: View {
             } header: {
                 Text("商品ページの URL")
             } footer: {
-                Text("Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください")
+                // verbatim にするのは、文字列のまま渡すと www.amazon.co.jp が押せるリンクになり、確認の画面を通さずに Amazon を開けてしまうため (2026-11-19 に simtunnel で、リンクとして表示されることを確かめた)。
+                Text(verbatim: "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください")
             }
             if let errorMessage {
                 Section {
