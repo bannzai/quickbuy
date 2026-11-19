@@ -54,6 +54,11 @@
 		B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000002 /* QuickBuyAccentColor.swift */; };
 		B50000000000000000000007 /* FavoritePurchaseURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* FavoritePurchaseURL.swift */; };
 		B50000000000000000000006 /* FavoritesWidgetTests.swift in Sources */ ={isa = PBXBuildFile; fileRef = A50000000000000000000003 /* FavoritesWidgetTests.swift */; };
+		B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000001 /* CartInConfirmationNotification.swift */; };
+		B70000000000000000000002 /* CartInConfirmationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000001 /* CartInConfirmationNotification.swift */; };
+		B70000000000000000000003 /* CartInIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000002 /* CartInIntent.swift */; };
+		B70000000000000000000004 /* ReminderSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* ReminderSchedule.swift */; };
+		B70000000000000000000005 /* CartInConfirmationNotificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000003 /* CartInConfirmationNotificationTests.swift */; };
 		B60000000000000000000001 /* NotificationPermissionExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000001 /* NotificationPermissionExplanation.swift */; };
 		B60000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 		B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */; };
@@ -141,6 +146,9 @@
 		A50000000000000000000001 /* FavoritesWidgetContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidgetContent.swift; sourceTree = "<group>"; };
 		A50000000000000000000002 /* QuickBuyAccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickBuyAccentColor.swift; sourceTree = "<group>"; };
 		A50000000000000000000003 /* FavoritesWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidgetTests.swift; sourceTree = "<group>"; };
+		A70000000000000000000001 /* CartInConfirmationNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartInConfirmationNotification.swift; sourceTree = "<group>"; };
+		A70000000000000000000002 /* CartInIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartInIntent.swift; sourceTree = "<group>"; };
+		A70000000000000000000003 /* CartInConfirmationNotificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartInConfirmationNotificationTests.swift; sourceTree = "<group>"; };
 		A60000000000000000000001 /* NotificationPermissionExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanation.swift; sourceTree = "<group>"; };
 		A60000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A60000000000000000000002 /* NotificationPermissionExplanationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionExplanationTests.swift; sourceTree = "<group>"; };
@@ -180,6 +188,7 @@
 		5B7E0DE840DE23CD061FA778 /* QuickBuyWidget */ = {
 			isa = PBXGroup;
 			children = (
+				A70000000000000000000002 /* CartInIntent.swift */,
 				9AB9167DB2F1CFC7FAF99C47 /* FavoritesWidget.swift */,
 				FF038E9464EE15A192F75816 /* Info.plist */,
 				A10000000000000000000006 /* QuickBuyWidget.entitlements */,
@@ -192,6 +201,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000003 /* AddFavoriteView.swift */,
+				A70000000000000000000001 /* CartInConfirmationNotification.swift */,
 				A20000000000000000000001 /* FavoritePurchaseURL.swift */,
 				A40000000000000000000001 /* ReminderSchedule.swift */,
 				A20000000000000000000002 /* ShopifyProductPage.swift */,
@@ -219,6 +229,7 @@
 			isa = PBXGroup;
 			children = (
 				A2000000000000000000000D /* AddFavoriteTests.swift */,
+				A70000000000000000000003 /* CartInConfirmationNotificationTests.swift */,
 				A2000000000000000000000A /* FavoritePurchaseURLTests.swift */,
 				A2000000000000000000000C /* FavoritesListTests.swift */,
 				A50000000000000000000003 /* FavoritesWidgetTests.swift */,
@@ -392,6 +403,9 @@
 				B50000000000000000000002 /* FavoritesWidgetContent.swift in Sources */,
 				B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */,
 				630B9AF57D0E2713E505BD72 /* ShopifyCartPermalink.swift in Sources */,
+				B70000000000000000000002 /* CartInConfirmationNotification.swift in Sources */,
+				B70000000000000000000003 /* CartInIntent.swift in Sources */,
+				B70000000000000000000004 /* ReminderSchedule.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,6 +439,7 @@
 				B34000000000000000000004 /* ShopifyCatalogTests.swift in Sources */,
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
+				B70000000000000000000005 /* CartInConfirmationNotificationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,6 +466,7 @@
 				B34000000000000000000002 /* HomeView.swift in Sources */,
 				B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
+				B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
