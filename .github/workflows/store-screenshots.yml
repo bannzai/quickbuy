@@ -1,0 +1,61 @@
+name: App Store のスクリーンショット
+
+# QuickBuyTests/AppStoreScreenshotTests.swift が描いた App Store のスクリーンショットを artifact にする。
+# 作業用の Mac でビルドしない決まり (CLAUDE.md「検証方法」) のため、macOS runner の simulator で描く。
+# artifact の中身を fastlane/screenshots/ に置いてコミットする: gh run download <run ID> -n store-screenshots -D fastlane/screenshots
+
+on:
+  # スクリーンショットの画面か文言を変えた PR で描き直し、レビューで画像を見られるようにする。
+  pull_request:
+    paths:
+      - QuickBuyTests/AppStoreScreenshot*.swift
+      - Shared/Localizable.xcstrings
+      - .github/workflows/store-screenshots.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Firebase の設定ファイルを secret から書き出す
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: scripts/restore-google-service-info-plist.sh
+      - name: スクリーンショットを描く
+        env:
+          TEST_RUNNER_QUICKBUY_SCREENSHOT_DIR: ${{ runner.temp }}/screenshots
+        run: |
+          xcodebuild test -project "QuickBuy.xcodeproj" -scheme "QuickBuy" \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -only-testing:QuickBuyTests/AppStoreScreenshotTests \
+            CODE_SIGNING_ALLOWED=NO
+      - name: 大きさと透明の有無を確かめる
+        # App Store Connect の iPhone 6.9 インチの大きさ (1320 x 2868) で、透明を持たないこと。両方の言語に 5 枚ずつあること。
+        run: |
+          status=0
+          for language in ja en-US; do
+            count=$(find "${{ runner.temp }}/screenshots/$language" -name '*.png' | wc -l | tr -d ' ')
+            echo "$language: $count 枚"
+            [ "$count" = 5 ] || status=1
+          done
+          for png in "${{ runner.temp }}"/screenshots/*/*.png; do
+            sips -g pixelWidth -g pixelHeight -g hasAlpha "$png"
+            [ "$(sips -g pixelWidth "$png" | awk '/pixelWidth/ {print $2}')" = 1320 ] || status=1
+            [ "$(sips -g pixelHeight "$png" | awk '/pixelHeight/ {print $2}')" = 2868 ] || status=1
+            [ "$(sips -g hasAlpha "$png" | awk '/hasAlpha/ {print $2}')" = no ] || status=1
+          done
+          exit $status
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: store-screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: error

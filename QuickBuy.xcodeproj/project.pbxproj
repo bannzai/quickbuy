@@ -30,6 +30,8 @@
 		B20000000000000000000004 /* AddFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* AddFavoriteView.swift */; };
 		B20000000000000000000006 /* EditFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* EditFavoriteView.swift */; };
 		B20000000000000000000007 /* DeveloperMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* DeveloperMenuView.swift */; };
+		BC0000000000000000000001 /* AppStoreScreenshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000001 /* AppStoreScreenshots.swift */; };
+		BC0000000000000000000002 /* AppStoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000002 /* AppStoreScreenshotTests.swift */; };
 		B30000000000000000000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000001 /* SettingsView.swift */; };
 		B34000000000000000000001 /* ShopifyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000001 /* ShopifyCatalog.swift */; };
 		B34000000000000000000002 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000002 /* HomeView.swift */; };
@@ -147,6 +149,8 @@
 		A20000000000000000000003 /* AddFavoriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFavoriteView.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* EditFavoriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFavoriteView.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* DeveloperMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperMenuView.swift; sourceTree = "<group>"; };
+		AC0000000000000000000001 /* AppStoreScreenshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshots.swift; sourceTree = "<group>"; };
+		AC0000000000000000000002 /* AppStoreScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshotTests.swift; sourceTree = "<group>"; };
 		A30000000000000000000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A34000000000000000000001 /* ShopifyCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCatalog.swift; sourceTree = "<group>"; };
 		A34000000000000000000002 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -287,6 +291,8 @@
 				A40000000000000000000003 /* ReminderTests.swift */,
 				A2000000000000000000000B /* ShopifyProductPageTests.swift */,
 				A30000000000000000000002 /* SettingsTests.swift */,
+				AC0000000000000000000001 /* AppStoreScreenshots.swift */,
+				AC0000000000000000000002 /* AppStoreScreenshotTests.swift */,
 				A34000000000000000000004 /* ShopifyCatalogTests.swift */,
 				A10000000000000000000004 /* AppGroupEntitlementsTests.swift */,
 				A10000000000000000000003 /* FavoriteStoreTests.swift */,
@@ -546,6 +552,8 @@
 				B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */,
 				B40000000000000000000003 /* ReminderTests.swift in Sources */,
 				B30000000000000000000002 /* SettingsTests.swift in Sources */,
+				BC0000000000000000000001 /* AppStoreScreenshots.swift in Sources */,
+				BC0000000000000000000002 /* AppStoreScreenshotTests.swift in Sources */,
 				B34000000000000000000004 /* ShopifyCatalogTests.swift in Sources */,
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
 				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
