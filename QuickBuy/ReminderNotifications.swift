@@ -1,9 +1,6 @@
 import UIKit
 import UserNotifications
 
-/// リマインドの通知が指すお気に入りの識別子を、通知の付加情報 (`userInfo`) に入れる時のキー。
-let reminderNotificationFavoriteIDKey = "favoriteID"
-
 /// お気に入りのリマインドの通知の内容を返す。
 ///
 /// 載せるのは見出し・お気に入りの名前・商品バリアントの名前 (持つお気に入りだけ)・案内の文言と、タップされた時にお気に入りを探すための識別子だけ。
@@ -15,13 +12,8 @@ func reminderNotificationContent(favorite: Favorite) -> UNMutableNotificationCon
     content.title = "そろそろ買う頃です"
     content.body = "\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます"
     content.sound = .default
-    content.userInfo = [reminderNotificationFavoriteIDKey: favorite.id.uuidString]
+    content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
     return content
-}
-
-/// 通知の付加情報 (`userInfo`) から、通知が指すお気に入りの識別子を取り出して返す。入っていない・識別子の形でない時は nil を返す。
-func reminderNotificationFavoriteID(userInfo: [AnyHashable: Any]) -> UUID? {
-    (userInfo[reminderNotificationFavoriteIDKey] as? String).flatMap(UUID.init(uuidString:))
 }
 
 /// 通知の予約へ加える変更を、端末の通知の仕組みに反映する。
@@ -89,7 +81,7 @@ func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) ->
     try operation()
 }
 
-/// 通知への操作を受けて、開く購入画面の URL を返す。開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に渡す。
+/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く購入画面の URL を返す。開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に渡す。
 ///
 /// 次の時は何も保存せずに nil を返す (呼び出し側は購入画面を開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、
 /// 通知の付加情報からお気に入りの識別子を取り出せない、通知が指すお気に入りが保存されていない、購入画面の URL を組み立てられない、保存先を読めない・書けない。
@@ -100,7 +92,7 @@ func purchaseURLForNotificationResponse(
     fileURL: URL,
     applyChanges: ([ReminderNotificationChange]) -> Void
 ) -> URL? {
-    guard actionIdentifier == UNNotificationDefaultActionIdentifier, let favoriteID = reminderNotificationFavoriteID(userInfo: userInfo) else {
+    guard actionIdentifier == UNNotificationDefaultActionIdentifier, let favoriteID = favoriteNotificationFavoriteID(userInfo: userInfo) else {
         return nil
     }
     var openingURL: URL?
@@ -172,7 +164,7 @@ func restoreMissingReminderNotifications(
     )
 }
 
-/// リマインドの通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
+/// リマインドの通知と「カートイン」の確認の通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
 ///
 /// 通知の仕組み (`UNUserNotificationCenterDelegate`) がクラスのオブジェクトを求めるため、クラスにしている。
 final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDelegate {

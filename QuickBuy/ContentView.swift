@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import WidgetKit
 
 /// アプリの最初の画面。お気に入りの保存先を開ければ一覧を、開けなければその旨を表示する。
 struct ContentView: View {
@@ -83,18 +84,11 @@ struct FavoritesListView: View {
                 cartInConfirmation = nil
             }
         }
-        .onOpenURL { tapURL in
-            // 購入画面を開けない時 (お気に入りが消されている・購入画面の URL を組み立てられない等) は、この一覧をそのまま見せる。
-            // 確認の「開く」と同じ経路で、リマインドの数え直しと通知の予約のし直しを行う。
-            save {
-                if let tappedPurchaseURL = try tappedFavoritePurchaseURL(tapURL: tapURL, now: .now, fileURL: favoritesFileURL) {
-                    openURL(tappedPurchaseURL)
-                }
-            }
-        }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
                 reload()
+                // ウィジェットは通知の許可の状態で「カートイン」を出すかを変えるため、設定アプリで許可を変えて戻った時に表示を更新する。
+                WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
             }
         }
         // アプリが前面に来るたびに、通知が許可されているのに予約の無いリマインド (通知を拒否していた間に保存したもの) を予約する。
@@ -328,11 +322,6 @@ struct FavoritesListView: View {
         reload()
     }
 }
-
-/// 一覧の行で、リマインドの日数が過ぎたこと (「そろそろ買う頃」) を示す文字の色。
-///
-/// 画面の見本 (documents/design/mock-2026-11-17/project/Main.dc.html) の「そろそろ買う頃」の色 `#9A3412`。
-let reminderDueColor = Color(red: 0x9A / 255, green: 0x34 / 255, blue: 0x12 / 255)
 
 /// 「カートイン」の確認を、利用者が何も押さない時に出しておく秒数。
 ///
