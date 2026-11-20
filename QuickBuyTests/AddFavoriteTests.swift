@@ -523,6 +523,10 @@ struct AddFavoriteTests {
                 == "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください"
         )
         #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable, locale: Locale(identifier: "ja")).hasPrefix("商品の情報を取得できませんでした"))
-        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable, locale: Locale(identifier: "ja")).hasPrefix("この商品は登録できません"))
+        #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable, locale: Locale(identifier: "ja")) == "この商品は登録できません\n商品の情報を取得できない店か\n商品が見つかりません")
+        #expect(
+            favoriteAdditionLoadErrorMessage(error: .notRegistrable, locale: Locale(identifier: "en"))
+                == "This product can't be added\nThe store doesn't share product info or the product wasn't found"
+        )
     }
 }

@@ -285,14 +285,14 @@ func loadFavoriteAddition(
     else {
         throw FavoriteAdditionLoadError.notProductPageURL
     }
-    guard let (data, response) = try? await urlSession.data(from: ajaxProductURL) else {
+    guard let (ajaxProductData, response) = try? await urlSession.data(from: ajaxProductURL) else {
         throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode != 429 else {
         throw FavoriteAdditionLoadError.temporarilyUnavailable
     }
     guard (response as? HTTPURLResponse)?.statusCode == 200,
-          let product = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: data)).map(productWithUniqueVariants(product:)),
+          let product = (try? JSONDecoder().decode(ShopifyAjaxProduct.self, from: ajaxProductData)).map(productWithUniqueVariants(product:)),
           let quantitiesByVariantID = initialVariantQuantities(productPage: productPage, product: product)
     else {
         throw FavoriteAdditionLoadError.notRegistrable

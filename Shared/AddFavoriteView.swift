@@ -351,7 +351,7 @@ func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError, locale: 
     case .temporarilyUnavailable:
         String(localized: LocalizedStringResource("商品の情報を取得できませんでした\n少し待ってからもう一度お試しください", locale: locale))
     case .notRegistrable:
-        String(localized: LocalizedStringResource("この商品は登録できません\n商品の情報を取得できない店か、商品が見つかりません", locale: locale))
+        String(localized: LocalizedStringResource("この商品は登録できません\n商品の情報を取得できない店か\n商品が見つかりません", locale: locale))
     }
 }
 
@@ -396,12 +396,12 @@ let productImageURLSession = URLSession(configuration: .default, delegate: Produ
 
 /// 商品の画像を読み込んで返す。通信に失敗した時・HTTP 200 以外の時 (従わなかった転送の応答を含む)・画像として読めない時は nil を返す。
 func loadProductImage(url: URL, urlSession: URLSession) async -> UIImage? {
-    guard let (data, response) = try? await urlSession.data(from: url),
+    guard let (imageData, response) = try? await urlSession.data(from: url),
           (response as? HTTPURLResponse)?.statusCode == 200
     else {
         return nil
     }
-    return UIImage(data: data)
+    return UIImage(data: imageData)
 }
 
 /// 商品の画像の小さな表示。画像の URL が無い時と読み込めない間は、買い物袋のアイコンを出す。
