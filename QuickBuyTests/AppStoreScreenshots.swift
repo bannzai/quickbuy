@@ -109,10 +109,10 @@ private func localized(key: String.LocalizationValue, locale: Locale) -> String 
     String(localized: LocalizedStringResource(key, locale: locale))
 }
 
-/// スクリーンショットの地の色。強調の色 `quickBuyAccentColor` (#0B6E4F) を薄くした `#E6F2EC`。
+/// スクリーンショットの地の色。強調の色 `quickBuyAccentColor` と同じ色味の、ごく薄い色にして、見出しの強調の色を目立たせる。
 private let appStoreScreenshotBackgroundColor = Color(red: 0xE6 / 255, green: 0xF2 / 255, blue: 0xEC / 255)
 
-/// ホーム画面とロック画面の壁紙の色。強調の色 `quickBuyAccentColor` (#0B6E4F) を暗くした `#0A3D2E`。白いウィジェットと通知を目立たせるため。
+/// ホーム画面とロック画面の壁紙の色。強調の色 `quickBuyAccentColor` と同じ色味の暗い色にして、白いウィジェットと通知を目立たせる。
 private let appStoreScreenshotWallpaperColor = Color(red: 0x0A / 255, green: 0x3D / 255, blue: 0x2E / 255)
 
 /// `sampleFavorites()` の並びの位置ごとに、商品の画像の代わりに出す SF Symbols の名前。
@@ -254,10 +254,10 @@ private struct AppStoreScreenshotNotification: View {
     }
 }
 
-/// 一覧やフォームの画面の地の色。`Color(uiColor: .systemGroupedBackground)` の明るい外観の色 `#F2F2F7`。
+/// 一覧やフォームの画面の地の色。アプリが使う `Color(uiColor: .systemGroupedBackground)` の明るい外観の色に合わせる (スクリーンショットは描く環境の外観によらず明るい外観で描くため、固定の値にする)。
 private let appStoreScreenshotGroupedBackgroundColor = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
 
-/// 「カートイン」のボタンの見た目 (強調の色の地に白い太字、角の丸み 10)。アプリの一覧 (QuickBuy/ContentView.swift) とウィジェット (QuickBuyWidget/FavoritesWidget.swift) のボタンに合わせる。
+/// 「カートイン」のボタン。アプリの一覧 (QuickBuy/ContentView.swift) とウィジェット (QuickBuyWidget/FavoritesWidget.swift) のボタンの見た目に合わせる。
 private struct AppStoreScreenshotCartInButton: View {
     /// ボタンが指すお気に入り。
     let favorite: Favorite
