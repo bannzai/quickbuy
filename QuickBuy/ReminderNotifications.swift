@@ -1,3 +1,4 @@
+import Combine
 import UIKit
 import UserNotifications
 
@@ -146,6 +147,16 @@ func openingURLForNotificationResponse(
     return favoriteOpeningURL
 }
 
+/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、アプリが出すタブを返す。
+///
+/// 通知のタップ (`UNNotificationDefaultActionIdentifier`) なのに開く URL が無い時 (`openingURLForNotificationResponse` が nil を返した時。
+/// 通知が指すお気に入りが削除済みの時など) は、お気に入りのタブを返す。タップでアプリは前面に来るが何も開かれないため、今のお気に入りの状態を見せる
+/// (documents/DIRECTION.md「決めたこと」の 2026-11-20 の通知が指すお気に入りが無い時の行)。
+/// 開く URL がある時と、タップ以外の操作の時は nil (タブを変えない) を返す。
+func appTabForNotificationResponse(actionIdentifier: String, openingURL: URL?) -> AppTab? {
+    actionIdentifier == UNNotificationDefaultActionIdentifier && openingURL == nil ? .favorites : nil
+}
+
 /// リマインドを設定しているのに、通知の予約が無いお気に入りの識別子を返す。
 ///
 /// `pendingNotificationIdentifiers` は、端末に残っている未配信の予約の識別子 (お気に入りの識別子の文字列)。
@@ -207,7 +218,13 @@ func restoreMissingReminderNotifications(
 /// リマインドの通知と「カートイン」の確認の通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。
 ///
 /// 通知の仕組み (`UNUserNotificationCenterDelegate`) がクラスのオブジェクトを求めるため、クラスにしている。
-final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+/// 通知のタップが求めたタブを画面 (`ContentView`) へ伝えるため、`ObservableObject` にしている。
+final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDelegate, ObservableObject {
+    /// 通知のタップが求めたタブ。画面が読んでタブを替えたら nil に戻す。求めが無い間は nil。
+    ///
+    /// 通知のタップでアプリが起動した時は、画面ができる前にタップが届くことがあるため、画面が読むまで値を持っておく。
+    @Published var appTabRequestedByNotificationTap: AppTab?
+
     /// アプリが前面にある時に通知が届いたら、前面でも通知の表示と音を出す。
     func userNotificationCenter(
         _: UNUserNotificationCenter,
@@ -219,7 +236,7 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
 
     /// 通知がタップされた時に、通知が指すお気に入りの購入画面 (Amazon の商品は商品ページ) をアプリの外で開き、リマインドの日数を数え直す。
     ///
-    /// 通知が指すお気に入りが保存されていない時は何も開かない (アプリは開くので、お気に入りの一覧が表示される)。
+    /// 通知が指すお気に入りが保存されていない時など、開く URL が無い時は何も開かず、お気に入りのタブを出すよう画面へ求める (`appTabForNotificationResponse`)。
     /// 画面からの保存の操作と同時に保存先を読み書きしないよう、数え直しの保存もメインのスレッド (画面の操作と同じ) で実行する。
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -227,17 +244,21 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         DispatchQueue.main.async {
-            guard let favoritesFileURL = sharedFavoritesFileURL(),
-                  let openingURL = openingURLForNotificationResponse(
-                      actionIdentifier: response.actionIdentifier,
-                      notificationIdentifier: response.notification.request.identifier,
-                      userInfo: response.notification.request.content.userInfo,
-                      now: .now,
-                      fileURL: favoritesFileURL,
-                      applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) },
-                      recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:)
-                  )
-            else {
+            let openingURL = sharedFavoritesFileURL().flatMap { favoritesFileURL in
+                openingURLForNotificationResponse(
+                    actionIdentifier: response.actionIdentifier,
+                    notificationIdentifier: response.notification.request.identifier,
+                    userInfo: response.notification.request.content.userInfo,
+                    now: .now,
+                    fileURL: favoritesFileURL,
+                    applyChanges: { applyReminderNotificationChanges(changes: $0, center: center) },
+                    recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:)
+                )
+            }
+            if let requestedAppTab = appTabForNotificationResponse(actionIdentifier: response.actionIdentifier, openingURL: openingURL) {
+                self.appTabRequestedByNotificationTap = requestedAppTab
+            }
+            guard let openingURL else {
                 completionHandler()
                 return
             }
