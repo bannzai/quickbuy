@@ -941,7 +941,7 @@ private final class RecordingReminderNotificationCenter: ReminderNotificationCen
     }
 
     /// 予約の識別子と繰り返しの秒数を記録する。`completionHandler` は呼ばない。
-    func add(_ request: UNNotificationRequest, withCompletionHandler _: ((Error?) -> Void)?) {
+    func add(_ request: UNNotificationRequest, withCompletionHandler _: (@Sendable (Error?) -> Void)?) {
         operations.append(.add(identifier: request.identifier, timeInterval: (request.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval))
     }
 

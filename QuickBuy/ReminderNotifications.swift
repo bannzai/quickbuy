@@ -57,7 +57,7 @@ protocol ReminderNotificationCenter {
     /// 指定した識別子の、届いて通知センターに残っている通知を消す。
     func removeDeliveredNotifications(withIdentifiers identifiers: [String])
     /// 通知を予約する。同じ識別子の予約があれば置き換える。
-    func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: ((Error?) -> Void)?)
+    func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: (@Sendable (Error?) -> Void)?)
     /// まだ届いていない予約の一覧を返す。
     func pendingNotificationRequests() async -> [UNNotificationRequest]
     /// Quick Buy の通知の許可の状態を返す。
