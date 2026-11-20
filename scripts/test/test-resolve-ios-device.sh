@@ -22,6 +22,7 @@ check() {
 
 # 新しい一時ディレクトリに偽の xcrun と、xcrun の呼び出しの記録先を用意してパスを返す。
 # 偽の xcrun は環境変数 FIXTURE_JSON のファイルを --json-output の先へ写す。
+# 環境変数 XCRUN_FAIL=1 の時は、何も書き出さずに devicectl の失敗として exit 1 する。
 make_workdir() {
   local workdir
   workdir="$(mktemp -d)"
@@ -29,6 +30,10 @@ make_workdir() {
   cat > "$workdir/bin/xcrun" <<'FAKE'
 #!/bin/bash
 echo "$*" >> "$XCRUN_CALLS"
+if [ "${XCRUN_FAIL:-}" = "1" ]; then
+  echo "ERROR: devicectl failed" >&2
+  exit 1
+fi
 while [ $# -gt 0 ]; do
   if [ "$1" = "--json-output" ]; then
     cp "$FIXTURE_JSON" "$2"
@@ -138,6 +143,40 @@ FIXTURE_JSON="$(write_fixture "$workdir")" run_resolve "$workdir" "" ""
 status=$?
 check "一覧が空は exit 1" test "$status" -eq 1
 check "一覧が空は指定を求める" grep -q "$missing_message" "$workdir/err"
+
+# 異常系 (外部呼び出しの失敗): devicectl が失敗したら、前回の書き出し先に残った JSON の実機を出さずに非 0 で止まる
+workdir="$(make_workdir)"
+mkdir -p "$workdir/tmp"
+cp "$(write_fixture "$workdir" "$physical_a")" "$workdir/tmp/devices.json"
+XCRUN_FAIL=1 run_resolve "$workdir" "" ""
+status=$?
+check "devicectl の失敗は非 0" test "$status" -ne 0
+check "devicectl の失敗は何も出さない" test ! -s "$workdir/out"
+check "devicectl の失敗は devicectl のエラーを出す" grep -q "ERROR: devicectl failed" "$workdir/err"
+
+# 異常系 (不正な入力): devicectl の JSON が壊れていたら、実機を出さずに非 0 で止まる
+workdir="$(make_workdir)"
+printf '{"result": {"devices": [' > "$workdir/broken.json"
+FIXTURE_JSON="$workdir/broken.json" run_resolve "$workdir" "" ""
+status=$?
+check "壊れた JSON は非 0" test "$status" -ne 0
+check "壊れた JSON は何も出さない" test ! -s "$workdir/out"
+
+# 異常系 (不正な入力): result.devices を持たない JSON も、実機を出さずに非 0 で止まる
+workdir="$(make_workdir)"
+printf '{"info":{"outcome":"failed"},"result":{}}' > "$workdir/no-devices.json"
+FIXTURE_JSON="$workdir/no-devices.json" run_resolve "$workdir" "" ""
+status=$?
+check "result.devices の無い JSON は非 0" test "$status" -ne 0
+check "result.devices の無い JSON は何も出さない" test ! -s "$workdir/out"
+
+# 異常系 (引数の欠落): JSON の書き出し先が無いと、DEVICE があっても理由を出して非 0 で止まる
+workdir="$(make_workdir)"
+PATH="$workdir/bin:$PATH" XCRUN_CALLS="$workdir/xcrun-calls" bash "$script_path" "My iPhone" "" > "$workdir/out" 2> "$workdir/err"
+status=$?
+check "第 3 引数が無いと非 0" test "$status" -ne 0
+check "第 3 引数が無いと何も出さない" test ! -s "$workdir/out"
+check "第 3 引数が無いと理由を出す" grep -q "devicectl の JSON の書き出し先を第 3 引数に渡してください" "$workdir/err"
 
 # 冪等: 書き出し先の JSON が既にあっても上書きし、同じ一覧なら同じ値を出す
 workdir="$(make_workdir)"
