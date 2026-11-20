@@ -701,6 +701,184 @@ struct ReminderTests {
         #expect(appliedChanges.isEmpty)
     }
 
+    // MARK: - 通知の仕組みへの反映
+
+    /// 予約を取り消す時は、まだ届いていない予約と、届いて通知センターに残っている通知の両方を、お気に入りの識別子で消す。予約はしない。
+    @Test func 取り消しでは未配信の予約と届いた通知の両方を消す() {
+        let center = RecordingReminderNotificationCenter(authorizationStatus: .authorized, pendingNotificationIdentifiers: [])
+
+        applyReminderNotificationChanges(changes: [.cancel(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!)], center: center)
+
+        #expect(
+            center.operations == [
+                .removePendingNotificationRequests(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+                .removeDeliveredNotifications(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+            ]
+        )
+    }
+
+    /// 予約し直す時は、届いて通知センターに残っている通知を消してから、お気に入りの識別子で設定した日数 (7 日 = 604800 秒) ごとの予約を足す。
+    @Test func 予約では届いた通知を消してから予約を足す() {
+        let center = RecordingReminderNotificationCenter(authorizationStatus: .authorized, pendingNotificationIdentifiers: [])
+
+        applyReminderNotificationChanges(
+            changes: [.schedule(favorite: favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom)))],
+            center: center
+        )
+
+        #expect(
+            center.operations == [
+                .removeDeliveredNotifications(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+                .add(identifier: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1", timeInterval: 604_800),
+            ]
+        )
+    }
+
+    /// リマインドの無いお気に入りの予約の変更が渡った時は、予約を作れないので何も呼ばない (届いた通知も消さない)。
+    @Test func リマインドの無いお気に入りの予約の変更では何も呼ばない() {
+        let center = RecordingReminderNotificationCenter(authorizationStatus: .authorized, pendingNotificationIdentifiers: [])
+
+        applyReminderNotificationChanges(changes: [.schedule(favorite: favorite(idSuffix: "1", reminder: nil))], center: center)
+
+        #expect(center.operations.isEmpty)
+    }
+
+    /// 複数の変更は、渡った順にそれぞれのお気に入りの識別子で反映する。30 日 = 2592000 秒。
+    @Test func 複数の変更を渡った順に反映する() {
+        let center = RecordingReminderNotificationCenter(authorizationStatus: .authorized, pendingNotificationIdentifiers: [])
+
+        applyReminderNotificationChanges(
+            changes: [
+                .cancel(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!),
+                .schedule(favorite: favorite(idSuffix: "2", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))),
+            ],
+            center: center
+        )
+
+        #expect(
+            center.operations == [
+                .removePendingNotificationRequests(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+                .removeDeliveredNotifications(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+                .removeDeliveredNotifications(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2"]),
+                .add(identifier: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2", timeInterval: 2_592_000),
+            ]
+        )
+    }
+
+    /// 通知が許可されている時は、端末に未配信の予約の無いリマインドだけを、その時刻から数え直して予約する。予約のあるリマインドは変えない。
+    @MainActor
+    @Test func 通知が許可されている時は予約の無いリマインドだけを復旧する() async throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let scheduledFavorite = favorite(idSuffix: "2", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom))
+        try saveFavorites(
+            favorites: [favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)), scheduledFavorite],
+            fileURL: fileURL
+        )
+        let restoredAt = countedFrom.addingTimeInterval(3 * daySeconds)
+        let center = RecordingReminderNotificationCenter(
+            authorizationStatus: .authorized,
+            pendingNotificationIdentifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA2", "developerMenuReminderPreview"]
+        )
+
+        await restoreMissingReminderNotifications(fileURL: fileURL, center: center, now: restoredAt)
+
+        #expect(
+            try loadFavorites(fileURL: fileURL) == [
+                favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: restoredAt)),
+                scheduledFavorite,
+            ]
+        )
+        #expect(
+            center.operations == [
+                .removeDeliveredNotifications(identifiers: ["5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1"]),
+                .add(identifier: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1", timeInterval: 2_592_000),
+            ]
+        )
+    }
+
+    /// 通知が拒否されている時と、まだ許可を聞いていない時は、予約の無いリマインドがあっても保存も予約も変えない。
+    @MainActor
+    @Test(arguments: [UNAuthorizationStatus.denied, .notDetermined])
+    func 通知が許可されていない時は復旧しない(authorizationStatus: UNAuthorizationStatus) async throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let savedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
+        let center = RecordingReminderNotificationCenter(authorizationStatus: authorizationStatus, pendingNotificationIdentifiers: [])
+
+        await restoreMissingReminderNotifications(fileURL: fileURL, center: center, now: countedFrom.addingTimeInterval(3 * daySeconds))
+
+        #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
+        #expect(center.operations.isEmpty)
+    }
+
+    // MARK: - 編集の画面の保存
+
+    /// リマインドを操作せずに保存した時は、名前と個数だけを保存し、画面を開いている間に保存先で数え直されたリマインドを、編集中の古いリマインドに戻さない。予約も変えない。
+    @Test func リマインドを操作せずに保存すると保存先のリマインドを書き換えない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let recountedReminder = Reminder(intervalDays: 30, countedFrom: countedFrom.addingTimeInterval(10 * daySeconds))
+        try saveFavorites(favorites: [favorite(idSuffix: "1", reminder: recountedReminder)], fileURL: fileURL)
+        var editingFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        editingFavorite.name = "別の名前"
+        editingFavorite.quantity = 5
+        var appliedChanges: [[ReminderNotificationChange]] = []
+
+        try performSaving(fileURL: fileURL, applyChanges: { appliedChanges.append($0) }) {
+            try saveEditedFavorite(favorite: editingFavorite, isReminderEdited: false, now: countedFrom.addingTimeInterval(12 * daySeconds), fileURL: fileURL)
+        }
+
+        var expectedFavorite = favorite(idSuffix: "1", reminder: recountedReminder)
+        expectedFavorite.name = "別の名前"
+        expectedFavorite.quantity = 5
+        #expect(try loadFavorites(fileURL: fileURL) == [expectedFavorite])
+        #expect(appliedChanges == [[]])
+    }
+
+    /// リマインドの日数を操作して保存した時は、名前と個数と一緒に、新しい日数で保存の時刻から数え始めるリマインドを保存し、予約し直す。
+    @Test func リマインドを操作して保存すると保存の時刻から数え直して予約し直す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try saveFavorites(favorites: [favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))], fileURL: fileURL)
+        var editingFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: countedFrom.addingTimeInterval(1 * daySeconds)))
+        editingFavorite.name = "別の名前"
+        let savedAt = countedFrom.addingTimeInterval(2 * daySeconds)
+        var appliedChanges: [[ReminderNotificationChange]] = []
+
+        try performSaving(fileURL: fileURL, applyChanges: { appliedChanges.append($0) }) {
+            try saveEditedFavorite(favorite: editingFavorite, isReminderEdited: true, now: savedAt, fileURL: fileURL)
+        }
+
+        var expectedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 7, countedFrom: savedAt))
+        expectedFavorite.name = "別の名前"
+        #expect(try loadFavorites(fileURL: fileURL) == [expectedFavorite])
+        #expect(appliedChanges == [[.schedule(favorite: expectedFavorite)]])
+    }
+
+    /// リマインドをオフにして保存した時は、保存先のリマインドを消し、予約を取り消す。
+    @Test func リマインドをオフにして保存するとリマインドを消して予約を取り消す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try saveFavorites(favorites: [favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))], fileURL: fileURL)
+        var appliedChanges: [[ReminderNotificationChange]] = []
+
+        try performSaving(fileURL: fileURL, applyChanges: { appliedChanges.append($0) }) {
+            try saveEditedFavorite(favorite: favorite(idSuffix: "1", reminder: nil), isReminderEdited: true, now: countedFrom, fileURL: fileURL)
+        }
+
+        #expect(try loadFavorites(fileURL: fileURL) == [favorite(idSuffix: "1", reminder: nil)])
+        #expect(appliedChanges == [[.cancel(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")!)]])
+    }
+
+    /// 編集中に保存先から消えたお気に入りを保存した時は、お気に入りが無いエラーを投げ、保存先を変えない。
+    @Test func 保存先に無いお気に入りの編集の保存はエラーにする() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let savedFavorite = favorite(idSuffix: "2", reminder: nil)
+        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
+
+        #expect(throws: FavoriteStoreError.favoriteNotFound) {
+            try saveEditedFavorite(favorite: favorite(idSuffix: "1", reminder: nil), isReminderEdited: true, now: countedFrom, fileURL: fileURL)
+        }
+        #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
+    }
+
     // MARK: - 開発者メニュー
 
     /// 数え始めた日時を、今から設定した日数だけ前にずらす。リマインドの無いお気に入りは変えない。
@@ -722,5 +900,58 @@ struct ReminderTests {
             ]
         )
         #expect(try loadFavorites(fileURL: fileURL).map { reminderStatusText(reminder: $0.reminder, now: now, locale: Locale(identifier: "ja")) } == ["そろそろ買う頃", "知らせなし"])
+    }
+}
+
+/// 端末の通知の仕組みの代わりに、呼ばれた操作を呼ばれた順に記録する `ReminderNotificationCenter`。
+///
+/// 呼ばれた操作を、呼ばれた後に呼び出し側から読めるよう、クラスにしている。
+private final class RecordingReminderNotificationCenter: ReminderNotificationCenter {
+    /// 呼ばれた通知の仕組みの操作の 1 回分。
+    enum Operation: Equatable {
+        /// まだ届いていない予約の取り消し。
+        case removePendingNotificationRequests(identifiers: [String])
+        /// 届いて通知センターに残っている通知の削除。
+        case removeDeliveredNotifications(identifiers: [String])
+        /// 予約。予約の識別子と、繰り返しの秒数 (時間の間隔の予約でない時は nil)。
+        case add(identifier: String, timeInterval: TimeInterval?)
+    }
+
+    /// `authorizationStatus()` が返す、通知の許可の状態。
+    let notificationAuthorizationStatus: UNAuthorizationStatus
+    /// `pendingNotificationRequests()` が返す予約の識別子。
+    let pendingNotificationIdentifiers: [String]
+    /// 呼ばれた操作。呼ばれた順に並ぶ。
+    private(set) var operations: [Operation] = []
+
+    /// クラスは memberwise initializer を持たないため書いている。
+    init(authorizationStatus: UNAuthorizationStatus, pendingNotificationIdentifiers: [String]) {
+        notificationAuthorizationStatus = authorizationStatus
+        self.pendingNotificationIdentifiers = pendingNotificationIdentifiers
+    }
+
+    /// 取り消した識別子を記録する。
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        operations.append(.removePendingNotificationRequests(identifiers: identifiers))
+    }
+
+    /// 消した識別子を記録する。
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+        operations.append(.removeDeliveredNotifications(identifiers: identifiers))
+    }
+
+    /// 予約の識別子と繰り返しの秒数を記録する。`completionHandler` は呼ばない。
+    func add(_ request: UNNotificationRequest, withCompletionHandler _: ((Error?) -> Void)?) {
+        operations.append(.add(identifier: request.identifier, timeInterval: (request.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval))
+    }
+
+    /// `pendingNotificationIdentifiers` を識別子に持つ、中身の空の予約を返す。
+    func pendingNotificationRequests() async -> [UNNotificationRequest] {
+        pendingNotificationIdentifiers.map { UNNotificationRequest(identifier: $0, content: UNMutableNotificationContent(), trigger: nil) }
+    }
+
+    /// `notificationAuthorizationStatus` を返す。
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        notificationAuthorizationStatus
     }
 }
