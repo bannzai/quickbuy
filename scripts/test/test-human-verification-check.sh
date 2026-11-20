@@ -21,6 +21,7 @@ check() {
 }
 
 workdir="$(mktemp -d)"
+trap 'rm -rf "$workdir"' EXIT
 step_script="$workdir/step.sh"
 ruby -ryaml -e '
   workflow = YAML.load_file(ARGV[0])

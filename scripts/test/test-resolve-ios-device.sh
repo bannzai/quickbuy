@@ -7,6 +7,9 @@ set -uo pipefail
 
 script_path="$(cd "$(dirname "$0")/.." && pwd)/resolve-ios-device.sh"
 failures=0
+# ケースごとの作業ディレクトリをこの下に作り、終了時にまとめて消す
+tmp_root="$(mktemp -d)"
+trap 'rm -rf "$tmp_root"' EXIT
 
 # 条件が真なら PASS、偽なら FAIL を出して数える。
 check() {
@@ -25,7 +28,7 @@ check() {
 # 環境変数 XCRUN_FAIL=1 の時は、何も書き出さずに devicectl の失敗として exit 1 する。
 make_workdir() {
   local workdir
-  workdir="$(mktemp -d)"
+  workdir="$(mktemp -d "$tmp_root/case.XXXXXX")"
   mkdir -p "$workdir/bin"
   cat > "$workdir/bin/xcrun" <<'FAKE'
 #!/bin/bash
