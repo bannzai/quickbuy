@@ -4,7 +4,9 @@ import WidgetKit
 
 /// アプリの最初の画面。お気に入りの保存先を開ければトップページ (検索) とお気に入りの一覧のタブを、開けなければその旨を表示する。
 struct ContentView: View {
-    /// 出しているタブ。開いた時はトップページで、ウィジェットのタップで開いた時はお気に入りの一覧にする。
+    /// 通知のタップを受け取るオブジェクト。通知のタップが求めたタブを読む。
+    @ObservedObject var reminderNotificationDelegate: ReminderNotificationDelegate
+    /// 出しているタブ。開いた時はトップページで、ウィジェットのタップで開いた時と、通知のタップで開く URL が無かった時はお気に入りの一覧にする。
     @State private var selectedTab = AppTab.home
     /// アプリが前面にあるか。前面に来た時の処理を、出しているタブに関わらず行うために見る。
     @Environment(\.scenePhase) private var scenePhase
@@ -31,6 +33,13 @@ struct ContentView: View {
             .onOpenURL { openedURL in
                 if let openedTab = appTab(openedURL: openedURL) {
                     selectedTab = openedTab
+                }
+            }
+            // 通知のタップでアプリが起動した時は、画面ができる前に求めが届いていることがあるため、画面が出た時にも読む。
+            .onChange(of: reminderNotificationDelegate.appTabRequestedByNotificationTap, initial: true) { _, requestedAppTab in
+                if let requestedAppTab {
+                    selectedTab = requestedAppTab
+                    reminderNotificationDelegate.appTabRequestedByNotificationTap = nil
                 }
             }
             // 選んでいないタブの task は動かないため、前面に来た時にどのタブでも行う処理はタブの外に置く。
@@ -425,5 +434,5 @@ func deleteFavorites(indexes: IndexSet, favorites: [Favorite], fileURL: URL) thr
 }
 
 #Preview {
-    ContentView()
+    ContentView(reminderNotificationDelegate: ReminderNotificationDelegate())
 }

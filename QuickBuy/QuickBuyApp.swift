@@ -23,7 +23,7 @@ struct QuickBuyApp: App {
     /// アプリのウィンドウ。最初の画面を表示する。
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(reminderNotificationDelegate: reminderNotificationDelegate)
         }
     }
 }

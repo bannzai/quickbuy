@@ -340,6 +340,43 @@ struct ReminderTests {
         #expect(recordedEvents.isEmpty)
     }
 
+    /// 削除済みのお気に入りを指す通知のタップでは、開く URL が無く、お気に入りのタブを出す。
+    @Test func 通知が指すお気に入りが無い時のタップではURLを返さずお気に入りのタブを出す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let savedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
+        var recordedEvents: [AnalyticsEvent] = []
+        let openingURL = openingURLForNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            notificationIdentifier: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9",
+            userInfo: ["favoriteID": "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9"],
+            now: countedFrom.addingTimeInterval(31 * daySeconds),
+            fileURL: fileURL,
+            applyChanges: { _ in },
+            recordAnalyticsEvent: { recordedEvents.append($0) }
+        )
+
+        #expect(openingURL == nil)
+        #expect(appTabForNotificationResponse(actionIdentifier: UNNotificationDefaultActionIdentifier, openingURL: openingURL) == .favorites)
+        #expect(try loadFavorites(fileURL: fileURL) == [savedFavorite])
+        #expect(recordedEvents.isEmpty)
+    }
+
+    /// 開く URL がある通知のタップでは、タブを変えない (購入画面を開くだけにする)。
+    @Test func 開くURLがある通知のタップではタブを変えない() throws {
+        #expect(
+            appTabForNotificationResponse(
+                actionIdentifier: UNNotificationDefaultActionIdentifier,
+                openingURL: try #require(URL(string: "https://mori-coffee.example/cart/70881412:2"))
+            ) == nil
+        )
+    }
+
+    /// 通知を消す操作 (タップ以外の操作) では、開く URL が無くてもタブを変えない。
+    @Test func 通知を消す操作ではタブを変えない() {
+        #expect(appTabForNotificationResponse(actionIdentifier: UNNotificationDismissActionIdentifier, openingURL: nil) == nil)
+    }
+
     /// 保存先を読めない時 (中身が壊れている時) は、一覧の確認の「開く」が使う関数は URL を返さずにエラーを投げる (一覧は「保存できませんでした」を出して購入画面を開かない)。
     @Test func 保存先を読めない時は購入画面のURLを返さずエラーを投げる() throws {
         let fileURL = temporaryFavoritesFileURL()
