@@ -70,10 +70,7 @@ run_resolve() {
 
 physical_a=$(device_entry "AAAAAAAA-0000-0000-0000-00000000000A" "00000000-000000000000000A" physical disconnected)
 physical_b_connected=$(device_entry "BBBBBBBB-0000-0000-0000-00000000000B" "00000000-000000000000000B" physical connected)
-physical_c_connected=$(device_entry "CCCCCCCC-0000-0000-0000-00000000000C" "00000000-000000000000000C" physical connected)
-physical_d=$(device_entry "DDDDDDDD-0000-0000-0000-00000000000D" "00000000-000000000000000D" physical disconnected)
 simulator_connected=$(device_entry "55555555-0000-0000-0000-000000000005" "55555555-0000-0000-0000-000000000005" simulated connected)
-simulator_disconnected=$(device_entry "66666666-0000-0000-0000-000000000006" "66666666-0000-0000-0000-000000000006" simulated disconnected)
 missing_message="Error: 実機が見つかりません"
 
 # 優先順: DEVICE が指定されたら、それを出して devicectl を呼ばない
@@ -109,14 +106,14 @@ check "実機 1 台 + 接続中の simulator は実機を出す" test "$(cat "$w
 
 # 自動解決: 実機 2 台で接続中が 1 台なら、その 1 台を選ぶ
 workdir="$(make_workdir)"
-FIXTURE_JSON="$(write_fixture "$workdir" "$physical_a" "$physical_b_connected" "$simulator_disconnected")" run_resolve "$workdir" "" ""
+FIXTURE_JSON="$(write_fixture "$workdir" "$physical_a" "$physical_b_connected" "$(device_entry "66666666-0000-0000-0000-000000000006" "66666666-0000-0000-0000-000000000006" simulated disconnected)")" run_resolve "$workdir" "" ""
 status=$?
 check "実機 2 台で接続中 1 台は exit 0" test "$status" -eq 0
 check "実機 2 台で接続中 1 台は接続中の実機を出す" test "$(cat "$workdir/out")" = "BBBBBBBB-0000-0000-0000-00000000000B"
 
 # 異常系: 実機 2 台とも接続中なら決められず exit 1
 workdir="$(make_workdir)"
-FIXTURE_JSON="$(write_fixture "$workdir" "$physical_b_connected" "$physical_c_connected")" run_resolve "$workdir" "" ""
+FIXTURE_JSON="$(write_fixture "$workdir" "$physical_b_connected" "$(device_entry "CCCCCCCC-0000-0000-0000-00000000000C" "00000000-000000000000000C" physical connected)")" run_resolve "$workdir" "" ""
 status=$?
 check "実機 2 台とも接続中は exit 1" test "$status" -eq 1
 check "実機 2 台とも接続中は何も出さない" test ! -s "$workdir/out"
@@ -124,7 +121,7 @@ check "実機 2 台とも接続中は指定を求める" grep -q "$missing_messa
 
 # 異常系: 実機 2 台とも未接続で、接続中の simulator があっても simulator を選ばず exit 1
 workdir="$(make_workdir)"
-FIXTURE_JSON="$(write_fixture "$workdir" "$physical_a" "$physical_d" "$simulator_connected")" run_resolve "$workdir" "" ""
+FIXTURE_JSON="$(write_fixture "$workdir" "$physical_a" "$(device_entry "DDDDDDDD-0000-0000-0000-00000000000D" "00000000-000000000000000D" physical disconnected)" "$simulator_connected")" run_resolve "$workdir" "" ""
 status=$?
 check "実機 2 台とも未接続 + 接続中の simulator は exit 1" test "$status" -eq 1
 check "実機 2 台とも未接続 + 接続中の simulator は simulator を出さない" test ! -s "$workdir/out"
