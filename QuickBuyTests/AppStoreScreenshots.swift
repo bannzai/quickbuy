@@ -395,16 +395,21 @@ private struct AppStoreScreenshotFavoritesScreen: View {
                 if let variantName = favorite.variantName {
                     Text(variantName).font(.system(size: 13, weight: .bold)).foregroundStyle(quickBuyAccentColor).lineLimit(1).minimumScaleFactor(0.7)
                 }
-                Text("\(shopDomainText(favorite: favorite))\(localized(key: " ・ \(favorite.quantity) 個", locale: locale))")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                // アプリの一覧と同じく、長いドメインは中ほどで省き、個数は省かない。
+                HStack(spacing: 0) {
+                    Text(verbatim: shopDomainText(favorite: favorite))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(localized(key: " ・ \(favorite.quantity) 個", locale: locale))
+                        .fixedSize()
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
                 Text(reminderStatusText(reminder: favorite.reminder, now: now, locale: locale))
                     .font(.system(size: 12, weight: favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? .bold : .regular))
                     .foregroundStyle(favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true ? reminderDueColor : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    // アプリの一覧と同じく、行数を限らず折り返す (縮めると英語の「Next reminder in 5 days」が省かれた)。
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 4)
             AppStoreScreenshotCartInButton(favorite: favorite, locale: locale)
