@@ -76,10 +76,7 @@ struct EditFavoriteView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         finish {
-                            try updateFavorite(id: favorite.id, name: favorite.name, quantity: favorite.quantity, fileURL: favoritesFileURL)
-                            if isReminderEdited {
-                                try setFavoriteReminder(id: favorite.id, reminder: favorite.reminder, now: .now, fileURL: favoritesFileURL)
-                            }
+                            try saveEditedFavorite(favorite: favorite, isReminderEdited: isReminderEdited, now: .now, fileURL: favoritesFileURL)
                         }
                     }
                     .disabled(!isFavoriteNameSavable(name: favorite.name))
@@ -141,6 +138,19 @@ struct EditFavoriteView: View {
         } catch {
             isSaveFailed = true
         }
+    }
+}
+
+/// 編集の画面の「保存」で、編集中のお気に入りの名前と個数を保存し、`isReminderEdited` が true の時だけリマインドも保存する。
+///
+/// `isReminderEdited` は、編集の画面でリマインドのオン・オフか日数を操作したか。false の時は保存先のリマインドを書き換えない
+/// (画面を開いている間に保存先のリマインドが数え直されていても、名前だけの保存で数え直さず、通知も予約し直さないため)。
+/// true の時のリマインドの保存は `setFavoriteReminder(id:reminder:now:fileURL:)` に従い、`now` から数え始める。
+/// その識別子のお気に入りが保存されていない時は `FavoriteStoreError.favoriteNotFound` を投げる。
+func saveEditedFavorite(favorite: Favorite, isReminderEdited: Bool, now: Date, fileURL: URL) throws {
+    try updateFavorite(id: favorite.id, name: favorite.name, quantity: favorite.quantity, fileURL: fileURL)
+    if isReminderEdited {
+        try setFavoriteReminder(id: favorite.id, reminder: favorite.reminder, now: now, fileURL: fileURL)
     }
 }
 

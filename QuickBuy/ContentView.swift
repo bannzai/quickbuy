@@ -41,7 +41,7 @@ struct ContentView: View {
                 guard scenePhase == .active else {
                     return
                 }
-                await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: .current(), now: .now)
+                await restoreMissingReminderNotifications(fileURL: favoritesFileURL, center: UNUserNotificationCenter.current(), now: .now)
                 remindersRestoredAt = .now
                 WidgetCenter.shared.reloadTimelines(ofKind: favoritesWidgetKind)
                 recordWidgetPlacement(recordAnalyticsEvent: recordAnalyticsEventToFirebase(event:))

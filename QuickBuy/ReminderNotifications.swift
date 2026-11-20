@@ -32,7 +32,7 @@ func reminderNotificationContent(favorite: Favorite, locale: Locale) -> UNMutabl
 /// (https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger/init(timeinterval:repeats:) の
 /// 「Specify true to reschedule the notification request each time the system delivers the notification.」)。
 /// 取り消す時と予約し直す時は、届いたまま残っているそのお気に入りの通知も消す。
-func applyReminderNotificationChanges(changes: [ReminderNotificationChange], center: UNUserNotificationCenter) {
+func applyReminderNotificationChanges(changes: [ReminderNotificationChange], center: any ReminderNotificationCenter) {
     for change in changes {
         switch change {
         case let .cancel(favoriteID):
@@ -43,8 +43,31 @@ func applyReminderNotificationChanges(changes: [ReminderNotificationChange], cen
                 continue
             }
             center.removeDeliveredNotifications(withIdentifiers: [request.identifier])
-            center.add(request)
+            center.add(request, withCompletionHandler: nil)
         }
+    }
+}
+
+/// リマインドの通知の予約・取り消しと、予約を復旧するかの判断に使う、端末の通知の仕組みの操作。
+///
+/// 端末では `UNUserNotificationCenter` が満たす。テストで、呼んだ操作の種類と識別子を記録する実装に差し替えるために置いている。
+protocol ReminderNotificationCenter {
+    /// 指定した識別子の、まだ届いていない予約を取り消す。
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+    /// 指定した識別子の、届いて通知センターに残っている通知を消す。
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String])
+    /// 通知を予約する。同じ識別子の予約があれば置き換える。
+    func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: ((Error?) -> Void)?)
+    /// まだ届いていない予約の一覧を返す。
+    func pendingNotificationRequests() async -> [UNNotificationRequest]
+    /// Quick Buy の通知の許可の状態を返す。
+    func authorizationStatus() async -> UNAuthorizationStatus
+}
+
+extension UNUserNotificationCenter: ReminderNotificationCenter {
+    /// 端末の通知の設定から、Quick Buy の通知の許可の状態を返す。
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await notificationSettings().authorizationStatus
     }
 }
 
@@ -139,8 +162,8 @@ func favoriteIDsMissingReminderNotification(favorites: [Favorite], pendingNotifi
 /// 通知が許可されていない時、予約の無いリマインドが無い時、保存先を読めない・書けない時は何も変えない。
 /// 画面からの保存の操作と同時に保存先を読み書きしないよう、メインのスレッド (画面の操作と同じ) で実行する。
 @MainActor
-func restoreMissingReminderNotifications(fileURL: URL, center: UNUserNotificationCenter, now: Date) async {
-    guard await center.notificationSettings().authorizationStatus == .authorized else {
+func restoreMissingReminderNotifications(fileURL: URL, center: any ReminderNotificationCenter, now: Date) async {
+    guard await center.authorizationStatus() == .authorized else {
         return
     }
     try? await restoreMissingReminderNotifications(
