@@ -12,6 +12,8 @@ import UniformTypeIdentifiers
 @MainActor
 struct AppStoreScreenshotTests {
     /// スクリーンショットに出す日時。見本のリマインドの残りの日数がこの日時から決まる。
+    ///
+    /// 実行した日時で絵が変わらないように固定する。値そのものに意味は無く、リマインドは `appStoreScreenshotFavorites(locale:now:)` が `now` からの日数で作るため、どの日時でも同じ絵になる。
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
     /// 1 枚を描いて、透明の無い PNG にして返す。描けない時は nil。

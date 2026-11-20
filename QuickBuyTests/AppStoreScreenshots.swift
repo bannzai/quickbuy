@@ -3,8 +3,7 @@ import SwiftUI
 
 /// App Store に載せるスクリーンショットの 1 枚が写す画面。並びの順がストアに並ぶ順。
 ///
-/// 順は「ホーム画面のウィジェットから買い直す (このアプリだけの入口)」→「確認に答えて購入画面を開く (支払いは本人)」→「商品を探す」→「種類と個数を選ぶ」→「リマインド」。
-/// ストアの検索結果では先頭の数枚だけが見えるため、ほかの買い物アプリに無い入口と、確認してから購入画面を開く流れを先に置く。
+/// ストアの検索結果では先頭の数枚だけが見えるため、ほかの買い物アプリに無い入口 (ウィジェット) と、確認してから購入画面を開く流れを先に置く。
 enum AppStoreScreenshotScreen: CaseIterable {
     /// ホーム画面のウィジェットと、「カートイン」で届く確認の通知。
     case widget
@@ -114,7 +113,7 @@ private let appStoreScreenshotBackgroundColor = Color(red: 0xE6 / 255, green: 0x
 /// ホーム画面とロック画面の壁紙の色。強調の色 `quickBuyAccentColor` (#0B6E4F) を暗くした `#0A3D2E`。白いウィジェットと通知を目立たせるため。
 private let appStoreScreenshotWallpaperColor = Color(red: 0x0A / 255, green: 0x3D / 255, blue: 0x2E / 255)
 
-/// 見本のお気に入りの並びの位置ごとに、商品の画像の代わりに出す SF Symbols の名前。コーヒー豆・せっけん・プロテインの順。
+/// `sampleFavorites()` の並びの位置ごとに、商品の画像の代わりに出す SF Symbols の名前。
 private let appStoreScreenshotFavoriteSymbols = ["cup.and.saucer.fill", "bubbles.and.sparkles.fill", "dumbbell.fill"]
 
 /// App Store のスクリーンショットの 1 枚。上に見出しと補足、下に端末の枠と画面を描く。
