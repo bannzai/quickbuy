@@ -35,7 +35,7 @@ Amazon の商品ページの URL を入力または共有した時は、本サ�
 本サービスは、Google LLC が提供する次の 2 つのサービスを使用します。
 
 - **Google Analytics for Firebase**（利用状況の解析）: 購入画面または Amazon の商品ページを開いた時に、開いた入口の種類（お気に入りの一覧、確認の通知、リマインドの通知）と店の種類（Shopify、Amazon）を記録します。また、本サービスを開いた時に、ホーム画面に本サービスのウィジェットを置いていれば、置いているウィジェットの大きさを記録します。これらに、お気に入りの商品名、店のドメイン、商品の識別子、個数および開いた画面の URL は含めません。あわせて、Google Analytics for Firebase は、本アプリのインストールごとに生成される識別子、端末および OS の情報、おおよその地域等を自動で収集します（出典: https://support.google.com/analytics/answer/11593727 ）。本サービスは広告識別子を収集しない構成（FirebaseAnalyticsCore）で組み込んでおり、広告識別子（IDFA）を収集しません（出典: https://github.com/firebase/firebase-ios-sdk/blob/13.1.1/FirebaseAnalytics/README.md ）
-- **Firebase Crashlytics**（不具合の記録）: 本アプリが異常終了した時に、異常終了の発生箇所の記録（クラッシュの記録）、本アプリのインストールごとに生成される識別子、端末および OS の情報を収集します。Firebase Crashlytics は、クラッシュの記録と関連する識別子を 90 日間保存した後、削除を始めます（出典: https://firebase.google.com/support/privacy ）
+- **Firebase Crashlytics**（不具合の記録）: 本アプリが異常終了した時に、異常終了の発生箇所の記録（クラッシュの記録）、本アプリのインストールごとに生成される識別子、端末および OS の情報を収集します。異常終了の記録には、その前に Google Analytics for Firebase へ送った画面の表示とイベント（上に記載したイベントとその内容）も含まれます（出典: https://firebase.google.com/docs/crashlytics/ios/customize-crash-reports の「Get breadcrumb logs」）。Firebase Crashlytics は、クラッシュの記録と関連する識別子を 90 日間保存した後、削除を始めます（出典: https://firebase.google.com/support/privacy ）
 
 これらの情報は Google LLC のサーバーに送信され、日本国外で保存・処理される場合があります（出典: https://firebase.google.com/support/privacy ）。Google LLC による情報の取扱いは https://policies.google.com/privacy に記載されています。
 
