@@ -18,6 +18,7 @@ env:
   # Re-run では run_number が変わらず同じビルド番号になる。Upload to TestFlight まで進んで失敗した run は
   # Re-run せず新しく dispatch する (アップロード済みと同じ番号の再送は拒否されるため)。
   # Upload より前の step で失敗した run は、その番号がまだアップロードされていないため Re-run で復旧してよい
+  # (後から起動した run が同じバージョンのビルドを上げた後は、番号が小さくなって拒否されるため新しく dispatch する)
   BUILD_NUMBER_OFFSET: 0
   DEVELOPMENT_TEAM: "TQPN82UBBY"
   PROJECT_PATH: "QuickBuy.xcodeproj"

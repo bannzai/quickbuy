@@ -22,7 +22,7 @@ gh run watch -R bannzai/quickbuy "$RUN_ID"
 ## 失敗した run のやり直し
 
 - Upload to TestFlight まで進んで失敗した run は、Re-run しない。原因を直して、新しく起動する (Re-run は run_number が変わらず、上げ済みと同じビルド番号の再送になって拒否される)
-- Upload より前の step で失敗した run は、Re-run してよい (その番号はまだ上がっていない)
+- Upload より前の step で失敗した run は、その後に新しい run がビルドを上げていない時だけ Re-run してよい (その番号はまだ上がっていない)。後から起動した run が同じバージョンのビルドを上げた後は、Re-run せず新しく起動する (Re-run は古い run_number のままで、上がっているビルド番号より小さくなって拒否される)
 
 ## 署名
 
@@ -40,7 +40,9 @@ gh run watch -R bannzai/quickbuy "$RUN_ID"
 
 ### profile の再発行
 
-証明書の期限 (2027-01-17) が切れた時や、entitlements を変えた時は、**3 つの profile をまとめて**発行し直し、3 つの secret をすべて更新する。workflow は 3 つとも必須にしているため、1 つだけ直すと残りが古いままで archive が失敗する。
+entitlements を変えた時 (証明書は有効なまま) は、**3 つの profile をまとめて**発行し直し、3 つの secret をすべて更新する。workflow は 3 つとも必須にしているため、1 つだけ直すと残りが古いままで archive が失敗する。
+
+証明書の期限 (2027-01-17) が切れた時は、profile の再発行だけでは直らない。先に、有効な配布証明書の `.p12` とパスワードで secret `IOS_P12_CERTIFICATE_BASE64`・`IOS_P12_PASSWORD` を更新し (証明書はチームで 1 枚を全プロジェクトで使い回している。新しい証明書の用意と原本の保管は、castle の ios-deploy-actions skill の「署名アセットを用意する」に従う)、その証明書の id を下の `--certificate-id` に渡して 3 つの profile を発行し直す。
 
 ```sh
 skill=~/.agents/skills/ios-deploy-actions/scripts
@@ -53,7 +55,7 @@ bash "$skill/register-secrets.sh" --repo bannzai/quickbuy --env ios-deploy \
   --secret-base64-file IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64=./tmp/signing/QuickBuy_QuickBuyShare_AppStore.mobileprovision
 ```
 
-3 つとも `entitlements-check=ok` が出ることを確かめてから secret を更新する。証明書を替えた時は `--certificate-id` を新しい証明書の id にする。
+3 つとも `entitlements-check=ok` が出ることを確かめてから secret を更新する。
 
 ## Firebase の設定ファイル
 
