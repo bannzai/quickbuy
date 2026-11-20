@@ -75,11 +75,10 @@ struct AppStoreScreenshotTests {
 
     /// 見出しと補足は、確認してから購入画面が開くことと食い違う言い方をせず、末尾に句読点を付けない。
     @Test func 見出しと補足はワンタップや自動の購入を書かず末尾に句読点を付けない() {
-        let forbiddenPhrases = ["ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入", "one tap", "one-tap", "automatically", "auto-buy"]
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
                 for text in [appStoreScreenshotHeadline(screen: screen, locale: language.locale), appStoreScreenshotSubheadline(screen: screen, locale: language.locale)] {
-                    #expect(!forbiddenPhrases.contains { text.localizedCaseInsensitiveContains($0) }, "\(text)")
+                    #expect(!["ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入", "one tap", "one-tap", "automatically", "auto-buy"].contains { text.localizedCaseInsensitiveContains($0) }, "\(text)")
                     #expect(!["。", "、", ".", ",", "!"].contains { text.hasSuffix($0) }, "\(text)")
                     #expect(!text.contains("、"), "\(text)")
                 }
