@@ -49,6 +49,7 @@ struct AppStoreScreenshotTests {
 
     /// 全部の言語の全部の画面が 1320 x 2868 px の透明の無い PNG になる。書き出し先があれば書き出す。
     @Test func スクリーンショットはAppStoreが受け付ける大きさの透明の無いPNGになる() throws {
+        // 書き出し先は 10 枚とも同じなので、ループの外で 1 回だけ環境変数を読む (式に畳むと 1 枚ごとに読み直す)。
         let outputDirectoryURL = ProcessInfo.processInfo.environment["QUICKBUY_SCREENSHOT_DIR"].map { URL(filePath: $0) }
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
@@ -95,7 +96,7 @@ struct AppStoreScreenshotTests {
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.variantName) == ["200g / Whole bean", nil, "1kg"])
     }
 
-    /// 見本のリマインドは、一覧で「次の知らせは 5 日後」「知らせなし」「そろそろ買う頃」の 3 つの状態を出す。
+    /// 見本のリマインドは、一覧で残りの日数・知らせなし・買う頃の 3 つの状態を 1 件ずつ出す。
     @Test func 見本のリマインドは3つの状態を出す() {
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map { reminderStatusText(reminder: $0.reminder, now: now, locale: Locale(identifier: "ja")) } == [
             "次の知らせは 5 日後", "知らせなし", "そろそろ買う頃",

@@ -283,7 +283,7 @@ private struct AppStoreScreenshotWidgetScreen: View {
     /// 文言の言語。
     let locale: Locale
 
-    /// 壁紙・確認の通知・ほかのアプリのアイコン・ウィジェット。
+    /// ホーム画面の全体。
     var body: some View {
         VStack(spacing: 18) {
             AppStoreScreenshotStatusBar(color: .white)
@@ -347,7 +347,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
     /// リマインドの状態を数える日時。
     let now: Date
 
-    /// 上のボタン・見出し・一覧・補足・確認・タブ。
+    /// お気に入りのタブの全体。
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             AppStoreScreenshotStatusBar(color: .black)
@@ -387,7 +387,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
         .background(appStoreScreenshotGroupedBackgroundColor)
     }
 
-    /// お気に入り 1 件の行。白い角丸の地に、画像・名前・種類・店と個数・リマインドの状態・「カートイン」。
+    /// お気に入り 1 件の行。`systemName` は商品の画像の代わりに出す SF Symbols の名前。
     private func row(favorite: Favorite, systemName: String) -> some View {
         HStack(spacing: 12) {
             AppStoreScreenshotThumbnail(systemName: systemName, size: 56)
@@ -419,7 +419,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
         .background(.white, in: RoundedRectangle(cornerRadius: 14))
     }
 
-    /// 先頭のお気に入りの「カートイン」を押した後に画面の下に出る確認 (見出し・説明・「開く」)。
+    /// 先頭のお気に入りの「カートイン」を押した後に画面の下に出る確認。
     private var confirmation: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
@@ -446,7 +446,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
     }
 }
 
-/// 画面の下端のタブ (「ホーム」と「お気に入り」。QuickBuy/ContentView.swift の `TabView` と同じ名前とアイコン)。
+/// 画面の下端のタブ。QuickBuy/ContentView.swift の `TabView` と同じ名前とアイコンにする。
 private struct AppStoreScreenshotTabBar: View {
     /// 文言の言語。
     let locale: Locale
@@ -476,7 +476,7 @@ private struct AppStoreScreenshotSearchScreen: View {
     /// 文言の言語。
     let locale: Locale
 
-    /// 見出し・検索窓・検索語の並び・結果の見出しと商品の 2 列の並び・タブ。
+    /// ホームのタブの全体。
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             AppStoreScreenshotStatusBar(color: .black)
@@ -567,7 +567,7 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
     /// 文言の言語。
     let locale: Locale
 
-    /// 上の「やめる」と見出し・店のドメイン・名前・種類の選び方・選んだ種類と個数・追加のボタン。
+    /// お気に入りに追加する画面の全体。
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             AppStoreScreenshotStatusBar(color: .black)
@@ -683,7 +683,7 @@ private struct AppStoreScreenshotReminderScreen: View {
     /// 文言の言語。
     let locale: Locale
 
-    /// 壁紙・時刻・通知。
+    /// ロック画面の全体。
     var body: some View {
         VStack(spacing: 0) {
             AppStoreScreenshotStatusBar(color: .white)
