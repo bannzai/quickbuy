@@ -15,6 +15,7 @@ App Store Connect の「App のプライバシー」(App Privacy) に何と答�
 | Identifiers > Device ID | アプリのインストールごとの識別子 (app instance ID)、IDFV | Google Analytics for Firebase | Analytics | はい | いいえ |
 | Identifiers > Device ID | インストールごとの識別子 | Firebase Crashlytics | App Functionality | はい | いいえ |
 | Usage Data > Product Interaction | 購入画面を開いた入口と店の種類 (`purchase_screen_open`)、置いているウィジェットの大きさ (`widget_placed`)、起動・画面の表示・セッション | Google Analytics for Firebase | Analytics | はい | いいえ |
+| Usage Data > Product Interaction | 異常終了の前に記録された同じイベントと画面の表示 (breadcrumb logs) | Firebase Crashlytics | App Functionality | はい | いいえ |
 | Location > Coarse Location | IP アドレスから Google が推定するおおよその地域 | Google Analytics for Firebase | Analytics | はい | いいえ |
 | Diagnostics > Crash Data | 異常終了の発生箇所の記録 (stack trace) とその時のアプリの状態 | Firebase Crashlytics | App Functionality | はい | いいえ |
 | Diagnostics > Other Diagnostic Data | 端末と OS の情報 | Firebase Crashlytics、Google Analytics for Firebase | App Functionality (Crashlytics)、Analytics (Analytics) | はい | いいえ |
@@ -41,6 +42,7 @@ App Store Connect の「App のプライバシー」(App Privacy) に何と答�
 - Firebase の文書 (https://firebase.google.com/docs/ios/app-store-data-collection の `FirebaseCrashlytics`) に「Collects stack traces and relevant application state when an application crashes.」と「Collects device and OS information to assist with debugging crashes.」がある。前者を Crash Data、後者を Other Diagnostic Data と答える
 - 同じ文書の「Collects any custom keys, logs, and free-text user IDs that developers attach to crash reports.」は、本アプリが custom key・log・user ID を付けていないため当たらない (`grep -rn "Crashlytics" QuickBuy Shared QuickBuyWidget QuickBuyShare --include=*.swift` が 0 件)
 - インストールごとの識別子: `docs/PrivacyPolicy-ja.md`「利用状況の解析と不具合の記録」は Crashlytics がインストールごとの識別子を集めると書いている (出典 https://firebase.google.com/support/privacy )。上の Firebase の文書の `FirebaseCrashlytics` の節は識別子を挙げていない。プライバシーポリシーと食い違わないよう Device ID と答える
+- breadcrumb logs: Firebase の文書 (https://firebase.google.com/docs/crashlytics/ios/customize-crash-reports の「Get breadcrumb logs」。2026-11-20 に取得して確かめた) に「Breadcrumb logs are powered by Google Analytics」とあり、Firebase の SDK for Google Analytics を組み込んだアプリでは、異常終了の前の `screen_view` と「any custom events that you manually log within the user's session, including the event's parameter data」が異常終了の記録に付く。本アプリは Analytics を組み込んでいるため、Analytics に送るイベント (`purchase_screen_open`・`widget_placed`) と画面の表示が Crashlytics にも届く。これを Crashlytics の Product Interaction と答える
 - 利用目的は、Apple の定義の App Functionality に「minimize app crashes」が入るため App Functionality と答える
 - Firebase の文書は、Firebase Installations が既定で集める Firebase user agent を「is never linked to a user or device identifier」と書いており、上の Other Diagnostic Data に含めて答える
 

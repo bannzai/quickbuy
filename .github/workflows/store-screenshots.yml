@@ -6,10 +6,12 @@ name: App Store のスクリーンショット
 
 on:
   # スクリーンショットの画面か文言を変えた PR で描き直し、レビューで画像を見られるようにする。
+  # 画像はテストのコードのほか、テストが呼ぶアプリの関数 (QuickBuy/・Shared/ の文言・開発者メニューの見本) からも作るため、それらの変更でも描き直す。
   pull_request:
     paths:
       - QuickBuyTests/AppStoreScreenshot*.swift
-      - Shared/Localizable.xcstrings
+      - QuickBuy/**
+      - Shared/**
       - .github/workflows/store-screenshots.yml
   workflow_dispatch:
 
