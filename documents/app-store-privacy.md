@@ -8,16 +8,16 @@ App Store Connect の「App のプライバシー」(App Privacy) に何と答�
 
 - データを収集するか: はい (Data Collection: Yes, we collect data from this app)
 - トラッキング (Tracking): すべての項目で「いいえ」。広告識別子 (IDFA) を集めず (`FirebaseAnalyticsCore` は AdSupport を組み込まない構成)、App Tracking Transparency の許可も求めない。集めたデータを他社のデータと結び付けて広告に使うことも、データブローカーへ渡すこともしない
-- ユーザーに紐付けるか (Linked to the User): すべての項目で「いいえ」。アカウントの登録が無く、Firebase に利用者の ID (`Analytics.setUserID`・Crashlytics の `setUserID`) を渡していない (`grep -rn "setUserID" QuickBuy Shared QuickBuyWidget QuickBuyShare` が 0 件)
+- ユーザーに紐付けるか (Linked to the User): Firebase (Analytics・Crashlytics) に送る項目は「はい」、Shopify Catalog に送る検索語は「いいえ」。Apple の定義は紐付けを「via their account, device, or other details」と書き、紐付けないと言えるのは「Stripping data of any direct identifiers, such as user ID or name, before collection」のように収集の前に識別子を外した時だけとしている (https://developer.apple.com/app-store/app-privacy-details/ の「Data linked to the user」。2026-11-20 に取得して確かめた)。アカウントの登録は無く、Firebase に利用者の ID (`Analytics.setUserID`・Crashlytics の `setUserID`) も渡していない (`grep -rn "setUserID" QuickBuy Shared QuickBuyWidget QuickBuyShare` が 0 件)。しかし Firebase に送るデータには、端末ごとの識別子 (app instance ID・IDFV・インストールごとの識別子) が付いたまま届く。そのため、端末を介して紐付くものとして「はい」と答える。検索語は、アプリが端末の識別子を付けずに送る (`QuickBuy/ShopifyCatalog.swift` の `searchShopifyCatalog` の document コメント「送るのは検索語・絞り込み・件数・`context`・プロフィールの URL だけ」。`context` は国・言語・通貨)
 
 | Apple の項目 | 集めるもの | 送り先 | 利用目的 (Purposes) | 紐付け | トラッキング |
 | --- | --- | --- | --- | --- | --- |
-| Identifiers > Device ID | アプリのインストールごとの識別子 (app instance ID)、IDFV | Google Analytics for Firebase | Analytics | いいえ | いいえ |
-| Identifiers > Device ID | インストールごとの識別子 | Firebase Crashlytics | App Functionality | いいえ | いいえ |
-| Usage Data > Product Interaction | 購入画面を開いた入口と店の種類 (`purchase_screen_open`)、置いているウィジェットの大きさ (`widget_placed`)、起動・画面の表示・セッション | Google Analytics for Firebase | Analytics | いいえ | いいえ |
-| Location > Coarse Location | IP アドレスから Google が推定するおおよその地域 | Google Analytics for Firebase | Analytics | いいえ | いいえ |
-| Diagnostics > Crash Data | 異常終了の発生箇所の記録 (stack trace) とその時のアプリの状態 | Firebase Crashlytics | App Functionality | いいえ | いいえ |
-| Diagnostics > Other Diagnostic Data | 端末と OS の情報 | Firebase Crashlytics、Google Analytics for Firebase | App Functionality (Crashlytics)、Analytics (Analytics) | いいえ | いいえ |
+| Identifiers > Device ID | アプリのインストールごとの識別子 (app instance ID)、IDFV | Google Analytics for Firebase | Analytics | はい | いいえ |
+| Identifiers > Device ID | インストールごとの識別子 | Firebase Crashlytics | App Functionality | はい | いいえ |
+| Usage Data > Product Interaction | 購入画面を開いた入口と店の種類 (`purchase_screen_open`)、置いているウィジェットの大きさ (`widget_placed`)、起動・画面の表示・セッション | Google Analytics for Firebase | Analytics | はい | いいえ |
+| Location > Coarse Location | IP アドレスから Google が推定するおおよその地域 | Google Analytics for Firebase | Analytics | はい | いいえ |
+| Diagnostics > Crash Data | 異常終了の発生箇所の記録 (stack trace) とその時のアプリの状態 | Firebase Crashlytics | App Functionality | はい | いいえ |
+| Diagnostics > Other Diagnostic Data | 端末と OS の情報 | Firebase Crashlytics、Google Analytics for Firebase | App Functionality (Crashlytics)、Analytics (Analytics) | はい | いいえ |
 | Search History | トップページの商品の検索語 | Shopify Catalog (catalog.shopify.com) | App Functionality | いいえ | いいえ |
 
 集めないと答える項目: Contact Info・Health & Fitness・Financial Info・Contacts・User Content・Browsing History・Purchases・Sensitive Info・Precise Location・Other Data。理由は下の「集めないと答える項目の根拠」。
@@ -28,7 +28,7 @@ App Store Connect の「App のプライバシー」(App Privacy) に何と答�
 
 - アプリが送るイベントは `QuickBuy/AppAnalytics.swift` の `purchase_screen_open` (引数は入口の種類 `entry_point` と店の種類 `store` だけ) と `widget_placed` (引数はウィジェットの大きさ `widget_families` だけ)。商品・店・お気に入りの名前と開いた URL は送らない (同ファイルの `AnalyticsEvent` の document コメント)。これを Product Interaction と答える
 - SDK が自動で集めるもの: Google の文書 (https://support.google.com/analytics/answer/10285841 「Prepare for Apple's App Store data-disclosure requirements」) に次の記述がある
-  - 「An app instance id is automatically assigned to each instance of an app, for purposes of computing user metrics」。既定では「is not associated with a user identifier, like screen name or account ID, or with a device's advertising identifier」。これを Device ID (紐付けなし) と答える
+  - 「An app instance id is automatically assigned to each instance of an app, for purposes of computing user metrics」。既定では「is not associated with a user identifier, like screen name or account ID, or with a device's advertising identifier」。利用者の ID と広告識別子には結び付かないが、端末ごとの識別子なので、Device ID (紐付けあり) と答える (上の「結論」の紐付けの行)
   - 「Analytics derives general location data from users' masked IP addresses」。これを Coarse Location と答える
   - 画面の表示とセッションは「are automatically measured」。これを Product Interaction に含める
 - 広告識別子が無い時の識別子: Firebase の文書 (https://support.google.com/firebase/answer/6318039 「Data collection」) に「If the Advertising Identifier is unavailable, the SDK collects the Vendor Identifier.」とある。IDFA は「a developer has to link in the AdSupport.framework library」の時だけ集まり、本アプリは AdSupport を組み込まない `FirebaseAnalyticsCore` を使う (`QuickBuy.xcodeproj/project.pbxproj` の `productName = FirebaseAnalyticsCore`)。IDFV は Device ID に含めて答える
