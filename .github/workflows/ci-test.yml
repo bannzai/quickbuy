@@ -16,6 +16,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # シェルのテストを回す。human-verification-check.yml の判定は本番と同じ ubuntu の runner (GNU の grep・awk) で確かめる。
+  # resolve-ios-device.sh の本番は macOS の bash 3.2 だが、jq と bash 3.2 にもある機能だけを使うため ubuntu で回す
+  shell-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: 「## 人間が確認」の判定のテスト
+        run: bash scripts/test/test-human-verification-check.sh
+      - name: 実機を解決するスクリプトのテスト
+        run: bash scripts/test/test-resolve-ios-device.sh
+
   test:
     runs-on: macos-26
     timeout-minutes: 20

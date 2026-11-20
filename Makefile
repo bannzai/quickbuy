@@ -26,18 +26,10 @@ build-ios: $(GOOGLE_SERVICE_INFO_PLIST)
 device: $(GOOGLE_SERVICE_INFO_PLIST)
 	xcodebuild -project $(XCODEPROJ) -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(DERIVED_DATA) -destination 'generic/platform=iOS' -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
 
-# 実機ビルドを実機にインストールして起動する。インストール先の解決順: DEVICE 変数 (名前 / UDID) > 環境変数 IOS_DEVICE_UDID > devicectl の JSON から実機を自動解決
-# devicectl は起動中の simulator も一覧に載せるため、先に実機 (reality == physical) に絞る。実機が 1 台ならそれ、複数台なら接続中の 1 台。決められなければ指定を求める
+# 実機ビルドを実機にインストールして起動する。インストール先の解決順と自動解決の条件は scripts/resolve-ios-device.sh のヘッダー
 install-device: device
 	@set -e; \
-	mkdir -p tmp; \
-	device="$(DEVICE)"; \
-	[ -n "$$device" ] || device="$(IOS_DEVICE_UDID)"; \
-	if [ -z "$$device" ]; then \
-		xcrun devicectl list devices --json-output tmp/devices.json > /dev/null; \
-		device=$$(jq -r '[.result.devices[] | select(.hardwareProperties.reality == "physical")] | if length == 1 then .[0] else (map(select(.connectionProperties.tunnelState == "connected")) | if length == 1 then .[0] else empty end) end | .identifier // empty' tmp/devices.json); \
-	fi; \
-	[ -n "$$device" ] || { echo "Error: 実機が見つかりません (IOS_DEVICE_UDID を export するか DEVICE=<名前|UDID> で指定してください)" >&2; exit 1; }; \
+	device=$$(scripts/resolve-ios-device.sh "$(DEVICE)" "$(IOS_DEVICE_UDID)" tmp/devices.json); \
 	xcrun devicectl device install app --device "$$device" "$(IOS_APP)"; \
 	xcrun devicectl device process launch --device "$$device" $(BUNDLE_ID)
 
