@@ -9,11 +9,13 @@ Quick Buy の iOS アプリを TestFlight (App Store Connect) に上げる手順
 
 ```sh
 gh workflow run ios-deploy.yml -R bannzai/quickbuy --ref main
-RUN_ID="$(gh run list -R bannzai/quickbuy --workflow ios-deploy.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
-gh run watch -R bannzai/quickbuy "$RUN_ID"
+gh run list -R bannzai/quickbuy --workflow ios-deploy.yml --event workflow_dispatch --limit 3
+gh run watch -R bannzai/quickbuy <上の一覧で、今起動した run の ID>
 ```
 
-- 配布は同時に 1 本だけ。先に動いている run が終わっていない時は、最初の step (Reject concurrent dispatch) で失敗する
+- 起動してから run が一覧に出るまでに数秒の遅れがある。一覧の作成の時刻を見て、今起動した run を選ぶ (先頭が前の run のことがある)
+- 配布は同時に 1 本だけ。先に動いている run が終わっていない時は、最初の step (Reject concurrent dispatch) で失敗する。main へのマージが続いて、push で起動した run がこの理由で失敗した時は、先の run が終わってから上のコマンドで手動で起動し直す (そのままでは最新の main が上がらない)
+- IPA は artifact に残さない (このリポジトリは public で、artifact は誰でも取得できるため)。上がったビルドは App Store Connect で確かめる
 
 ## ビルド番号
 
@@ -40,7 +42,7 @@ gh run watch -R bannzai/quickbuy "$RUN_ID"
 
 ### profile の再発行
 
-entitlements を変えた時 (証明書は有効なまま) は、**3 つの profile をまとめて**発行し直し、3 つの secret をすべて更新する。workflow は 3 つとも必須にしているため、1 つだけ直すと残りが古いままで archive が失敗する。
+entitlements を変えた時 (証明書は有効なまま) は、**3 つの profile をまとめて**発行し直し、3 つの secret をすべて更新する。entitlements を変えたターゲットの profile が古いままだと、署名で entitlements が合わずに archive が失敗する。3 つのターゲットは同じ App Group を使うので、変えたターゲットだけを選ばず、まとめて発行し直す。
 
 証明書の期限 (2027-01-17) が切れた時は、profile の再発行だけでは直らない。先に、有効な配布証明書の `.p12` とパスワードで secret `IOS_P12_CERTIFICATE_BASE64`・`IOS_P12_PASSWORD` を更新し (証明書はチームで 1 枚を全プロジェクトで使い回している。新しい証明書の用意と原本の保管は、castle の ios-deploy-actions skill の「署名アセットを用意する」に従う)、その証明書の id を下の `--certificate-id` に渡して 3 つの profile を発行し直す。
 
@@ -63,7 +65,7 @@ bash "$skill/register-secrets.sh" --repo bannzai/quickbuy --env ios-deploy \
 
 ## 輸出コンプライアンス
 
-アプリ本体の Info.plist に `ITSAppUsesNonExemptEncryption = NO` を入れている (`project.pbxproj` の `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption`)。上げたビルドは、App Store Connect の画面で輸出コンプライアンスの質問に答えなくても TestFlight で配れる。
+アプリ本体の Info.plist に `ITSAppUsesNonExemptEncryption = NO` を入れている (`project.pbxproj` の `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption`)。Apple の文書 (下の出典) は、このキーを Info.plist に書くと、App Store Connect の輸出コンプライアンスの質問を省けると書いている。このアプリで、上げたビルドが質問に答えなくても TestFlight で配れる状態になることは、最初の配布で確かめる (2026-11-20 の時点で未確認。拡張のターゲットにはキーを入れていない)。
 
 `NO` にした根拠 (2026-11-20 に確かめた):
 

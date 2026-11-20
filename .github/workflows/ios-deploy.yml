@@ -219,12 +219,8 @@ jobs:
             --apiKey "$ASC_API_KEY_ID" \
             --apiIssuer "$ASC_API_KEY_ISSUER_ID"
 
-      # IPA は障害調査・再確認用に、export 済みならアップロードの成否にかかわらず artifact に保存する
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !cancelled() && steps.export.outcome == 'success' }}
-        with:
-          name: ios-ipa-${{ env.BUILD_NUMBER }}
-          path: ${{ env.EXPORT_PATH }}/*.ipa
+      # IPA は artifact に保存しない。このリポジトリは public で、artifact はログインした利用者なら誰でも取得でき、
+      # IPA にはリポジトリに入れていない Firebase の設定ファイルと、配布前のビルドが入るため
 
       - name: Cleanup
         if: always()
