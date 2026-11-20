@@ -109,7 +109,7 @@ struct HomeView: View {
     /// アプリの使い方を 2 行で伝える案内。
     private var guideBanner: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("いつもの商品を 1 タップで")
+            Text("いつもの商品を探さずに買い直す")
                 .font(.headline)
             Text("お気に入りに入れるとホーム画面のウィジェットから買い直せます")
                 .font(.footnote)
