@@ -94,6 +94,8 @@ func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
     ] as [Reminder?]).map { favorite, reminder in
         var screenshotFavorite = favorite
         if !isJapanese(locale: locale) {
+            // 辞書に無い名前 (見本では商品バリアントの「1kg」) は、言語によらない表記なのでそのまま使う。
+            // 日本語のまま英語の画像に残る名前は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見本の名前の全件を比べて見つける。
             screenshotFavorite.name = englishNames[favorite.name] ?? favorite.name
             screenshotFavorite.variantName = favorite.variantName.map { englishNames[$0] ?? $0 }
         }
@@ -560,7 +562,7 @@ private struct AppStoreScreenshotSearchScreen: View {
 
 /// 検索の結果から開く、種類と個数を選んでお気に入りに追加する画面 (QuickBuy/CatalogAddFavoriteView.swift と同じ並びと文言)。
 private struct AppStoreScreenshotAddFavoriteScreen: View {
-    /// 追加するお気に入り (名前・商品バリアントの名前・個数・店を出す)。
+    /// 追加するお気に入り (名前・商品バリアントの名前・個数・店を出す)。種類を選ぶ画面を写すため、商品バリアントの名前を持つものを渡す (持たない時は画像を描くテストが落ちる)。
     let favorite: Favorite
     /// 文言の言語。
     let locale: Locale
@@ -606,7 +608,7 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
                     .frame(height: 40)
                     Divider()
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(favorite.variantName ?? "").font(.system(size: 14))
+                        Text(favorite.variantName!).font(.system(size: 14))
                         Text(verbatim: "¥1,480").font(.system(size: 12)).foregroundStyle(.secondary)
                     }
                     .frame(height: 46)
@@ -619,7 +621,7 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
             }
             section(headerKey: "お気に入りにする種類") {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(favorite.variantName ?? "").font(.system(size: 14, weight: .bold))
+                    Text(favorite.variantName!).font(.system(size: 14, weight: .bold))
                     HStack {
                         Text(localized(key: "個数", locale: locale)).font(.system(size: 15))
                         Spacer()
