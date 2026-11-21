@@ -794,7 +794,7 @@ import Testing
         ) == nil)
     }
 
-    /// 説明文は、閉じタグの無い `<style>` と `<script>` の後ろを値の終わりまで出さない。`style` で始まる別のタグ (`<styles>`) の後ろは出す。
+    /// 説明文は、閉じタグの無い `<style>` と `<script>` の後ろを値の終わりまで出さない。属性の付いた `<style>` も同じに扱う。`style`・`script` で始まる別のタグ (`<styles>`・`<style-guide>`・`<script-loader>`) の後ろは出す。
     @Test(arguments: [
         ("本文<style>.a{color:red}", "本文"),
         ("本文<script>alert(1)", "本文"),
@@ -802,6 +802,9 @@ import Testing
         ("<style>.a{color:red}</style>本文<STYLE>.b{color:blue}", "本文"),
         ("<style>.a{color:red}本文", nil),
         ("<styles>本文", "本文"),
+        ("本文<style type=\"text/css\">.a{color:red}", "本文"),
+        ("<style-guide>本文</style-guide>", "本文"),
+        ("<script-loader>本文", "本文"),
     ] as [(String, String?)])
     func 説明文は閉じないstyleの後ろを出さない(html: String, expected: String?) {
         #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: html, html: nil))) == expected)

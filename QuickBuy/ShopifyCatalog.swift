@@ -323,13 +323,13 @@ func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String)
 /// 商品の詳細ページに出す説明文を返す (保存はしない)。説明文が無い時と、タグを除くと文字が残らない時は nil。
 ///
 /// 店の入口の値 (`html`) と Global Catalog の値 (`plain`) のうち、タグを除いて文字が残る最初のものを使う (店の入口の値が空の時は Global Catalog の値を使う)。
-/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<style>` と `<script>` は中身ごと除き (閉じタグが無い時は値の終わりまでを中身として除く)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで。属性の引用符の中の `>` はタグの終わりにしない) を除く。
+/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<style>` と `<script>` は中身ごと除き (閉じタグが無い時は値の終わりまでを中身として除く。`<style-guide>` のように `style`・`script` で始まる別の名前のタグは、ほかのタグと同じにタグだけを除く)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで。属性の引用符の中の `>` はタグの終わりにしない) を除く。
 /// 行ごとに前後の空白を除き、空の行は詰める。タグでない `<` と `>` に挟まれた文字も除かれる (説明文を HTML として描かず、文字としてだけ出すため)。
 func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
     [product.description?.html, product.description?.plain]
         .compactMap { $0 }
         .map {
-            $0.replacing(#/<(style|script)\b.*?(?:</\1\s*>|\z)/#.ignoresCase().dotMatchesNewlines(), with: "")
+            $0.replacing(#/<(style|script)(?=[\s\/>]).*?(?:</\1\s*>|\z)/#.ignoresCase().dotMatchesNewlines(), with: "")
                 .replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
                 .replacing(#/<(?:"[^"]*"|'[^']*'|[^>"'])*>/#, with: "")
                 .split(whereSeparator: \.isNewline)
