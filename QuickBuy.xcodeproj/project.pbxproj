@@ -36,6 +36,7 @@
 		B34000000000000000000001 /* ShopifyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000001 /* ShopifyCatalog.swift */; };
 		B34000000000000000000002 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000002 /* HomeView.swift */; };
 		B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000003 /* CatalogAddFavoriteView.swift */; };
+		B76000000000000000000001 /* CatalogProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76000000000000000000001 /* CatalogProductDetailView.swift */; };
 		B30000000000000000000002 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* SettingsTests.swift */; };
 		B34000000000000000000004 /* ShopifyCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34000000000000000000004 /* ShopifyCatalogTests.swift */; };
 		B20000000000000000000003 /* ShopifyProductPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ShopifyProductPage.swift */; };
@@ -155,6 +156,7 @@
 		A34000000000000000000001 /* ShopifyCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCatalog.swift; sourceTree = "<group>"; };
 		A34000000000000000000002 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A34000000000000000000003 /* CatalogAddFavoriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogAddFavoriteView.swift; sourceTree = "<group>"; };
+		A76000000000000000000001 /* CatalogProductDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogProductDetailView.swift; sourceTree = "<group>"; };
 		A30000000000000000000002 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		A34000000000000000000004 /* ShopifyCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCatalogTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -216,6 +218,7 @@
 				A34000000000000000000001 /* ShopifyCatalog.swift */,
 				A34000000000000000000002 /* HomeView.swift */,
 				A34000000000000000000003 /* CatalogAddFavoriteView.swift */,
+				A76000000000000000000001 /* CatalogProductDetailView.swift */,
 				A10000000000000000000005 /* QuickBuy.entitlements */,
 				1ED3753C994B4E8ECC98A2C0 /* QuickBuyApp.swift */,
 			);
@@ -587,6 +590,7 @@
 				B34000000000000000000001 /* ShopifyCatalog.swift in Sources */,
 				B34000000000000000000002 /* HomeView.swift in Sources */,
 				B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */,
+				B76000000000000000000001 /* CatalogProductDetailView.swift in Sources */,
 				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
 				B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */,
 				E10000000000000000000001 /* AppAnalytics.swift in Sources */,

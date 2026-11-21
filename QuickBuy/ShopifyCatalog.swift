@@ -39,10 +39,25 @@ struct ShopifyCatalogMoney: Decodable, Equatable {
     let currency: String
 }
 
-/// Catalog が返す画像。
+/// Catalog が返す画像か動画。
+///
+/// 形の出典: 2026-11-21 の Global Catalog の `search_catalog` の実測 (20 件の商品の `media` の 21 件のうち、`type` は `image` が 20 件、`video` が 1 件で、動画の `url` は `.m3u8` だった)。
 struct ShopifyCatalogMedia: Decodable, Equatable {
-    /// 画像の URL の文字列。
+    /// 種別 (`image`・`video`)。
+    let type: String?
+    /// 画像か動画の URL の文字列。
     let url: String
+}
+
+/// Catalog が返す商品の説明文。
+///
+/// 形の出典: 2026-11-21 の実測。Global Catalog の `search_catalog` は 20 件とも `plain` だけを返し、19 件の値に HTML のタグ (`<p>`・`<br>` など) が入っていた。
+/// 店の入口の `get_product` は 7 つの店とも `html` だけを返し、値にタグも改行も無かった。
+struct ShopifyCatalogDescription: Decodable, Equatable {
+    /// Global Catalog が返す説明文。
+    let plain: String?
+    /// 店の入口が返す説明文。
+    let html: String?
 }
 
 /// Catalog が返す商品バリアント (色・大きさなどの違いごとの、カートに入れる単位)。
@@ -101,7 +116,9 @@ struct ShopifyCatalogProduct: Decodable, Equatable {
     let id: String
     /// 商品の名前。
     let title: String
-    /// 商品の画像の並び。
+    /// 商品の説明文。
+    let description: ShopifyCatalogDescription?
+    /// 商品の画像と動画の並び。
     let media: [ShopifyCatalogMedia]?
     /// 種類の選び方の並び。
     let options: [ShopifyCatalogOption]?
@@ -286,6 +303,52 @@ func shopifyCatalogShopDomain(variant: ShopifyCatalogVariant) -> String? {
 /// 一覧と追加の画面に出す商品の画像の URL を返す (保存はしない)。最初の画像が `https` で Shopify の CDN か店のドメインのものでない時は nil。
 func shopifyCatalogImageURL(product: ShopifyCatalogProduct, shopDomain: String) -> URL? {
     product.media?.first.flatMap { shopifyProductImageURL(text: $0.url, shopDomain: shopDomain) }
+}
+
+/// 商品の詳細ページに出す商品の画像の URL を、Catalog が返した並びの順で返す (保存はしない)。
+///
+/// 返すのは、種別が `image` で、`https` で Shopify の CDN か店のドメインのもの (`shopifyProductImageURL(text:shopDomain:)`) だけ。動画 (`video`) は返さない。
+/// 種別の無いものは画像として扱う (一覧のカードの `shopifyCatalogImageURL(product:shopDomain:)` が種別を見ずに最初の 1 件を画像として出すのと合わせるため)。
+func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String) -> [URL] {
+    (product.media ?? [])
+        .filter { $0.type.map { $0 == "image" } ?? true }
+        .compactMap { shopifyProductImageURL(text: $0.url, shopDomain: shopDomain) }
+}
+
+/// 商品の詳細ページに出す説明文を返す (保存はしない)。説明文が無い時と、タグを除くと文字が残らない時は nil。
+///
+/// 店の入口の値 (`html`) があればそれを、無ければ Global Catalog の値 (`plain`) を使う。
+/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで) を除く。
+/// 行ごとに前後の空白を除き、空の行は詰める。タグでない `<` と `>` に挟まれた文字も除かれる (説明文を HTML として描かず、文字としてだけ出すため)。
+func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
+    (product.description?.html ?? product.description?.plain)
+        .map {
+            $0.replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
+                .replacing(#/<[^>]*>/#, with: "")
+                .split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n")
+        }
+        .flatMap { $0.isEmpty ? nil : $0 }
+}
+
+/// 商品の詳細ページに価格と在庫を出してよい商品バリアントを返す。出してよいものが無い時は nil (価格と在庫を出さない)。
+///
+/// 店の入口の商品 (`storefrontProduct`) を読み込んだ後は、その商品バリアントを、取得した時刻 `storefrontFetchedAt` から `shopifyCatalogPriceCacheSeconds` 秒より前の時だけ返す。
+/// 期限を過ぎた店の入口の値の代わりに、それより前に取得した検索の結果の値へは戻らない。
+/// 読み込む前 (`storefrontProduct` か `storefrontFetchedAt` が nil) は、検索の結果の商品バリアント `searchedVariant` を、検索の結果を取得した時刻 `searchFetchedAt` から同じ秒数より前の時だけ返す。
+func shopifyCatalogDetailPriceVariant(
+    searchedVariant: ShopifyCatalogVariant,
+    searchFetchedAt: Date,
+    storefrontProduct: ShopifyCatalogProduct?,
+    storefrontFetchedAt: Date?,
+    now: Date
+) -> ShopifyCatalogVariant? {
+    guard let storefrontProduct, let storefrontFetchedAt else {
+        return isShopifyCatalogPriceFresh(fetchedAt: searchFetchedAt, now: now) ? searchedVariant : nil
+    }
+    return isShopifyCatalogPriceFresh(fetchedAt: storefrontFetchedAt, now: now) ? storefrontProduct.variants.first : nil
 }
 
 /// 価格を画面に出す文字列にして返す (例: `¥2,700`)。通貨の最小の単位の整数を、その通貨の小数の桁で割って書く。

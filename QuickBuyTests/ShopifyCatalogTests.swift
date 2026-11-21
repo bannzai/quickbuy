@@ -445,24 +445,168 @@ import Testing
     @Test func 種類の選び方が無い商品だけ選ぶ操作を挟まずに選ぶ() {
         let singleVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")
         let singleProduct = ShopifyCatalogProduct(
-            id: "gid://shopify/Product/1", title: "豆", media: nil,
+            id: "gid://shopify/Product/1", title: "豆", description: nil, media: nil,
             options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])], selected: nil, variants: [singleVariant]
         )
         #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: true) == singleVariant)
         #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: false) == nil)
         #expect(shopifyCatalogAutoSelectedVariant(
             product: ShopifyCatalogProduct(
-                id: "gid://shopify/Product/2", title: "豆", media: nil,
+                id: "gid://shopify/Product/2", title: "豆", description: nil, media: nil,
                 options: [ShopifyCatalogOption(name: "挽き", values: [.init(label: "豆"), .init(label: "粉")])], selected: nil, variants: [singleVariant]
             ),
             isFirstLoadedProduct: true
         ) == nil)
         #expect(shopifyCatalogAutoSelectedVariant(
             product: ShopifyCatalogProduct(
-                id: "gid://shopify/Product/3", title: "豆", media: nil, options: nil, selected: nil,
+                id: "gid://shopify/Product/3", title: "豆", description: nil, media: nil, options: nil, selected: nil,
                 variants: [Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "Default Title")]
             ),
             isFirstLoadedProduct: true
+        ) == nil)
+    }
+
+    // MARK: - 商品の詳細ページ
+
+    /// 画像・動画の並び `media` と説明文 `description` だけを指定した商品を返す (ほかの値は商品の詳細ページの画像と説明文の判断に使わない)。
+    static func detailProduct(media: [ShopifyCatalogMedia]?, description: ShopifyCatalogDescription?) -> ShopifyCatalogProduct {
+        ShopifyCatalogProduct(id: "gid://shopify/p/abc", title: "コーヒー豆", description: description, media: media, options: nil, selected: nil, variants: [])
+    }
+
+    /// 商品の詳細ページの画像は、Shopify の CDN か店のドメインの https の画像だけを、返った順で出す。動画・ほかのホスト・http は出さない。
+    @Test func 詳細ページの画像はCDNか店のドメインの画像だけを順に出す() {
+        #expect(shopifyCatalogImageURLs(
+            product: Self.detailProduct(
+                media: [
+                    ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/a.jpg"),
+                    ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/c/vp/x/x.m3u8"),
+                    ShopifyCatalogMedia(type: "image", url: "https://tracker.example.com/b.jpg"),
+                    ShopifyCatalogMedia(type: "image", url: "http://cdn.shopify.com/s/files/1/c.jpg"),
+                    ShopifyCatalogMedia(type: "image", url: "https://chimney-coffee.com/cdn/shop/files/d.jpg"),
+                    ShopifyCatalogMedia(type: nil, url: "https://cdn.shopify.com/s/files/1/e.jpg"),
+                ],
+                description: nil
+            ),
+            shopDomain: "chimney-coffee.com"
+        ).map(\.absoluteString) == [
+            "https://cdn.shopify.com/s/files/1/a.jpg",
+            "https://chimney-coffee.com/cdn/shop/files/d.jpg",
+            "https://cdn.shopify.com/s/files/1/e.jpg",
+        ])
+    }
+
+    /// 画像が無い商品と、出せる画像が 1 つも無い商品では、商品の詳細ページの画像は空の並びになる。
+    @Test func 詳細ページの画像は出せるものが無ければ空() {
+        #expect(shopifyCatalogImageURLs(product: Self.detailProduct(media: nil, description: nil), shopDomain: "chimney-coffee.com") == [])
+        #expect(shopifyCatalogImageURLs(product: Self.detailProduct(media: [], description: nil), shopDomain: "chimney-coffee.com") == [])
+        #expect(shopifyCatalogImageURLs(
+            product: Self.detailProduct(media: [ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/x.m3u8")], description: nil),
+            shopDomain: "chimney-coffee.com"
+        ) == [])
+    }
+
+    /// 2026-11-21 の実測の応答の形 (`media` に `type`、`description` に `plain` か `html`) を読める。`type` と `description` の無い応答も読める。
+    @Test func 実測の応答の画像の種別と説明文を読める() throws {
+        let searchedProduct = try JSONDecoder().decode(ShopifyCatalogProduct.self, from: Data(#"""
+        {"id":"gid://shopify/p/abc","title":"コーヒー豆 200gセット","description":{"plain":"<p>7営業日以内に発送</p>"},
+         "media":[{"type":"image","url":"https://cdn.shopify.com/a.png","alt_text":"x","width":10,"height":10},{"type":"video","url":"https://cdn.shopify.com/a.m3u8"}],
+         "variants":[]}
+        """#.utf8))
+        #expect(searchedProduct.description == ShopifyCatalogDescription(plain: "<p>7営業日以内に発送</p>", html: nil))
+        #expect(searchedProduct.media == [
+            ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/a.png"),
+            ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/a.m3u8"),
+        ])
+        let storefrontProduct = try JSONDecoder().decode(
+            ShopifyCatalogProduct.self,
+            from: Data(#"{"id":"gid://shopify/Product/1","title":"t","description":{"html":"7営業日以内に発送"},"media":[{"url":"https://cdn.shopify.com/a.png"}],"variants":[]}"#.utf8)
+        )
+        #expect(storefrontProduct.description == ShopifyCatalogDescription(plain: nil, html: "7営業日以内に発送"))
+        #expect(storefrontProduct.media == [ShopifyCatalogMedia(type: nil, url: "https://cdn.shopify.com/a.png")])
+        #expect(try JSONDecoder().decode(ShopifyCatalogProduct.self, from: Data(#"{"id":"gid://shopify/Product/1","title":"t","variants":[]}"#.utf8)).description == nil)
+    }
+
+    /// 説明文は、タグを除いた文字を、段落・改行のタグの位置で行を分けて出す。全角の山かっこ (＜＞) はタグでないので残る。
+    @Test func 説明文はタグを除いて段落ごとの行にする() {
+        // 2026-11-21 の Global Catalog の実測の値 (chimney-coffee.com) を縮めたもの。
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(
+            plain: "<p>購入完了された日から<strong>7営業日</strong>に発送いたします。</p>\n<h3><strong>＜内容＞</strong></h3>\n<p><strong>【BITTER】コーヒー豆</strong><br></p>\n<p>・深煎り：200g<BR/>・中深煎り：200g</p>",
+            html: nil
+        ))) == "購入完了された日から7営業日に発送いたします。\n＜内容＞\n【BITTER】コーヒー豆\n・深煎り：200g\n・中深煎り：200g")
+        // 店の入口の実測の値はタグも改行も無く、そのまま出す。
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(
+            plain: nil,
+            html: "購入完了された日から7営業日に発送いたします。 ＜内容＞ 【BITTER】コーヒー豆"
+        ))) == "購入完了された日から7営業日に発送いたします。 ＜内容＞ 【BITTER】コーヒー豆")
+    }
+
+    /// 店の入口の値 (`html`) と Global Catalog の値 (`plain`) の両方がある時は、店の入口の値を出す。
+    @Test func 説明文は店の入口の値を先に使う() {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: "店の値"))) == "店の値")
+    }
+
+    /// 説明文が無い時・空の時・タグを除くと文字が残らない時は、説明文を出さない。
+    @Test(arguments: [
+        nil,
+        ShopifyCatalogDescription(plain: nil, html: nil),
+        ShopifyCatalogDescription(plain: "", html: nil),
+        ShopifyCatalogDescription(plain: nil, html: " \n "),
+        ShopifyCatalogDescription(plain: "<p><br></p>\n<div> </div>", html: nil),
+    ] as [ShopifyCatalogDescription?])
+    func 説明文は文字が残らなければ出さない(description: ShopifyCatalogDescription?) {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: description)) == nil)
+    }
+
+    /// 価格 `amount` 円の商品バリアント 1 件だけを持つ、店の入口が返した形の商品を返す。
+    static func storefrontProduct(amount: Int) -> ShopifyCatalogProduct {
+        ShopifyCatalogProduct(
+            id: "gid://shopify/Product/1", title: "コーヒー豆", description: nil, media: nil, options: nil, selected: nil,
+            variants: [ShopifyCatalogVariant(
+                id: "gid://shopify/ProductVariant/2", title: "MILD / 粉", price: ShopifyCatalogMoney(amount: amount, currency: "JPY"),
+                availability: .init(available: false), seller: nil
+            )]
+        )
+    }
+
+    /// 店の入口の商品を読み込む前は、検索の結果の商品バリアントを、検索の結果の取得から 10 分より前の時だけ出す。
+    @Test func 詳細ページは読み込む前は検索の結果の価格を10分より前だけ出す() {
+        let searchFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        let searchedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "コーヒー豆")
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, storefrontFetchedAt: nil,
+            now: searchFetchedAt.addingTimeInterval(599)
+        ) == searchedVariant)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, storefrontFetchedAt: nil,
+            now: searchFetchedAt.addingTimeInterval(600)
+        ) == nil)
+    }
+
+    /// 店の入口の商品を読み込んだ後は、その商品バリアントを、店の入口の取得から 10 分より前の時だけ出す (検索の結果の取得から 10 分を過ぎていても出す)。
+    @Test func 詳細ページは読み込んだ後は店の入口の価格を10分より前だけ出す() {
+        let searchFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        let storefrontFetchedAt = searchFetchedAt.addingTimeInterval(500)
+        let searchedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "コーヒー豆")
+        let storefrontProduct = Self.storefrontProduct(amount: 3000)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: storefrontProduct, storefrontFetchedAt: storefrontFetchedAt,
+            now: storefrontFetchedAt.addingTimeInterval(599)
+        ) == storefrontProduct.variants.first)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: storefrontProduct, storefrontFetchedAt: storefrontFetchedAt,
+            now: storefrontFetchedAt.addingTimeInterval(600)
+        ) == nil)
+    }
+
+    /// 店の入口の価格が期限を過ぎた時に、まだ 10 分たっていない検索の結果があっても、検索の結果の価格へは戻らない (検索の結果の方が後に取得された並びは画面では起きないが、関数の決まりとして固定する)。
+    @Test func 詳細ページは期限を過ぎた店の入口の価格の代わりに検索の結果の価格を出さない() {
+        let storefrontFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "コーヒー豆"),
+            searchFetchedAt: storefrontFetchedAt.addingTimeInterval(590),
+            storefrontProduct: Self.storefrontProduct(amount: 3000),
+            storefrontFetchedAt: storefrontFetchedAt,
+            now: storefrontFetchedAt.addingTimeInterval(600)
         ) == nil)
     }
 

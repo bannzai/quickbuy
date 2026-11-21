@@ -189,6 +189,14 @@ struct LocalizationTests {
         )
     }
 
+    /// 商品の詳細ページの見出しと在庫の文言 (issue #76) が英語で引ける。
+    @Test func 商品の詳細ページの文言は英語() {
+        #expect(String(localized: LocalizedStringResource("商品の詳細", locale: englishLocale)) == "Product Details")
+        #expect(String(localized: LocalizedStringResource("商品の説明", locale: englishLocale)) == "Description")
+        #expect(String(localized: LocalizedStringResource("選べる種類", locale: englishLocale)) == "Available Options")
+        #expect(String(localized: LocalizedStringResource("在庫あり", locale: englishLocale)) == "In stock")
+    }
+
     /// 問い合わせのメールの件名は英語になる。
     @Test func 問い合わせの件名は英語() throws {
         #expect(
