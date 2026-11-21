@@ -551,6 +551,25 @@ import Testing
         #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: html))) == "検索の値")
     }
 
+    /// 商品の詳細ページの説明文は、店の入口の商品に説明文があればそれを、無い・文字が残らない・読み込む前なら、検索の結果の商品の説明文を出す。
+    @Test func 詳細ページの説明文は店の入口の商品に無ければ検索の結果の商品のものを出す() {
+        let searchedProduct = Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: nil))
+        #expect(shopifyCatalogDetailDescriptionText(
+            searchedProduct: searchedProduct,
+            storefrontProduct: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "店の値"))
+        ) == "店の値")
+        #expect(shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: Self.detailProduct(media: nil, description: nil)) == "検索の値")
+        #expect(shopifyCatalogDetailDescriptionText(
+            searchedProduct: searchedProduct,
+            storefrontProduct: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "<p> </p>"))
+        ) == "検索の値")
+        #expect(shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: nil) == "検索の値")
+        #expect(shopifyCatalogDetailDescriptionText(
+            searchedProduct: Self.detailProduct(media: nil, description: nil),
+            storefrontProduct: Self.detailProduct(media: nil, description: nil)
+        ) == nil)
+    }
+
     /// 一覧と追加の画面の画像は、最初の 1 件が動画でも、その後ろの画像を出す。画像が 1 つも無ければ出さない。
     @Test func 一覧の画像は動画を飛ばして最初の画像を出す() {
         #expect(shopifyCatalogImageURL(

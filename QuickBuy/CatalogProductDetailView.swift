@@ -56,7 +56,7 @@ struct CatalogProductDetailView: View {
                     if let storefrontProduct, hasShopifyCatalogVariantChoices(options: storefrontProduct.product.options) {
                         options(storefrontOptions: storefrontProduct.product.options ?? [])
                     }
-                    if let descriptionText = shopifyCatalogDescriptionText(product: storefrontProduct?.product ?? searchedProduct) {
+                    if let descriptionText = shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: storefrontProduct?.product) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("商品の説明")
                                 .font(.headline)

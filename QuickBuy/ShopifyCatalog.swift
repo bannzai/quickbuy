@@ -334,6 +334,11 @@ func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
         .first { !$0.isEmpty }
 }
 
+/// 商品の詳細ページに出す説明文を返す。店の入口の商品 `storefrontProduct` (読み込む前は nil) の説明文に文字があればそれを、無ければ検索の結果の商品 `searchedProduct` の説明文を返す。どちらにも無ければ nil。
+func shopifyCatalogDetailDescriptionText(searchedProduct: ShopifyCatalogProduct, storefrontProduct: ShopifyCatalogProduct?) -> String? {
+    storefrontProduct.flatMap { shopifyCatalogDescriptionText(product: $0) } ?? shopifyCatalogDescriptionText(product: searchedProduct)
+}
+
 /// 店の入口の呼び出しの結果 `result` を受けた後に、商品の詳細ページが持つ店の入口の商品と、出す失敗の理由を返す。
 ///
 /// 読み込めた時は、返った商品を時刻 `now` に取得したものとして持ち、失敗の理由は無い。
