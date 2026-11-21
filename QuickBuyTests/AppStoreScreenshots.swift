@@ -93,22 +93,26 @@ func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
         var screenshotFavorite = favoriteAndEnglishText.0
         if !isJapanese(locale: locale) {
             screenshotFavorite.name = favoriteAndEnglishText.1.name
-            screenshotFavorite.variantName = favoriteAndEnglishText.1.variantName
+            screenshotFavorite.variantName = favoriteAndEnglishText.0.variantName.map {
+                $0.components(separatedBy: " / ").enumerated().map { favoriteAndEnglishText.1.variantNameParts[$0.offset] ?? $0.element }.joined(separator: " / ")
+            }
         }
         screenshotFavorite.reminder = reminder
         return screenshotFavorite
     }
 }
 
-/// `sampleFavorites()` の並びの位置ごとに、英語のスクリーンショットに出す名前と商品バリアントの名前。
+/// `sampleFavorites()` の並びの位置ごとに、英語のスクリーンショットに出す名前と、商品バリアントの名前のうち英語に替える部分。
 ///
 /// 店が決める値なので文字列カタログには入れず、スクリーンショットだけで使う。
 /// 日本語の名前から引く表にせず並びの位置で対応させるのは、日本語の名前を `sampleFavorites()` とこの表の 2 か所に書かないため。
+/// 商品バリアントの名前は Shopify が種類の値を「 / 」でつないで作るため、`variantNameParts` は「 / 」で分けた部分の位置 (0 から) ごとに英語を持つ。
+/// 位置の無い部分 (「200g」「1kg」) は言語によらない表記なので、`sampleFavorites()` の値をそのまま出す。
 /// 並びが `sampleFavorites()` と食い違った時は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見つける。
-private let appStoreScreenshotFavoriteEnglishTexts: [(name: String, variantName: String?)] = [
-    ("Coffee beans", "200g / Whole bean"),
-    ("Laundry soap", nil),
-    ("Protein", "1kg"),
+private let appStoreScreenshotFavoriteEnglishTexts: [(name: String, variantNameParts: [Int: String])] = [
+    ("Coffee beans", [1: "Whole bean"]),
+    ("Laundry soap", [:]),
+    ("Protein", [:]),
 ]
 
 /// 店が決める見本の文字列のうち、スクリーンショットだけに出すもの (検索の商品の名前・種類の選び方の名前) を `locale` の言語で返す。日本語なら `japanese`、ほかの言語は `english`。
