@@ -175,12 +175,12 @@ private func localized(key: String.LocalizationValue, locale: Locale) -> String 
 /// スクリーンショットの地の色。強調の色と同じ色味の、ごく薄い色にして、見出しの強調の色を目立たせる。
 ///
 /// 0.9 は、白い行や通知と見分けが付く範囲で最も薄くした割合 (PR #60 で目視して決めた地の色 `#E6F2EC` とほぼ同じ色になる)。
-let appStoreScreenshotBackgroundColor = appStoreScreenshotAccentColor(white: 1, fraction: 0.9)
+let appStoreScreenshotBackgroundColor = appStoreScreenshotAccentColor(white: 1, fraction: 0.6)
 
 /// ホーム画面とロック画面の壁紙の色。強調の色と同じ色味の暗い色にして、白いウィジェットと通知を目立たせる。
 ///
 /// 0.45 は、ウィジェットの中の強調の色のボタンより暗くなる割合 (PR #60 で目視して決めた壁紙の色 `#0A3D2E` とほぼ同じ色になる)。
-let appStoreScreenshotWallpaperColor = appStoreScreenshotAccentColor(white: 0, fraction: 0.45)
+let appStoreScreenshotWallpaperColor = appStoreScreenshotAccentColor(white: 0, fraction: 0.1)
 
 /// `sampleFavorites()` の並びの位置ごとに、商品の画像の代わりに出す SF Symbols の名前。
 private let appStoreScreenshotFavoriteSymbols = ["cup.and.saucer.fill", "bubbles.and.sparkles.fill", "dumbbell.fill"]
@@ -252,7 +252,7 @@ private struct AppStoreScreenshotDevice: View {
         case .addFavorite:
             AppStoreScreenshotAddFavoriteScreen(
                 favorite: appStoreScreenshotFavorites(locale: locale, now: now)[0],
-                searchedProduct: appStoreScreenshotSearchProducts(locale: locale)[0],
+                searchedProduct: appStoreScreenshotSearchProducts(locale: locale)[1],
                 locale: locale
             )
         case .reminder:
@@ -425,7 +425,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
             HStack(spacing: 18) {
                 Image(systemName: "gearshape")
                 // `EditButton` の文言 (iOS が言語ごとに出す「編集」/「Edit」)。
-                Text(verbatim: isJapanese(locale: locale) ? "編集" : "Edit")
+                Text(verbatim: "編集")
                 Spacer()
                 Image(systemName: "plus")
             }
@@ -671,7 +671,7 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
                     HStack {
                         Text(verbatim: appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: locale)).font(.system(size: 15))
                         Spacer()
-                        Text(verbatim: favorite.variantName!.components(separatedBy: " / ")[0]).font(.system(size: 15)).foregroundStyle(.secondary)
+                        Text(verbatim: favorite.variantName!.components(separatedBy: " / ")[1]).font(.system(size: 15)).foregroundStyle(.secondary)
                         Image(systemName: "chevron.up.chevron.down").font(.system(size: 12)).foregroundStyle(.secondary)
                     }
                     .frame(height: 40)
