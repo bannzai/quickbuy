@@ -129,7 +129,7 @@ struct CatalogProductDetailView: View {
             }
         }
         .onChange(of: checkedAt) {
-            if freshStorefrontProduct == nil, freshSearchedProduct == nil {
+            if !hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: storefrontProduct?.fetchedAt, now: checkedAt) {
                 dismiss()
             }
         }
@@ -161,8 +161,7 @@ struct CatalogProductDetailView: View {
             Text(shopDomain)
                 .font(.footnote.weight(.bold))
                 .foregroundStyle(.secondary)
-            // 名前は検索の結果の商品のものを先に使う (押したカードと同じ名前を出すため)。
-            if let title = (freshSearchedProduct ?? freshStorefrontProduct)?.title {
+            if let title = shopifyCatalogDetailTitle(searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: storefrontProduct, now: checkedAt) {
                 Text(title)
                     .font(.title3.weight(.bold))
             }
@@ -179,9 +178,8 @@ struct CatalogProductDetailView: View {
                     Text(shopifyCatalogPriceText(money: price))
                         .font(.title2.weight(.heavy))
                 }
-                // 店の入口の商品バリアントの名前は、どの種類の価格かを示す (検索の結果の商品バリアントの名前は商品の名前と同じ値なので出さない)。
-                if let storefrontProduct, hasShopifyCatalogVariantChoices(options: storefrontProduct.product.options) {
-                    Text(priceVariant.title)
+                if let priceVariantName = shopifyCatalogDetailPriceVariantName(priceVariant: priceVariant, storefrontProduct: storefrontProduct?.product) {
+                    Text(priceVariantName)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
