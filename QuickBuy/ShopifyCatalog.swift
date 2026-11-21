@@ -329,9 +329,12 @@ func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
     [product.description?.html, product.description?.plain]
         .compactMap { $0 }
         .map {
-            $0.replacing(#/<(style|script)(?=[\s\/>]).*?(?:</\1\s*>|\z)/#.ignoresCase().dotMatchesNewlines(), with: "")
-                .replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
-                .replacing(#/<(?:"[^"]*"|'[^']*'|[^>"'])*>/#, with: "")
+            // `<style>`・`<script>` とその中身を、残りのタグと同じ 1 回の置き換えで除く (属性の引用符の中の `<style>` を開始タグとして読まないため)。
+            $0.replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
+                .replacing(
+                    #/<(style|script)(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*>.*?(?:</\1\s*>|\z)|<(?:"[^"]*"|'[^']*'|[^>"'])*>/#.ignoresCase().dotMatchesNewlines(),
+                    with: ""
+                )
                 .split(whereSeparator: \.isNewline)
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
