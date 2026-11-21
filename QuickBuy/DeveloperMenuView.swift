@@ -140,6 +140,102 @@
         return URLSession(configuration: urlSessionConfiguration)
     }
 
+    /// 商品の詳細ページの見本に使う店のドメイン。実在しない `.example` (RFC 2606 の予約済みのドメイン)。
+    let sampleCatalogShopDomain = "mori-coffee.example"
+
+    /// 商品の詳細ページの見本に使う、検索の結果の形の商品。画像 2 枚と動画 1 本、タグの入った説明文を持ち、売り切れ。
+    ///
+    /// 画像は Shopify が自分の CDN で配っている見本の画像 (2026-11-21 に `curl -I` でどちらも HTTP 200・`image/png` を確かめた)。実在の店の画像をリポジトリに入れないため。
+    func sampleCatalogProduct() -> ShopifyCatalogProduct {
+        ShopifyCatalogProduct(
+            id: "gid://shopify/p/sample",
+            title: "コーヒー豆 中煎り",
+            description: ShopifyCatalogDescription(plain: "<p>検索の結果の説明文</p><ul><li>内容量: 200g</li><li>焙煎: 中煎り</li></ul>", html: nil),
+            media: [
+                ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/c/vp/sample/sample.m3u8"),
+                ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-1_large.png"),
+                ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png"),
+            ],
+            options: nil,
+            selected: nil,
+            variants: [
+                ShopifyCatalogVariant(
+                    id: "gid://shopify/ProductVariant/70881412",
+                    title: "コーヒー豆 中煎り",
+                    price: ShopifyCatalogMoney(amount: 1800, currency: "JPY"),
+                    availability: .init(available: false),
+                    seller: .init(url: "https://mori-coffee.example")
+                ),
+            ]
+        )
+    }
+
+    /// 商品の詳細ページの見本に使う、店の入口の `get_product` の応答の JSON。選べる値が 2 つの選び方と 1 つだけの選び方を持ち、商品バリアントは売り切れ。
+    let sampleStorefrontProductJSONText = """
+    {"jsonrpc":"2.0","id":1,"result":{"structuredContent":{"product":{
+    "id":"gid://shopify/Product/1","title":"コーヒー豆 中煎り","description":{"html":"店の入口の説明文 売り切れの見本です"},
+    "media":[{"type":"image","url":"https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-1_large.png"}],
+    "options":[{"name":"内容量","values":[{"label":"200g"},{"label":"500g"}]},{"name":"挽き方","values":[{"label":"豆のまま"}]}],
+    "selected":[{"name":"内容量","label":"200g"},{"name":"挽き方","label":"豆のまま"}],
+    "variants":[{"id":"gid://shopify/ProductVariant/70881412","title":"200g / 豆のまま","price":{"amount":1800,"currency":"JPY"},"availability":{"available":false}}]}}}}
+    """
+
+    /// どの URL へのリクエストにも、ネットワークに出ずに `sampleStorefrontProductJSONText` を HTTP 200 で返す、通信の差し替え。
+    ///
+    /// 実在しない店の商品で商品の詳細ページを開くために使う。class にしているのは、`URLSessionConfiguration.protocolClasses` が `URLProtocol` のサブクラスを求めるため。
+    class SampleStorefrontProductURLProtocol: URLProtocol {
+        /// 返す応答の HTTP の状態・ヘッダー・本文。
+        class var sampleResponse: (statusCode: Int, headerFields: [String: String], body: String) {
+            (200, [:], sampleStorefrontProductJSONText)
+        }
+
+        /// すべてのリクエストをこの差し替えで受ける。
+        override class func canInit(with _: URLRequest) -> Bool {
+            true
+        }
+
+        /// リクエストを変えずに返す。
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+            request
+        }
+
+        /// `sampleResponse` の応答を返す。
+        override func startLoading() {
+            if let url = request.url,
+               let response = HTTPURLResponse(
+                   url: url,
+                   statusCode: type(of: self).sampleResponse.statusCode,
+                   httpVersion: "HTTP/1.1",
+                   headerFields: type(of: self).sampleResponse.headerFields
+               )
+            {
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data(type(of: self).sampleResponse.body.utf8))
+                client?.urlProtocolDidFinishLoading(self)
+            } else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            }
+        }
+
+        /// 途中で止めるものが無いため何もしない。
+        override func stopLoading() {}
+    }
+
+    /// どの URL へのリクエストにも、ネットワークに出ずに HTTP 429 (`Retry-After: 30`) を返す、通信の差し替え。店の入口を読み込めない時の商品の詳細ページを開くために使う。
+    final class SampleStorefrontRateLimitedURLProtocol: SampleStorefrontProductURLProtocol {
+        /// HTTP 429 と `Retry-After: 30`、空の本文。
+        override class var sampleResponse: (statusCode: Int, headerFields: [String: String], body: String) {
+            (429, ["Retry-After": "30"], "")
+        }
+    }
+
+    /// `protocolClass` (`URLProtocol` のサブクラス) を通る (ネットワークに出ない) 通信を返す。
+    func sampleURLSession(protocolClass: AnyClass) -> URLSession {
+        let urlSessionConfiguration = URLSessionConfiguration.ephemeral
+        urlSessionConfiguration.protocolClasses = [protocolClass]
+        return URLSession(configuration: urlSessionConfiguration)
+    }
+
     /// 開発者メニュー (DEBUG ビルドだけ)。画面の操作では作りにくい状態を作る。
     struct DeveloperMenuView: View {
         /// お気に入りの保存先のファイルの URL。
@@ -151,8 +247,10 @@
         @State private var isOperationFailed = false
         /// 見本の商品の追加の画面を出している間は true。
         @State private var isAddingSampleProduct = false
+        /// 見本の商品の詳細ページを出している間の、店の入口の通信の差し替えと、開いた時刻 (検索の結果を取得した時刻として渡す)。出していない時は nil。
+        @State private var sampleProductDetail: (urlSession: URLSession, openedAt: Date)?
 
-        /// 見本のお気に入りを入れる・消すのボタン、見本の商品で追加の画面を開くボタン、リマインドの状態と通知を作るボタン、通知の許可の説明の画面を出した記録を消すボタン。
+        /// 見本のお気に入りを入れる・消すのボタン、見本の商品で追加の画面と商品の詳細ページを開くボタン、リマインドの状態と通知を作るボタン、通知の許可の説明の画面を出した記録を消すボタン。
         var body: some View {
             NavigationStack {
                 Form {
@@ -174,6 +272,16 @@
                         }
                     } header: {
                         Text("お気に入り")
+                    }
+                    Section {
+                        Button("売り切れで画像が 2 枚の見本の商品を開く") {
+                            sampleProductDetail = (sampleURLSession(protocolClass: SampleStorefrontProductURLProtocol.self), .now)
+                        }
+                        Button("店の入口を読み込めない見本の商品を開く") {
+                            sampleProductDetail = (sampleURLSession(protocolClass: SampleStorefrontRateLimitedURLProtocol.self), .now)
+                        }
+                    } header: {
+                        Text("商品の詳細ページ")
                     }
                     Section {
                         Button("リマインドの日数が過ぎた状態にする") {
@@ -225,6 +333,18 @@
                     }
                 }
                 .alert("操作に失敗しました", isPresented: $isOperationFailed) {}
+                .navigationDestination(isPresented: Binding(get: { sampleProductDetail != nil }, set: { if !$0 { sampleProductDetail = nil } })) {
+                    if let sampleProductDetail {
+                        // 見本の商品はお気に入りにしないので、「お気に入り追加」は押せることだけを見せて何もしない。
+                        CatalogProductDetailView(
+                            searchedProduct: sampleCatalogProduct(),
+                            shopDomain: sampleCatalogShopDomain,
+                            searchFetchedAt: sampleProductDetail.openedAt,
+                            urlSession: sampleProductDetail.urlSession,
+                            onAddFavorite: {}
+                        )
+                    }
+                }
                 .sheet(isPresented: $isAddingSampleProduct) {
                     AddFavoriteView(
                         initialText: sampleProductPageURLText,

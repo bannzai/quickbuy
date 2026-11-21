@@ -43,10 +43,12 @@ struct HomeView: View {
     /// 検索できなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 追加の画面を開いている商品と店のドメイン。開いていない時は nil。
-    @State private var addingProduct: AddingProduct?
+    @State private var addingProduct: SelectedProduct?
+    /// 商品の詳細ページを開いている商品と、その商品を含む検索の結果を取得した時刻。開いていない時は nil。
+    @State private var detailProduct: (selectedProduct: SelectedProduct, searchFetchedAt: Date)?
 
-    /// 追加の画面を開いている商品。
-    struct AddingProduct: Identifiable {
+    /// 利用者が押した商品 (追加の画面か商品の詳細ページを開く)。
+    struct SelectedProduct: Identifiable {
         /// 検索の結果の商品。
         let product: ShopifyCatalogProduct
         /// 店のドメイン。
@@ -74,6 +76,18 @@ struct HomeView: View {
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "商品を検索")
             .onSubmit(of: .search) {
                 search(query: searchText)
+            }
+            .navigationDestination(isPresented: Binding(get: { detailProduct != nil }, set: { if !$0 { detailProduct = nil } })) {
+                if let detailProduct {
+                    CatalogProductDetailView(
+                        searchedProduct: detailProduct.selectedProduct.product,
+                        shopDomain: detailProduct.selectedProduct.shopDomain,
+                        searchFetchedAt: detailProduct.searchFetchedAt,
+                        urlSession: .shared
+                    ) {
+                        addingProduct = detailProduct.selectedProduct
+                    }
+                }
             }
         }
         .tint(quickBuyAccentColor)
@@ -166,7 +180,7 @@ struct HomeView: View {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                         ForEach(Array(searchResult.products.enumerated()), id: \.offset) { _, product in
                             if let variant = product.variants.first, let shopDomain = shopifyCatalogShopDomain(variant: variant) {
-                                productCard(product: product, variant: variant, shopDomain: shopDomain)
+                                productCard(product: product, variant: variant, shopDomain: shopDomain, searchFetchedAt: searchResult.fetchedAt)
                             }
                         }
                     }
@@ -180,30 +194,42 @@ struct HomeView: View {
     }
 
     /// 商品 1 件のカード。画像・店のドメイン・名前・価格と「お気に入り追加」のボタン。
-    private func productCard(product: ShopifyCatalogProduct, variant: ShopifyCatalogVariant, shopDomain: String) -> some View {
+    /// 「お気に入り追加」より上を押すと、商品の詳細ページを開く (`searchFetchedAt` は、この商品を含む検索の結果を取得した時刻)。
+    private func productCard(product: ShopifyCatalogProduct, variant: ShopifyCatalogVariant, shopDomain: String, searchFetchedAt: Date) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Color(uiColor: .quaternarySystemFill)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay {
-                    if let imageURL = shopifyCatalogImageURL(product: product, shopDomain: shopDomain) {
-                        CatalogProductImage(imageURL: imageURL)
+            Button {
+                detailProduct = (SelectedProduct(product: product, shopDomain: shopDomain), searchFetchedAt)
+            } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Color(uiColor: .quaternarySystemFill)
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            if let imageURL = shopifyCatalogImageURL(product: product, shopDomain: shopDomain) {
+                                CatalogProductImage(imageURL: imageURL, contentMode: .fill)
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    Text(shopDomain)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(product.title)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
+                    if let price = variant.price {
+                        Text(shopifyCatalogPriceText(money: price))
+                            .font(.subheadline)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            Text(shopDomain)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Text(product.title)
-                .font(.subheadline.weight(.bold))
-                .lineLimit(2, reservesSpace: true)
-            if let price = variant.price {
-                Text(shopifyCatalogPriceText(money: price))
-                    .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("openProductDetail")
             Button {
-                addingProduct = AddingProduct(product: product, shopDomain: shopDomain)
+                addingProduct = SelectedProduct(product: product, shopDomain: shopDomain)
             } label: {
                 Text("お気に入り追加")
                     .font(.footnote.weight(.bold))
@@ -267,13 +293,15 @@ struct HomeView: View {
 ///
 /// 画像は画面に出すだけで保存しない。読み込みは、転送先を確かめる `productImageURLSession` で行う。
 struct CatalogProductImage: View {
-    /// 画像の URL (`shopifyCatalogImageURL(product:shopDomain:)` を通ったもの)。
+    /// 画像の URL (`shopifyCatalogImageURL(product:shopDomain:)` か `shopifyCatalogImageURLs(product:shopDomain:)` を通ったもの)。
     let imageURL: URL
+    /// 枠への収め方。`.fill` は枠いっぱいに切り抜き (一覧のカード)、`.fit` は画像の全体を枠の中に収める (商品の詳細ページ)。
+    let contentMode: ContentMode
 
     /// 読み込んだ画像。読み込む前と読み込めなかった時は nil。
     @State private var image: UIImage?
 
-    /// 枠いっぱいに切り抜いた画像。
+    /// `contentMode` で枠に収めた画像。
     var body: some View {
         // 読み込む前は中身が空で、空の `Group` には `task` が動かないため、透明な下地に重ねる。
         Color.clear
@@ -281,7 +309,7 @@ struct CatalogProductImage: View {
                 if let image {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFill()
+                        .aspectRatio(contentMode: contentMode)
                 }
             }
             .task(id: imageURL) {

@@ -817,6 +817,26 @@
         }
       }
     },
+    "商品の詳細" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product Details"
+          }
+        }
+      }
+    },
+    "商品の説明" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        }
+      }
+    },
     "商品の情報を取得できませんでした\n少し待ってからもう一度お試しください" : {
       "localizations" : {
         "en" : {
@@ -853,6 +873,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Product Page URL"
+          }
+        }
+      }
+    },
+    "在庫あり" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In stock"
           }
         }
       }
@@ -1097,6 +1127,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on notifications to rebuy from the widget"
+          }
+        }
+      }
+    },
+    "選べる種類" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available Options"
           }
         }
       }
