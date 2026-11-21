@@ -114,11 +114,13 @@ struct CatalogProductDetailView: View {
                 refreshExpiredValues()
             }
         }
-        // 画面を開いたまま、最後に取得した商品の名前・画像・説明文を出してよい時間を過ぎたら、判定をやり直す (出せる商品が無くなって画面が閉じる)。
-        .task(id: shownPriceFetchedAt) {
-            try? await Task.sleep(for: .seconds(shopifyCatalogContentRemainingSeconds(fetchedAt: shownPriceFetchedAt, now: .now)))
-            if !Task.isCancelled {
-                refreshExpiredValues()
+        // 画面を開いたまま、検索の結果の商品と店の入口の商品のそれぞれの名前・画像・説明文を出してよい時間を過ぎたら、判定をやり直す (期限を過ぎた商品の値を出さなくし、出せる商品が無くなれば画面が閉じる)。
+        .task(id: searchFetchedAt) {
+            await refreshWhenContentExpires(fetchedAt: searchFetchedAt)
+        }
+        .task(id: storefrontProduct?.fetchedAt) {
+            if let storefrontFetchedAt = storefrontProduct?.fetchedAt {
+                await refreshWhenContentExpires(fetchedAt: storefrontFetchedAt)
             }
         }
         .onChange(of: scenePhase) { _, newScenePhase in
@@ -218,6 +220,14 @@ struct CatalogProductDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// 時刻 `fetchedAt` に取得した商品の名前・画像・説明文を出してよい時間が過ぎるまで待ち、過ぎたら値を出してよいかの判定をやり直す。待つ間に止められた時は何もしない。
+    private func refreshWhenContentExpires(fetchedAt: Date) async {
+        try? await Task.sleep(for: .seconds(shopifyCatalogContentRemainingSeconds(fetchedAt: fetchedAt, now: .now)))
+        if !Task.isCancelled {
+            refreshExpiredValues()
+        }
     }
 
     /// 値を出してよいかの判定を今の時刻でやり直し、店の入口の商品をまだ読み込んでいないか、その価格が期限を過ぎていれば、店の入口から読み込む。
