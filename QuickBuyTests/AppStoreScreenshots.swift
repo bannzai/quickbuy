@@ -83,23 +83,33 @@ func appStoreScreenshotSubheadline(screen: AppStoreScreenshotScreen, locale: Loc
 ///
 /// 英語のスクリーンショットでは、名前と商品バリアントの名前を `appStoreScreenshotFavoriteEnglishTexts` の値にする (見本の名前は日本語だけのため)。
 func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
-    zip(zip(sampleFavorites(), appStoreScreenshotFavoriteEnglishTexts), [
-        // 2 日前に数え始めた 7 日ごとのリマインド。一覧で「次の知らせは 5 日後」を出す。
-        Reminder(intervalDays: 7, countedFrom: now.addingTimeInterval(-2 * reminderDaySeconds)),
-        nil,
-        // 30 日前に数え始めた 30 日ごとのリマインド。一覧で「そろそろ買う頃」を出す。
-        Reminder(intervalDays: 30, countedFrom: now.addingTimeInterval(-30 * reminderDaySeconds)),
-    ] as [Reminder?]).map { favoriteAndEnglishText, reminder in
-        var screenshotFavorite = favoriteAndEnglishText.0
+    sampleFavorites().enumerated().map { favoriteIndex, favorite in
+        var screenshotFavorite = favorite
         if !isJapanese(locale: locale) {
-            screenshotFavorite.name = favoriteAndEnglishText.1.name
-            screenshotFavorite.variantName = favoriteAndEnglishText.0.variantName.map {
-                $0.components(separatedBy: " / ").enumerated().map { favoriteAndEnglishText.1.variantNameParts[$0.offset] ?? $0.element }.joined(separator: " / ")
+            screenshotFavorite.name = appStoreScreenshotFavoriteEnglishTexts[favoriteIndex].name
+            screenshotFavorite.variantName = favorite.variantName.map { japaneseVariantName in
+                appStoreScreenshotEnglishVariantName(
+                    japaneseVariantName: japaneseVariantName,
+                    englishParts: appStoreScreenshotFavoriteEnglishTexts[favoriteIndex].variantNameParts
+                )
             }
         }
-        screenshotFavorite.reminder = reminder
+        screenshotFavorite.reminder = ([
+            // 2 日前に数え始めた 7 日ごとのリマインド。一覧で「次の知らせは 5 日後」を出す。
+            Reminder(intervalDays: 7, countedFrom: now.addingTimeInterval(-2 * reminderDaySeconds)),
+            nil,
+            // 30 日前に数え始めた 30 日ごとのリマインド。一覧で「そろそろ買う頃」を出す。
+            Reminder(intervalDays: 30, countedFrom: now.addingTimeInterval(-30 * reminderDaySeconds)),
+        ] as [Reminder?])[favoriteIndex]
         return screenshotFavorite
     }
+}
+
+/// 日本語の商品バリアントの名前 `japaneseVariantName` を「 / 」で分け、`englishParts` に位置 (0 から) がある部分だけを英語に替えた名前を返す。位置の無い部分はそのまま残す。
+private func appStoreScreenshotEnglishVariantName(japaneseVariantName: String, englishParts: [Int: String]) -> String {
+    japaneseVariantName.components(separatedBy: " / ").enumerated().map { partIndex, japanesePart in
+        englishParts[partIndex] ?? japanesePart
+    }.joined(separator: " / ")
 }
 
 /// `sampleFavorites()` の並びの位置ごとに、英語のスクリーンショットに出す名前と、商品バリアントの名前のうち英語に替える部分。
