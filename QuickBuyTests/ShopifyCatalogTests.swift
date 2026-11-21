@@ -794,21 +794,23 @@ import Testing
         ) == nil)
     }
 
-    /// 説明文は、閉じタグの無い `<style>` と `<script>` の後ろを値の終わりまで出さない。属性の付いた `<style>` も同じに扱う。`style`・`script` で始まる別のタグ (`<styles>`・`<style-guide>`・`<script-loader>`) の後ろと、ほかのタグの属性の引用符の中に `<style>` がある時の後ろは出す。
+    /// 説明文は、閉じタグのある `<style>` と `<script>` だけを中身ごと除く。閉じタグの無い `<style>` と `<script>`、`style`・`script` で始まる別のタグ (`<styles>`・`<style-guide>`・`<script-loader>`)、ほかのタグの属性の引用符の中の `<style>` は、ほかのタグと同じにタグだけを除いて後ろの文字を出す。
     @Test(arguments: [
-        ("本文<style>.a{color:red}", "本文"),
-        ("本文<script>alert(1)", "本文"),
-        ("一行目<style>.a{color:red}\n</p>二行目", "一行目"),
-        ("<style>.a{color:red}</style>本文<STYLE>.b{color:blue}", "本文"),
-        ("<style>.a{color:red}本文", nil),
+        ("<style>.a{color:red}</style>本文", "本文"),
+        ("<SCRIPT type=\"text/javascript\">alert(1)</SCRIPT >本文", "本文"),
+        ("<style media=\"a>b\">.a{color:red}</style>本文", "本文"),
+        ("<style>.a{color:red}\n.b{color:blue}</style>本文", "本文"),
+        ("5 < 10 <style>.a{color:red}</style>本文", "5 < 10 本文"),
+        ("<style>.a{color:red}</style>", nil),
+        ("本文<style>.a{color:red}", "本文.a{color:red}"),
+        ("本文<script>alert(1)", "本文alert(1)"),
+        ("<style>.a{color:red}</style>本文<STYLE>.b{color:blue}", "本文.b{color:blue}"),
         ("<styles>本文", "本文"),
-        ("本文<style type=\"text/css\">.a{color:red}", "本文"),
         ("<style-guide>本文</style-guide>", "本文"),
         ("<script-loader>本文", "本文"),
         ("<a title=\"<style>\">本文</a>", "本文"),
-        ("<style media=\"a>b\">.a{color:red}</style>本文", "本文"),
     ] as [(String, String?)])
-    func 説明文は閉じないstyleの後ろを出さない(html: String, expected: String?) {
+    func 説明文は閉じたstyleとscriptだけ中身ごと除く(html: String, expected: String?) {
         #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: html, html: nil))) == expected)
     }
 
