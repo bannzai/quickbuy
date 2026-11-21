@@ -95,6 +95,7 @@ struct AppStoreScreenshotTests {
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map(\.name) == ["コーヒー豆", "洗濯用せっけん", "プロテイン"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.name) == ["Coffee beans", "Laundry soap", "Protein"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.variantName) == ["200g / Whole bean", nil, "1kg"])
+        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
     }
 
     /// 見本のリマインドは、一覧で残りの日数・知らせなし・買う頃の 3 つの状態を 1 件ずつ出す。
@@ -138,16 +139,14 @@ struct AppStoreScreenshotTests {
         let english = Locale(identifier: "en")
         for text in appStoreScreenshotFavorites(locale: english, now: now).flatMap({ [$0.name, $0.variantName ?? ""] })
             + appStoreScreenshotSearchProducts(locale: english).map(\.title)
-            + [appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: english)]
+            + [appStoreScreenshotOptionName(locale: english)]
         {
             #expect(!containsJapanese(text: text), "\(text)")
         }
         #expect(appStoreScreenshotSearchProducts(locale: english).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
         #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "ja")).map(\.title) == ["コーヒー豆", "深煎り 200g", "浅煎り 200g", "デカフェ 150g"])
-        #expect(appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: english) == "Size")
-        // 対応の無い文字列は、言語によらない表記としてそのまま返す。
-        #expect(appStoreScreenshotShopText(japaneseText: "1kg", locale: english) == "1kg")
-        #expect(appStoreScreenshotShopText(japaneseText: "", locale: english) == "")
+        #expect(appStoreScreenshotOptionName(locale: english) == "Size")
+        #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "ja")) == "内容量")
     }
 
     /// 英語のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
