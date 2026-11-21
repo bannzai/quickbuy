@@ -200,7 +200,7 @@ struct AppStoreScreenshotTests {
             for screen in AppStoreScreenshotScreen.allCases {
                 for line in (appStoreScreenshotHeadline(screen: screen, locale: language.locale) + "\n" + appStoreScreenshotSubheadline(screen: screen, locale: language.locale)).split(separator: "\n") {
                     #expect(
-                        try comparableText(text: recognizedText(screen: screen, locale: language.locale)).contains(comparableText(text: String(line))),
+                        try comparableText(text: recognizedText(screen: screen, locale: language.locale, regionOfInterest: headingRegion)).contains(comparableText(text: String(line))),
                         "\(language.directoryName) \(screen) \(line)"
                     )
                 }
@@ -208,9 +208,21 @@ struct AppStoreScreenshotTests {
         }
     }
 
-    /// 1 枚を描いて、写っている文字を Vision の文字の認識 (日本語と英語) で読み、行を改行でつないで返す。描けない時は投げる。
-    private func recognizedText(screen: AppStoreScreenshotScreen, locale: Locale) throws -> String {
+    /// 画像のうち見出しと補足が写る範囲 (Vision の `regionOfInterest` の形。左下が原点で、幅と高さを 1 とした割合)。
+    ///
+    /// 上から 2 割にするのは、端末の枠が上から 21.6% の所から始まり (run 44918156487 が描いた 10 枚で、2 行の見出しの時の枠の上の端は 2000 分の 432)、補足の下の端がそれより上にあるため。
+    /// 端末の中の文言を読まないために区切る (日本語の追加の画面は、補足と同じ「追加しただけでは購入されません」がフォームの下にも写る)。
+    private let headingRegion = CGRect(x: 0, y: 0.8, width: 1, height: 0.2)
+
+    /// 1 枚を描いて、`regionOfInterest` の範囲に写っている文字を Vision の文字の認識 (日本語と英語) で読み、行を改行でつないで返す。描けない時は投げる。
+    private func recognizedText(
+        screen: AppStoreScreenshotScreen,
+        locale: Locale,
+        // 範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
+        regionOfInterest: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+    ) throws -> String {
         let request = VNRecognizeTextRequest()
+        request.regionOfInterest = regionOfInterest
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["ja-JP", "en-US"]
         // 辞書で直すと、店のドメインや見本の名前が別の語に替わるため切る。
