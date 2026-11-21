@@ -3,6 +3,7 @@ import ImageIO
 import SwiftUI
 import Testing
 import UniformTypeIdentifiers
+import Vision
 @testable import QuickBuy
 
 /// App Store のスクリーンショットを描いて、App Store が受け付ける形 (1320 x 2868 px・透明の無い PNG) になることと、文言の決まりを確かめる。
@@ -103,10 +104,93 @@ struct AppStoreScreenshotTests {
         ])
     }
 
-    /// 見本の店は実在しない `.example` のドメインだけにする (実在の店の名前をストアの画像に出さない)。
+    /// 見本の店は実在しない `.example` のドメインだけにする (実在の店の名前をストアの画像に出さない)。お気に入りの店と、検索の画面に並べる商品の店の両方を見る。
     @Test func 見本の店はexampleのドメインだけ() {
-        for favorite in appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now) {
-            #expect(shopDomainText(favorite: favorite).hasSuffix(".example"))
+        for language in appStoreScreenshotLanguages {
+            for favorite in appStoreScreenshotFavorites(locale: language.locale, now: now) {
+                #expect(shopDomainText(favorite: favorite).hasSuffix(".example"))
+            }
+            // 店のドメインか価格を読めない商品は検索の画面の行が空になるため、4 件とも両方を読めることも確かめる。
+            #expect(appStoreScreenshotSearchProducts(locale: language.locale).map { $0.variants.first.flatMap { shopifyCatalogShopDomain(variant: $0) } } == [
+                "mori-coffee.example", "mori-coffee.example", "hoshi-roast.example", "hoshi-roast.example",
+            ])
+            #expect(appStoreScreenshotSearchProducts(locale: language.locale).map { $0.variants.first?.price.map { shopifyCatalogPriceText(money: $0) } } == [
+                "¥1,480", "¥1,280", "¥1,350", "¥1,200",
+            ])
         }
+    }
+
+    /// 画像に写った店のドメインの形の文字列は、どれも `.example` で終わる (画面のコードに直に書いた店のドメインも見つける)。
+    @Test func 画像に写る店のドメインはexampleだけ() throws {
+        for language in appStoreScreenshotLanguages {
+            for screen in AppStoreScreenshotScreen.allCases {
+                for domainText in try recognizedText(screen: screen, locale: language.locale).lowercased().matches(of: #/[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/#).map(\.output.0) {
+                    #expect(domainText.hasSuffix(".example"), "\(language.directoryName) \(screen) \(domainText)")
+                }
+            }
+            // 店のドメインを読めていること (読めない認識では上の確認が何も見ない)。
+            #expect(try recognizedText(screen: .search, locale: language.locale).lowercased().contains("mori-coffee.example"), "\(language.directoryName)")
+        }
+    }
+
+    /// 英語の見本の文字列 (お気に入りの名前・商品バリアントの名前・検索の商品の名前・種類の選び方の名前) に日本語が残らない。
+    @Test func 英語の見本の文字列に日本語が残らない() {
+        let english = Locale(identifier: "en")
+        for text in appStoreScreenshotFavorites(locale: english, now: now).flatMap({ [$0.name, $0.variantName ?? ""] })
+            + appStoreScreenshotSearchProducts(locale: english).map(\.title)
+            + [appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: english)]
+        {
+            #expect(!containsJapanese(text: text), "\(text)")
+        }
+        #expect(appStoreScreenshotSearchProducts(locale: english).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
+        #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "ja")).map(\.title) == ["コーヒー豆", "深煎り 200g", "浅煎り 200g", "デカフェ 150g"])
+        #expect(appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: english) == "Size")
+        // 対応の無い文字列は、言語によらない表記としてそのまま返す。
+        #expect(appStoreScreenshotShopText(japaneseText: "1kg", locale: english) == "1kg")
+        #expect(appStoreScreenshotShopText(japaneseText: "", locale: english) == "")
+    }
+
+    /// 英語のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
+    @Test func 英語の画像に日本語の文字が写らない() throws {
+        for screen in AppStoreScreenshotScreen.allCases {
+            #expect(try !containsJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "en"))), "\(screen)")
+            // 日本語を読めていること (読めない認識では上の確認が何も見ない)。
+            #expect(try containsJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "ja"))), "\(screen)")
+        }
+    }
+
+    /// 見出しと補足は、切り詰められずに全部の行が画像に写る (2 行の見出しが 1 行に切り詰められると 2 行目が写らない)。
+    @Test func 見出しと補足は全部の行が画像に写る() throws {
+        for language in appStoreScreenshotLanguages {
+            for screen in AppStoreScreenshotScreen.allCases {
+                for line in (appStoreScreenshotHeadline(screen: screen, locale: language.locale) + "\n" + appStoreScreenshotSubheadline(screen: screen, locale: language.locale)).split(separator: "\n") {
+                    #expect(
+                        try comparableText(text: recognizedText(screen: screen, locale: language.locale)).contains(comparableText(text: String(line))),
+                        "\(language.directoryName) \(screen) \(line)"
+                    )
+                }
+            }
+        }
+    }
+
+    /// 1 枚を描いて、写っている文字を Vision の文字の認識 (日本語と英語) で読み、行を改行でつないで返す。描けない時は投げる。
+    private func recognizedText(screen: AppStoreScreenshotScreen, locale: Locale) throws -> String {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["ja-JP", "en-US"]
+        // 辞書で直すと、店のドメインや見本の名前が別の語に替わるため切る。
+        request.usesLanguageCorrection = false
+        try VNImageRequestHandler(data: #require(screenshotPNG(screen: screen, locale: locale))).perform([request])
+        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
+    }
+
+    /// 文字の認識の結果と元の文言を比べるために、文字と数字だけを残して小文字にした文字列を返す (空白・改行・引用符の形の違いで食い違わないようにする)。
+    private func comparableText(text: String) -> String {
+        String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+    }
+
+    /// `text` に日本語の文字 (ひらがな・カタカナ・漢字) があるか。
+    private func containsJapanese(text: String) -> Bool {
+        text.unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) || (0x4E00...0x9FFF).contains($0.value) }
     }
 }
