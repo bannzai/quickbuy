@@ -153,7 +153,10 @@ struct AppStoreScreenshotTests {
     /// 英語のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
     @Test func 英語の画像に日本語の文字が写らない() throws {
         for screen in AppStoreScreenshotScreen.allCases {
-            #expect(try !containsJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "en"))), "\(screen)")
+            #expect(
+                try recognizedText(screen: screen, locale: Locale(identifier: "en")).split(separator: "\n").filter { containsJapanese(text: String($0)) } == [],
+                "\(screen)"
+            )
             // 日本語を読めていること (読めない認識では上の確認が何も見ない)。
             #expect(try containsJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "ja"))), "\(screen)")
         }
