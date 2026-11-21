@@ -323,7 +323,7 @@ func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String)
 /// 商品の詳細ページに出す説明文を返す (保存はしない)。説明文が無い時と、タグを除くと文字が残らない時は nil。
 ///
 /// 店の入口の値 (`html`) と Global Catalog の値 (`plain`) のうち、タグを除いて文字が残る最初のものを使う (店の入口の値が空の時は Global Catalog の値を使う)。
-/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<style>` と `<script>` は中身ごと除き、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで。属性の引用符の中の `>` はタグの終わりにしない) を除く。
+/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<style>` と `<script>` は中身ごと除き (閉じタグが無い時は、ほかのタグと同じにタグだけを除く)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで。属性の引用符の中の `>` はタグの終わりにしない) を除く。
 /// 行ごとに前後の空白を除き、空の行は詰める。タグでない `<` と `>` に挟まれた文字も除かれる (説明文を HTML として描かず、文字としてだけ出すため)。
 func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
     [product.description?.html, product.description?.plain]
@@ -348,6 +348,39 @@ func isShopifyCatalogContentFresh(fetchedAt: Date, now: Date) -> Bool {
 /// 取得した時刻 `fetchedAt` の名前・説明文・種類の選び方・画像を出してよい残りの秒数を返す。もう出してはいけない時は 0。
 func shopifyCatalogContentRemainingSeconds(fetchedAt: Date, now: Date) -> TimeInterval {
     max(0, shopifyCatalogContentCacheSeconds - now.timeIntervalSince(fetchedAt))
+}
+
+/// 商品の詳細ページに、名前・説明文・画像を出してよい商品が残っているかを返す。false の時、画面は閉じる。
+///
+/// 検索の結果 (取得した時刻 `searchFetchedAt`) か、店の入口の商品 (取得した時刻 `storefrontFetchedAt`。1 回も読み込めていない時は nil) の
+/// どちらかが `isShopifyCatalogContentFresh` なら true。
+func hasShopifyCatalogDetailFreshContent(searchFetchedAt: Date, storefrontFetchedAt: Date?, now: Date) -> Bool {
+    isShopifyCatalogContentFresh(fetchedAt: searchFetchedAt, now: now)
+        || storefrontFetchedAt.map { isShopifyCatalogContentFresh(fetchedAt: $0, now: now) } == true
+}
+
+/// 商品の詳細ページに出す商品の名前を返す。出してよい商品が無い時は nil。
+///
+/// 検索の結果の商品 `searchedProduct` (取得した時刻 `searchFetchedAt`) が `isShopifyCatalogContentFresh` の間は、その名前を返す (押したカードと同じ名前を出すため)。
+/// 過ぎた後は、店の入口の商品 `storefrontProduct` (1 回も読み込めていない時は nil) が `isShopifyCatalogContentFresh` の時だけ、その名前を返す。
+func shopifyCatalogDetailTitle(
+    searchedProduct: ShopifyCatalogProduct,
+    searchFetchedAt: Date,
+    storefrontProduct: (product: ShopifyCatalogProduct, fetchedAt: Date)?,
+    now: Date
+) -> String? {
+    if isShopifyCatalogContentFresh(fetchedAt: searchFetchedAt, now: now) {
+        return searchedProduct.title
+    }
+    return storefrontProduct.flatMap { isShopifyCatalogContentFresh(fetchedAt: $0.fetchedAt, now: now) ? $0.product.title : nil }
+}
+
+/// 商品の詳細ページの価格の下に出す、その価格の商品バリアント `priceVariant` の名前を返す。出さない時は nil。
+///
+/// 店の入口の商品 `storefrontProduct` を読み込んだ後で、その商品に種類がある (`hasShopifyCatalogVariantChoices`) 時だけ返す (どの種類の価格かを示すため)。
+/// 読み込む前は出さない (検索の結果の商品バリアントの名前は商品の名前と同じ値のため)。種類が無い商品でも出さない (店が付けた `Default Title` を出さないため)。
+func shopifyCatalogDetailPriceVariantName(priceVariant: ShopifyCatalogVariant, storefrontProduct: ShopifyCatalogProduct?) -> String? {
+    hasShopifyCatalogVariantChoices(options: storefrontProduct?.options) ? priceVariant.title : nil
 }
 
 /// 商品の詳細ページに出す説明文を返す。`products` (先に使う順に並べた、出してよい商品) のうち、説明文に文字がある最初の商品のものを返す。どれにも無ければ nil。

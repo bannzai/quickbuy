@@ -771,6 +771,125 @@ import Testing
         ) == nil)
     }
 
+    /// 店の入口の商品と取得の時刻のうち片方だけが渡された時は、読み込む前と同じに扱い、検索の結果の商品バリアントを 10 分より前の時だけ出す。
+    @Test func 詳細ページは店の入口の商品か取得の時刻の片方だけでは検索の結果の価格を出す() {
+        let searchFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        let searchedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "コーヒー豆")
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: Self.storefrontProduct(amount: 3000), storefrontFetchedAt: nil,
+            now: searchFetchedAt.addingTimeInterval(599)
+        ) == searchedVariant)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: Self.storefrontProduct(amount: 3000), storefrontFetchedAt: nil,
+            now: searchFetchedAt.addingTimeInterval(600)
+        ) == nil)
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, storefrontFetchedAt: searchFetchedAt.addingTimeInterval(500),
+            now: searchFetchedAt.addingTimeInterval(599)
+        ) == searchedVariant)
+        // 店の入口の取得の時刻からは 10 分たっていないが、商品が無いので検索の結果の期限で決まる。
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: searchedVariant, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, storefrontFetchedAt: searchFetchedAt.addingTimeInterval(500),
+            now: searchFetchedAt.addingTimeInterval(600)
+        ) == nil)
+    }
+
+    /// 説明文は、閉じタグのある `<style>` と `<script>` だけを中身ごと除く。閉じタグの無い `<style>` と `<script>`、`style`・`script` で始まる別のタグ (`<styles>`・`<style-guide>`・`<script-loader>`)、ほかのタグの属性の引用符の中の `<style>` は、ほかのタグと同じにタグだけを除いて後ろの文字を出す。
+    @Test(arguments: [
+        ("<style>.a{color:red}</style>本文", "本文"),
+        ("<SCRIPT type=\"text/javascript\">alert(1)</SCRIPT >本文", "本文"),
+        ("<style media=\"a>b\">.a{color:red}</style>本文", "本文"),
+        ("<style>.a{color:red}\n.b{color:blue}</style>本文", "本文"),
+        ("5 < 10 <style>.a{color:red}</style>本文", "5 < 10 本文"),
+        ("<style>.a{color:red}</style>", nil),
+        ("本文<style>.a{color:red}", "本文.a{color:red}"),
+        ("本文<script>alert(1)", "本文alert(1)"),
+        ("<style>.a{color:red}</style>本文<STYLE>.b{color:blue}", "本文.b{color:blue}"),
+        ("<styles>本文", "本文"),
+        ("<style-guide>本文</style-guide>", "本文"),
+        ("<script-loader>本文", "本文"),
+        ("<a title=\"<style>\">本文</a>", "本文"),
+    ] as [(String, String?)])
+    func 説明文は閉じたstyleとscriptだけ中身ごと除く(html: String, expected: String?) {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: html, html: nil))) == expected)
+    }
+
+    /// 名前 `title` と種類の選び方 `options` だけを指定した商品を返す (ほかの値は商品の詳細ページの名前と商品バリアントの名前の判断に使わない)。
+    static func detailProduct(title: String, options: [ShopifyCatalogOption]?) -> ShopifyCatalogProduct {
+        ShopifyCatalogProduct(id: "gid://shopify/p/abc", title: title, description: nil, media: nil, options: options, selected: nil, variants: [])
+    }
+
+    /// 出してよい商品が残っているのは、検索の結果か店の入口の商品のどちらかが取得から 24 時間より前の時。両方が過ぎた時だけ残っていない (画面を閉じる)。
+    @Test func 詳細ページは検索の結果も店の入口の商品も24時間を過ぎた時だけ出せる商品が無い() {
+        let searchFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        // 店の入口の商品を 1 回も読み込めていない時は、検索の結果の期限だけで決まる。
+        #expect(hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: nil, now: searchFetchedAt.addingTimeInterval(86399)))
+        #expect(!hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: nil, now: searchFetchedAt.addingTimeInterval(86400)))
+        // 検索の結果が過ぎても、後から読み込んだ店の入口の商品が過ぎるまでは残る。
+        let storefrontFetchedAt = searchFetchedAt.addingTimeInterval(600)
+        #expect(hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: storefrontFetchedAt, now: searchFetchedAt.addingTimeInterval(86400)))
+        #expect(hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: storefrontFetchedAt, now: storefrontFetchedAt.addingTimeInterval(86399)))
+        #expect(!hasShopifyCatalogDetailFreshContent(searchFetchedAt: searchFetchedAt, storefrontFetchedAt: storefrontFetchedAt, now: storefrontFetchedAt.addingTimeInterval(86400)))
+        // 店の入口の商品が過ぎても、それより後に取得した検索の結果が過ぎるまでは残る。
+        #expect(hasShopifyCatalogDetailFreshContent(
+            searchFetchedAt: searchFetchedAt, storefrontFetchedAt: searchFetchedAt.addingTimeInterval(-600), now: searchFetchedAt.addingTimeInterval(86399)
+        ))
+        #expect(!hasShopifyCatalogDetailFreshContent(
+            searchFetchedAt: searchFetchedAt, storefrontFetchedAt: searchFetchedAt.addingTimeInterval(-600), now: searchFetchedAt.addingTimeInterval(86400)
+        ))
+    }
+
+    /// 名前は検索の結果の商品のものを先に出す (押したカードと同じ名前)。検索の結果が 24 時間を過ぎたら、24 時間より前の店の入口の商品の名前を出し、それも無ければ出さない。
+    @Test func 詳細ページの名前は検索の結果を先に使い過ぎたら店の入口の商品のものを出す() {
+        let searchFetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        let storefrontFetchedAt = searchFetchedAt.addingTimeInterval(600)
+        let searchedProduct = Self.detailProduct(title: "検索の結果の名前", options: nil)
+        let storefrontProduct = Self.detailProduct(title: "店の入口の名前", options: nil)
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: (storefrontProduct, storefrontFetchedAt),
+            now: searchFetchedAt.addingTimeInterval(86399)
+        ) == "検索の結果の名前")
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: (storefrontProduct, storefrontFetchedAt),
+            now: searchFetchedAt.addingTimeInterval(86400)
+        ) == "店の入口の名前")
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: (storefrontProduct, storefrontFetchedAt),
+            now: storefrontFetchedAt.addingTimeInterval(86399)
+        ) == "店の入口の名前")
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: (storefrontProduct, storefrontFetchedAt),
+            now: storefrontFetchedAt.addingTimeInterval(86400)
+        ) == nil)
+        // 店の入口の商品を 1 回も読み込めていない時は、検索の結果の期限だけで決まる。
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, now: searchFetchedAt.addingTimeInterval(86399)
+        ) == "検索の結果の名前")
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: nil, now: searchFetchedAt.addingTimeInterval(86400)
+        ) == nil)
+        // 店の入口の商品だけが 24 時間を過ぎた時は、検索の結果の名前を出す。
+        #expect(shopifyCatalogDetailTitle(
+            searchedProduct: searchedProduct, searchFetchedAt: searchFetchedAt, storefrontProduct: (storefrontProduct, searchFetchedAt.addingTimeInterval(-600)),
+            now: searchFetchedAt.addingTimeInterval(86399)
+        ) == "検索の結果の名前")
+    }
+
+    /// 価格の下の商品バリアントの名前は、店の入口の商品に値が 2 つ以上の選び方がある時だけ出す。読み込む前と、値が 1 つだけの選び方 (`Default Title`) しか無い商品では出さない。
+    @Test func 詳細ページの商品バリアントの名前は店の入口の商品に種類がある時だけ出す() {
+        let priceVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/2", title: "MILD / 粉")
+        #expect(shopifyCatalogDetailPriceVariantName(
+            priceVariant: priceVariant,
+            storefrontProduct: Self.detailProduct(title: "コーヒー豆", options: [ShopifyCatalogOption(name: "挽き", values: [.init(label: "豆"), .init(label: "粉")])])
+        ) == "MILD / 粉")
+        #expect(shopifyCatalogDetailPriceVariantName(
+            priceVariant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/2", title: "Default Title"),
+            storefrontProduct: Self.detailProduct(title: "コーヒー豆", options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])])
+        ) == nil)
+        #expect(shopifyCatalogDetailPriceVariantName(priceVariant: priceVariant, storefrontProduct: Self.detailProduct(title: "コーヒー豆", options: nil)) == nil)
+        #expect(shopifyCatalogDetailPriceVariantName(priceVariant: priceVariant, storefrontProduct: nil) == nil)
+    }
+
     /// `urlText` へ送った各リクエストの本文の `params.arguments.catalog` を、送った順に返す。
     static func requestedCatalogArguments(urlText: String) throws -> [[String: Any]] {
         try StubURLProtocol.requestedBodiesByURLText.withLock { $0[urlText] ?? [] }.map { body in
