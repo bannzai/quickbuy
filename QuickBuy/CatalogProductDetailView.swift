@@ -209,26 +209,25 @@ struct CatalogProductDetailView: View {
         isLoading = true
         errorMessage = nil
         do {
-            try await applyStorefrontProduct(
+            try await applyLoadResult(
                 loadID: loadID,
-                product: loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: searchedVariantID, selected: nil, urlSession: urlSession)
+                result: .success(loadShopifyStorefrontProduct(shopDomain: shopDomain, productID: searchedVariantID, selected: nil, urlSession: urlSession))
             )
         } catch {
-            if latestLoadID == loadID {
-                // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
-                errorMessage = shopifyCatalogErrorMessage(error: error as? ShopifyCatalogError ?? .failed, locale: appTextLocale)
-            }
-        }
-        if latestLoadID == loadID {
-            isLoading = false
+            // `loadShopifyStorefrontProduct` が投げるのは `ShopifyCatalogError` だけ。それ以外が来た時は失敗の扱いにする。
+            applyLoadResult(loadID: loadID, result: .failure(error as? ShopifyCatalogError ?? .failed))
         }
     }
 
-    /// 呼び出し `loadID` が返した商品 `product` を、今の時刻で取得したものとして出す。後から別の呼び出しを始めていた時は何もしない。
-    private func applyStorefrontProduct(loadID: UUID, product: ShopifyCatalogProduct) {
-        if latestLoadID == loadID {
-            storefrontProduct = (product, .now)
-            priceCheckedAt = .now
+    /// 呼び出し `loadID` の結果 `result` を画面に反映し、読み込み中を終える (`shopifyCatalogDetailLoaded` の決まり)。後から別の呼び出しを始めていた時は何もしない。
+    private func applyLoadResult(loadID: UUID, result: Result<ShopifyCatalogProduct, ShopifyCatalogError>) {
+        guard latestLoadID == loadID else {
+            return
         }
+        let loaded = shopifyCatalogDetailLoaded(previous: storefrontProduct, result: result, now: .now)
+        storefrontProduct = loaded.storefrontProduct
+        errorMessage = loaded.error.map { shopifyCatalogErrorMessage(error: $0, locale: appTextLocale) }
+        priceCheckedAt = .now
+        isLoading = false
     }
 }

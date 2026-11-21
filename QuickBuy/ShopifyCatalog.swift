@@ -300,15 +300,15 @@ func shopifyCatalogShopDomain(variant: ShopifyCatalogVariant) -> String? {
     return (urlComponents.host?.lowercased()).flatMap { isHostName(text: $0) && !amazonOwnedHost(host: $0) ? $0 : nil }
 }
 
-/// 一覧と追加の画面に出す商品の画像の URL を返す (保存はしない)。最初の画像が `https` で Shopify の CDN か店のドメインのものでない時は nil。
+/// 一覧と追加の画面に出す商品の画像の URL を返す (保存はしない)。`shopifyCatalogImageURLs(product:shopDomain:)` の最初の 1 件で、出せる画像が無い時は nil。
 func shopifyCatalogImageURL(product: ShopifyCatalogProduct, shopDomain: String) -> URL? {
-    product.media?.first.flatMap { shopifyProductImageURL(text: $0.url, shopDomain: shopDomain) }
+    shopifyCatalogImageURLs(product: product, shopDomain: shopDomain).first
 }
 
 /// 商品の詳細ページに出す商品の画像の URL を、Catalog が返した並びの順で返す (保存はしない)。
 ///
 /// 返すのは、種別が `image` で、`https` で Shopify の CDN か店のドメインのもの (`shopifyProductImageURL(text:shopDomain:)`) だけ。動画 (`video`) は返さない。
-/// 種別の無いものは画像として扱う (一覧のカードの `shopifyCatalogImageURL(product:shopDomain:)` が種別を見ずに最初の 1 件を画像として出すのと合わせるため)。
+/// 種別の無いものは画像として扱う (種別を見ていなかった時に出ていた画像を、応答から種別が欠けただけで出さなくしないため。2026-11-21 の実測の 21 件にはどれも種別があった)。
 func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String) -> [URL] {
     (product.media ?? [])
         .filter { $0.type.map { $0 == "image" } ?? true }
@@ -317,11 +317,12 @@ func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String)
 
 /// 商品の詳細ページに出す説明文を返す (保存はしない)。説明文が無い時と、タグを除くと文字が残らない時は nil。
 ///
-/// 店の入口の値 (`html`) があればそれを、無ければ Global Catalog の値 (`plain`) を使う。
+/// 店の入口の値 (`html`) と Global Catalog の値 (`plain`) のうち、タグを除いて文字が残る最初のものを使う (店の入口の値が空の時は Global Catalog の値を使う)。
 /// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで) を除く。
 /// 行ごとに前後の空白を除き、空の行は詰める。タグでない `<` と `>` に挟まれた文字も除かれる (説明文を HTML として描かず、文字としてだけ出すため)。
 func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
-    (product.description?.html ?? product.description?.plain)
+    [product.description?.html, product.description?.plain]
+        .compactMap { $0 }
         .map {
             $0.replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
                 .replacing(#/<[^>]*>/#, with: "")
@@ -330,7 +331,25 @@ func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
                 .filter { !$0.isEmpty }
                 .joined(separator: "\n")
         }
-        .flatMap { $0.isEmpty ? nil : $0 }
+        .first { !$0.isEmpty }
+}
+
+/// 店の入口の呼び出しの結果 `result` を受けた後に、商品の詳細ページが持つ店の入口の商品と、出す失敗の理由を返す。
+///
+/// 読み込めた時は、返った商品を時刻 `now` に取得したものとして持ち、失敗の理由は無い。
+/// 読み込めなかった時は、前に持っていた商品 `previous` (取得した時刻も) をそのまま持ち、失敗の理由を返す。
+/// 前の商品の取得の時刻を進めないので、期限を過ぎた価格と在庫は `shopifyCatalogDetailPriceVariant` が出さないままになる。
+func shopifyCatalogDetailLoaded(
+    previous: (product: ShopifyCatalogProduct, fetchedAt: Date)?,
+    result: Result<ShopifyCatalogProduct, ShopifyCatalogError>,
+    now: Date
+) -> (storefrontProduct: (product: ShopifyCatalogProduct, fetchedAt: Date)?, error: ShopifyCatalogError?) {
+    switch result {
+    case let .success(product):
+        return ((product, now), nil)
+    case let .failure(error):
+        return (previous, error)
+    }
 }
 
 /// 商品の詳細ページに価格と在庫を出してよい商品バリアントを返す。出してよいものが無い時は nil (価格と在庫を出さない)。

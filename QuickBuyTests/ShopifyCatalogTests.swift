@@ -545,6 +545,72 @@ import Testing
         #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: "店の値"))) == "店の値")
     }
 
+    /// 店の入口の値が空・空白だけ・タグだけの時は、Global Catalog の値を出す。
+    @Test(arguments: ["", " \n ", "<p><br></p>"])
+    func 説明文は店の入口の値に文字が無ければ検索の結果の値を使う(html: String) {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: html))) == "検索の値")
+    }
+
+    /// 一覧と追加の画面の画像は、最初の 1 件が動画でも、その後ろの画像を出す。画像が 1 つも無ければ出さない。
+    @Test func 一覧の画像は動画を飛ばして最初の画像を出す() {
+        #expect(shopifyCatalogImageURL(
+            product: Self.detailProduct(
+                media: [
+                    ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/c/vp/x/x.m3u8"),
+                    ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/a.jpg"),
+                    ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/b.jpg"),
+                ],
+                description: nil
+            ),
+            shopDomain: "chimney-coffee.com"
+        )?.absoluteString == "https://cdn.shopify.com/s/files/1/a.jpg")
+        #expect(shopifyCatalogImageURL(
+            product: Self.detailProduct(media: [ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/c/vp/x/x.m3u8")], description: nil),
+            shopDomain: "chimney-coffee.com"
+        ) == nil)
+    }
+
+    /// 店の入口を読み込めた時は、返った商品をその時刻に取得したものとして持ち、失敗の理由は無い (前に失敗していても消える)。
+    @Test func 詳細ページは読み込めたら返った商品をその時刻で持つ() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let loaded = shopifyCatalogDetailLoaded(
+            previous: (Self.storefrontProduct(amount: 2000), now.addingTimeInterval(-700)),
+            result: .success(Self.storefrontProduct(amount: 3000)),
+            now: now
+        )
+        #expect(loaded.storefrontProduct?.product == Self.storefrontProduct(amount: 3000))
+        #expect(loaded.storefrontProduct?.fetchedAt == now)
+        #expect(loaded.error == nil)
+    }
+
+    /// 店の入口を読み込めなかった時は、失敗の理由を返し、前の商品を取得の時刻を進めずに持つ。期限を過ぎた前の価格は出ないままになる。
+    @Test func 詳細ページは読み込めなければ前の商品を時刻を進めずに持ち古い価格を出さない() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let previousFetchedAt = now.addingTimeInterval(-600)
+        let loaded = shopifyCatalogDetailLoaded(
+            previous: (Self.storefrontProduct(amount: 2000), previousFetchedAt),
+            result: .failure(.rateLimited(retryAfterSeconds: 30)),
+            now: now
+        )
+        #expect(loaded.storefrontProduct?.product == Self.storefrontProduct(amount: 2000))
+        #expect(loaded.storefrontProduct?.fetchedAt == previousFetchedAt)
+        #expect(loaded.error == .rateLimited(retryAfterSeconds: 30))
+        #expect(shopifyCatalogDetailPriceVariant(
+            searchedVariant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "コーヒー豆"),
+            searchFetchedAt: now.addingTimeInterval(-10),
+            storefrontProduct: loaded.storefrontProduct?.product,
+            storefrontFetchedAt: loaded.storefrontProduct?.fetchedAt,
+            now: now
+        ) == nil)
+    }
+
+    /// 1 回も読み込めていない時の失敗は、店の入口の商品を持たないまま失敗の理由を返す。
+    @Test func 詳細ページは最初の読み込みに失敗したら店の入口の商品を持たない() {
+        let loaded = shopifyCatalogDetailLoaded(previous: nil, result: .failure(.connectionFailed), now: Date(timeIntervalSince1970: 1_000_000))
+        #expect(loaded.storefrontProduct == nil)
+        #expect(loaded.error == .connectionFailed)
+    }
+
     /// 説明文が無い時・空の時・タグを除くと文字が残らない時は、説明文を出さない。
     @Test(arguments: [
         nil,
