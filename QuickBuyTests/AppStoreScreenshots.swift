@@ -39,7 +39,7 @@ func appStoreScreenshotFileName(screen: AppStoreScreenshotScreen) -> String {
     String(format: "%02d_%@.png", AppStoreScreenshotScreen.allCases.firstIndex(of: screen)! + 1, "\(screen)")
 }
 
-/// `locale` が日本語か。スクリーンショットの見出しと見本の商品の名前を選ぶのに使う。
+/// `locale` が日本語か。スクリーンショットの見出しと、文字列カタログに無い文字列 (見本の商品の名前・iOS が出す「編集」) を選ぶのに使う。
 private func isJapanese(locale: Locale) -> Bool {
     locale.language.languageCode == .japanese
 }
@@ -81,11 +81,9 @@ func appStoreScreenshotSubheadline(screen: AppStoreScreenshotScreen, locale: Loc
 
 /// スクリーンショットに写す見本のお気に入りを返す。開発者メニューの見本 (`sampleFavorites()`) に、`now` から見て状態の違うリマインドを付けたもの。
 ///
-/// 英語のスクリーンショットでは、名前と商品バリアントの名前を英語にする (見本の名前は日本語だけのため)。
+/// 英語のスクリーンショットでは、名前と商品バリアントの名前を英語にする (`appStoreScreenshotShopText(japaneseText:locale:)`。見本の名前は日本語だけのため)。
 func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
-    // 見本の名前と商品バリアントの名前の英語。店が決める値なので文字列カタログには入れず、スクリーンショットだけで使う。
-    let englishNames = ["コーヒー豆": "Coffee beans", "洗濯用せっけん": "Laundry soap", "プロテイン": "Protein", "200g / 豆のまま": "200g / Whole bean"]
-    return zip(sampleFavorites(), [
+    zip(sampleFavorites(), [
         // 2 日前に数え始めた 7 日ごとのリマインド。一覧で「次の知らせは 5 日後」を出す。
         Reminder(intervalDays: 7, countedFrom: now.addingTimeInterval(-2 * reminderDaySeconds)),
         nil,
@@ -93,15 +91,80 @@ func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
         Reminder(intervalDays: 30, countedFrom: now.addingTimeInterval(-30 * reminderDaySeconds)),
     ] as [Reminder?]).map { favorite, reminder in
         var screenshotFavorite = favorite
-        if !isJapanese(locale: locale) {
-            // 辞書に無い名前 (見本では商品バリアントの「1kg」) は、言語によらない表記なのでそのまま使う。
-            // 日本語のまま英語の画像に残る名前は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見本の名前の全件を比べて見つける。
-            screenshotFavorite.name = englishNames[favorite.name] ?? favorite.name
-            screenshotFavorite.variantName = favorite.variantName.map { englishNames[$0] ?? $0 }
-        }
+        screenshotFavorite.name = appStoreScreenshotShopText(japaneseText: favorite.name, locale: locale)
+        screenshotFavorite.variantName = favorite.variantName.map { appStoreScreenshotShopText(japaneseText: $0, locale: locale) }
         screenshotFavorite.reminder = reminder
         return screenshotFavorite
     }
+}
+
+/// 店が決める見本の文字列 (商品の名前・商品バリアントの名前・種類の選び方の名前) を `locale` の言語で返す。日本語の時は `japaneseText` のまま返す。
+///
+/// 店が決める値なので文字列カタログには入れず、スクリーンショットだけで使う。
+/// 商品バリアントの名前は Shopify が種類の値を「 / 」でつないで作るため、「 / 」で分けた部分ごとに英語へ替える。
+/// 対応の無い部分 (「200g」「1kg」) は、言語によらない表記なのでそのまま返す。日本語のまま英語の画像に残る文字列は、テスト「英語の見本の文字列に日本語が残らない」が見つける。
+func appStoreScreenshotShopText(japaneseText: String, locale: Locale) -> String {
+    isJapanese(locale: locale) ? japaneseText : japaneseText.components(separatedBy: " / ").map {
+        [
+            "コーヒー豆": "Coffee beans",
+            "洗濯用せっけん": "Laundry soap",
+            "プロテイン": "Protein",
+            "豆のまま": "Whole bean",
+            "深煎り 200g": "Dark Roast 200g",
+            "浅煎り 200g": "Light Roast 200g",
+            "デカフェ 150g": "Decaf 150g",
+            "内容量": "Size",
+        ][$0] ?? $0
+    }.joined(separator: " / ")
+}
+
+/// 追加の画面 (`.addFavorite`) の「種類を選ぶ」に出す、種類の選び方の名前の見本。店が決める値で、選べる値は見本のお気に入りの商品バリアントの名前の先頭の部分 (「200g」)。
+let appStoreScreenshotOptionName = "内容量"
+
+/// 検索の画面 (`.search`) に並べる見本の商品を、Global Catalog の検索の結果の形で `locale` の言語にして返す。
+///
+/// 先頭は見本のお気に入りの先頭 (`sampleFavorites()[0]`) と同じ名前と店の商品で、追加の画面 (`.addFavorite`) はこの商品の価格を出す (検索の結果から追加の画面を開く流れに合わせる)。
+/// 店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン)。価格は、200g 前後のコーヒー豆として不自然でない値として agent が決めた見本の値。
+func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct] {
+    [
+        (sampleFavorites()[0].name, shopDomainText(favorite: sampleFavorites()[0]), 1480),
+        ("深煎り 200g", shopDomainText(favorite: sampleFavorites()[0]), 1280),
+        ("浅煎り 200g", "hoshi-roast.example", 1350),
+        ("デカフェ 150g", "hoshi-roast.example", 1200),
+    ].map { japaneseTitle, shopDomain, priceAmount in
+        ShopifyCatalogProduct(
+            id: "gid://shopify/p/\(japaneseTitle)",
+            title: appStoreScreenshotShopText(japaneseText: japaneseTitle, locale: locale),
+            description: nil,
+            media: nil,
+            options: nil,
+            selected: nil,
+            variants: [
+                ShopifyCatalogVariant(
+                    id: "gid://shopify/ProductVariant/\(priceAmount)",
+                    title: appStoreScreenshotShopText(japaneseText: japaneseTitle, locale: locale),
+                    price: ShopifyCatalogMoney(amount: priceAmount, currency: "JPY"),
+                    availability: nil,
+                    seller: ShopifyCatalogVariant.Seller(url: "https://\(shopDomain)")
+                ),
+            ]
+        )
+    }
+}
+
+/// 強調の色 `quickBuyAccentColor` を、白 (`white` が 1) か黒 (`white` が 0) へ `fraction` の割合だけ寄せた色を返す。
+///
+/// スクリーンショットの地と壁紙を強調の色と同じ色味にするため、色の値を別に持たず強調の色から作る。
+private func appStoreScreenshotAccentColor(white: CGFloat, fraction: CGFloat) -> Color {
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    UIColor(quickBuyAccentColor).getRed(&red, green: &green, blue: &blue, alpha: nil)
+    return Color(
+        red: Double(red + (white - red) * fraction),
+        green: Double(green + (white - green) * fraction),
+        blue: Double(blue + (white - blue) * fraction)
+    )
 }
 
 /// 文字列カタログの文言を `locale` の言語で返す。
@@ -109,11 +172,15 @@ private func localized(key: String.LocalizationValue, locale: Locale) -> String 
     String(localized: LocalizedStringResource(key, locale: locale))
 }
 
-/// スクリーンショットの地の色。強調の色 `quickBuyAccentColor` と同じ色味の、ごく薄い色にして、見出しの強調の色を目立たせる。
-private let appStoreScreenshotBackgroundColor = Color(red: 0xE6 / 255, green: 0xF2 / 255, blue: 0xEC / 255)
+/// スクリーンショットの地の色。強調の色と同じ色味の、ごく薄い色にして、見出しの強調の色を目立たせる。
+///
+/// 0.9 は、白い行や通知と見分けが付く範囲で最も薄くした割合 (PR #60 で目視して決めた地の色 `#E6F2EC` とほぼ同じ色になる)。
+let appStoreScreenshotBackgroundColor = appStoreScreenshotAccentColor(white: 1, fraction: 0.9)
 
-/// ホーム画面とロック画面の壁紙の色。強調の色 `quickBuyAccentColor` と同じ色味の暗い色にして、白いウィジェットと通知を目立たせる。
-private let appStoreScreenshotWallpaperColor = Color(red: 0x0A / 255, green: 0x3D / 255, blue: 0x2E / 255)
+/// ホーム画面とロック画面の壁紙の色。強調の色と同じ色味の暗い色にして、白いウィジェットと通知を目立たせる。
+///
+/// 0.45 は、ウィジェットの中の強調の色のボタンより暗くなる割合 (PR #60 で目視して決めた壁紙の色 `#0A3D2E` とほぼ同じ色になる)。
+let appStoreScreenshotWallpaperColor = appStoreScreenshotAccentColor(white: 0, fraction: 0.45)
 
 /// `sampleFavorites()` の並びの位置ごとに、商品の画像の代わりに出す SF Symbols の名前。
 private let appStoreScreenshotFavoriteSymbols = ["cup.and.saucer.fill", "bubbles.and.sparkles.fill", "dumbbell.fill"]
@@ -183,7 +250,11 @@ private struct AppStoreScreenshotDevice: View {
         case .search:
             AppStoreScreenshotSearchScreen(locale: locale)
         case .addFavorite:
-            AppStoreScreenshotAddFavoriteScreen(favorite: appStoreScreenshotFavorites(locale: locale, now: now)[0], locale: locale)
+            AppStoreScreenshotAddFavoriteScreen(
+                favorite: appStoreScreenshotFavorites(locale: locale, now: now)[0],
+                searchedProduct: appStoreScreenshotSearchProducts(locale: locale)[0],
+                locale: locale
+            )
         case .reminder:
             AppStoreScreenshotReminderScreen(favorite: appStoreScreenshotFavorites(locale: locale, now: now)[2], locale: locale)
         }
@@ -254,8 +325,8 @@ private struct AppStoreScreenshotNotification: View {
     }
 }
 
-/// 一覧やフォームの画面の地の色。アプリが使う `Color(uiColor: .systemGroupedBackground)` の明るい外観の色に合わせる (スクリーンショットは描く環境の外観によらず明るい外観で描くため、固定の値にする)。
-private let appStoreScreenshotGroupedBackgroundColor = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
+/// 一覧やフォームの画面の地の色。アプリが使う `Color(uiColor: .systemGroupedBackground)` の明るい外観の色 (スクリーンショットは描く環境の外観によらず明るい外観で描くため、明るい外観に固定して取り出す)。
+let appStoreScreenshotGroupedBackgroundColor = Color(uiColor: UIColor.systemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
 
 /// 「カートイン」のボタン。アプリの一覧 (QuickBuy/ContentView.swift) とウィジェット (QuickBuyWidget/FavoritesWidget.swift) のボタンの見た目に合わせる。
 private struct AppStoreScreenshotCartInButton: View {
@@ -519,7 +590,7 @@ private struct AppStoreScreenshotSearchScreen: View {
                 .padding(.top, 18)
                 .padding(.bottom, 10)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(searchResults(), id: \.name) { result in
+                ForEach(appStoreScreenshotSearchProducts(locale: locale), id: \.id) { product in
                     VStack(alignment: .leading, spacing: 5) {
                         Image(systemName: "cup.and.saucer.fill")
                             .font(.system(size: 44))
@@ -527,9 +598,12 @@ private struct AppStoreScreenshotSearchScreen: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 104)
                             .background(appStoreScreenshotBackgroundColor, in: RoundedRectangle(cornerRadius: 12))
-                        Text(verbatim: result.shopDomain).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-                        Text(result.name).font(.system(size: 14, weight: .bold)).lineLimit(1)
-                        Text(verbatim: result.price).font(.system(size: 14))
+                        // 店のドメインと価格は、アプリの検索の結果 (QuickBuy/HomeView.swift) と同じ関数で商品から作る。見本の商品はどれも両方を持つ (テスト「見本の店はexampleのドメインだけ」が確かめる)。
+                        if let variant = product.variants.first, let shopDomain = shopifyCatalogShopDomain(variant: variant), let price = variant.price {
+                            Text(verbatim: shopDomain).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                            Text(product.title).font(.system(size: 14, weight: .bold)).lineLimit(1)
+                            Text(verbatim: shopifyCatalogPriceText(money: price)).font(.system(size: 14))
+                        }
                         Text(localized(key: "お気に入り追加", locale: locale))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(.white)
@@ -551,19 +625,14 @@ private struct AppStoreScreenshotSearchScreen: View {
             AppStoreScreenshotTabBar(locale: locale, selectedTabTitleKey: "ホーム")
         }
     }
-
-    /// 検索の結果に並べる見本の商品の名前・店のドメイン・価格。店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン) にし、価格も見本の値。
-    private func searchResults() -> [(name: String, shopDomain: String, price: String)] {
-        isJapanese(locale: locale)
-            ? [("いつものブレンド", "mori-coffee.example", "¥1,480"), ("深煎り 200g", "mori-coffee.example", "¥1,280"), ("浅煎り 200g", "hoshi-roast.example", "¥1,350"), ("デカフェ 150g", "hoshi-roast.example", "¥1,200")]
-            : [("House Blend", "mori-coffee.example", "¥1,480"), ("Dark Roast 200g", "mori-coffee.example", "¥1,280"), ("Light Roast 200g", "hoshi-roast.example", "¥1,350"), ("Decaf 150g", "hoshi-roast.example", "¥1,200")]
-    }
 }
 
 /// 検索の結果から開く、種類と個数を選んでお気に入りに追加する画面 (QuickBuy/CatalogAddFavoriteView.swift と同じ並びと文言)。
 private struct AppStoreScreenshotAddFavoriteScreen: View {
     /// 追加するお気に入り (名前・商品バリアントの名前・個数・店を出す)。種類を選ぶ画面を写すため、商品バリアントの名前を持つものを渡す (持たない時は画像を描くテストが落ちる)。
     let favorite: Favorite
+    /// 検索の結果で押した商品 (価格を出す)。
+    let searchedProduct: ShopifyCatalogProduct
     /// 文言の言語。
     let locale: Locale
 
@@ -600,16 +669,18 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
             section(headerKey: "種類を選ぶ") {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
-                        Text(verbatim: isJapanese(locale: locale) ? "内容量" : "Size").font(.system(size: 15))
+                        Text(verbatim: appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: locale)).font(.system(size: 15))
                         Spacer()
-                        Text(verbatim: "200g").font(.system(size: 15)).foregroundStyle(.secondary)
+                        Text(verbatim: favorite.variantName!.components(separatedBy: " / ")[0]).font(.system(size: 15)).foregroundStyle(.secondary)
                         Image(systemName: "chevron.up.chevron.down").font(.system(size: 12)).foregroundStyle(.secondary)
                     }
                     .frame(height: 40)
                     Divider()
                     VStack(alignment: .leading, spacing: 2) {
                         Text(favorite.variantName!).font(.system(size: 14))
-                        Text(verbatim: "¥1,480").font(.system(size: 12)).foregroundStyle(.secondary)
+                        if let price = searchedProduct.variants.first?.price {
+                            Text(verbatim: shopifyCatalogPriceText(money: price)).font(.system(size: 12)).foregroundStyle(.secondary)
+                        }
                     }
                     .frame(height: 46)
                     Divider()
