@@ -160,6 +160,40 @@ struct AppStoreScreenshotTests {
         }
     }
 
+    /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「英語の画像に日本語の文字が写らない」では見つからない)。
+    @Test func 編集のボタンは言語ごとの文言で画像に写る() throws {
+        let english = try recognizedText(screen: .confirmation, locale: Locale(identifier: "en"))
+        #expect(comparableText(text: english).contains("edit"), "\(english)")
+        #expect(!english.contains("編集"), "\(english)")
+        let japanese = try recognizedText(screen: .confirmation, locale: Locale(identifier: "ja"))
+        #expect(japanese.contains("編集"), "\(japanese)")
+    }
+
+    /// 追加の画面には、見本のお気に入りの種類の値 (「200g」) が種類の選び方・商品バリアントの名前・お気に入りにする種類の 3 か所に、検索の先頭の商品の価格 (「¥1,480」) が 1 か所に写る。
+    @Test func 追加の画面に種類の値と価格が写る() throws {
+        for language in appStoreScreenshotLanguages {
+            let text = try comparableText(text: recognizedText(screen: .addFavorite, locale: language.locale))
+            #expect(text.components(separatedBy: "200g").count - 1 == 3, "\(language.directoryName) \(text)")
+            #expect(text.components(separatedBy: "1480").count - 1 == 1, "\(language.directoryName) \(text)")
+        }
+    }
+
+    /// 地・壁紙・一覧の地の色は、PR #60 で目視して決めた色 (`#E6F2EC`・`#0A3D2E`) と、iOS の明るい外観の `systemGroupedBackground` (`#F2F2F7`) から、見分けが付かない範囲にある。
+    @Test func 地と壁紙の色は決めた色から離れない() {
+        for (color, red, green, blue) in [
+            (appStoreScreenshotBackgroundColor, 0xE6, 0xF2, 0xEC),
+            (appStoreScreenshotWallpaperColor, 0x0A, 0x3D, 0x2E),
+            (appStoreScreenshotGroupedBackgroundColor, 0xF2, 0xF2, 0xF7),
+        ] {
+            var components: (red: CGFloat, green: CGFloat, blue: CGFloat) = (0, 0, 0)
+            UIColor(color).getRed(&components.red, green: &components.green, blue: &components.blue, alpha: nil)
+            // 0.02 (255 段階の 5 段階) は、並べて見ても色の差が分からなかった範囲 (run 44918156487 の画像と PR #60 の画像の目視)。
+            #expect(abs(components.red - CGFloat(red) / 255) < 0.02, "\(red) \(components)")
+            #expect(abs(components.green - CGFloat(green) / 255) < 0.02, "\(green) \(components)")
+            #expect(abs(components.blue - CGFloat(blue) / 255) < 0.02, "\(blue) \(components)")
+        }
+    }
+
     /// 見出しと補足は、切り詰められずに全部の行が画像に写る (2 行の見出しが 1 行に切り詰められると 2 行目が写らない)。
     @Test func 見出しと補足は全部の行が画像に写る() throws {
         for language in appStoreScreenshotLanguages {
