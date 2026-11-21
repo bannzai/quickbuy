@@ -24,6 +24,11 @@ let shopifyCatalogSearchLimit = 20
 /// 出典: Shopify の Catalog の「Caching limits」の「Price and availability: cache up to 10 minutes.」(引用元の URL と全文は documents/research/2026-11-18/search-api-and-amazon-purchase-url.md)。
 let shopifyCatalogPriceCacheSeconds: TimeInterval = 10 * 60
 
+/// Catalog が返した名前・説明文・種類の選び方・画像を、取得してから持ってよい秒数。
+///
+/// 出典: Shopify の Catalog の「Caching limits」の「Product metadata, such as titles, descriptions, and options: cache up to 24 hours.」「Images: images served from Shopify CDN URLs can be cached up to 24 hours.」(引用元の URL と全文は documents/research/2026-11-18/search-api-and-amazon-purchase-url.md)。
+let shopifyCatalogContentCacheSeconds: TimeInterval = 24 * 60 * 60
+
 /// Catalog の呼び出しに添える、買い手の国・言語・通貨。
 ///
 /// アプリの対象は日本の利用者で、購入画面の店も日本へ送る店を選ぶため、日本・日本語・円にしている (documents/PROJECT.md「対象にする人」)。
@@ -318,14 +323,15 @@ func shopifyCatalogImageURLs(product: ShopifyCatalogProduct, shopDomain: String)
 /// 商品の詳細ページに出す説明文を返す (保存はしない)。説明文が無い時と、タグを除くと文字が残らない時は nil。
 ///
 /// 店の入口の値 (`html`) と Global Catalog の値 (`plain`) のうち、タグを除いて文字が残る最初のものを使う (店の入口の値が空の時は Global Catalog の値を使う)。
-/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで) を除く。
+/// どちらの値にも HTML のタグが入りうるため (`ShopifyCatalogDescription` の実測)、`<style>` と `<script>` は中身ごと除き、`<br>` と段落・見出し・箇条書きの閉じタグを改行に替え、残りのタグ (`<` から `>` まで。属性の引用符の中の `>` はタグの終わりにしない) を除く。
 /// 行ごとに前後の空白を除き、空の行は詰める。タグでない `<` と `>` に挟まれた文字も除かれる (説明文を HTML として描かず、文字としてだけ出すため)。
 func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
     [product.description?.html, product.description?.plain]
         .compactMap { $0 }
         .map {
-            $0.replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
-                .replacing(#/<[^>]*>/#, with: "")
+            $0.replacing(#/<(style|script)\b.*?</\1\s*>/#.ignoresCase().dotMatchesNewlines(), with: "")
+                .replacing(#/<br\s*/?>|</(p|div|h[1-6]|li|tr)>/#.ignoresCase(), with: "\n")
+                .replacing(#/<(?:"[^"]*"|'[^']*'|[^>"'])*>/#, with: "")
                 .split(whereSeparator: \.isNewline)
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
@@ -334,9 +340,29 @@ func shopifyCatalogDescriptionText(product: ShopifyCatalogProduct) -> String? {
         .first { !$0.isEmpty }
 }
 
-/// 商品の詳細ページに出す説明文を返す。店の入口の商品 `storefrontProduct` (読み込む前は nil) の説明文に文字があればそれを、無ければ検索の結果の商品 `searchedProduct` の説明文を返す。どちらにも無ければ nil。
-func shopifyCatalogDetailDescriptionText(searchedProduct: ShopifyCatalogProduct, storefrontProduct: ShopifyCatalogProduct?) -> String? {
-    storefrontProduct.flatMap { shopifyCatalogDescriptionText(product: $0) } ?? shopifyCatalogDescriptionText(product: searchedProduct)
+/// 画面に出している名前・説明文・種類の選び方・画像を、まだ出してよいかを返す。取得した時刻 `fetchedAt` から `shopifyCatalogContentCacheSeconds` 秒より前なら true。
+func isShopifyCatalogContentFresh(fetchedAt: Date, now: Date) -> Bool {
+    now.timeIntervalSince(fetchedAt) < shopifyCatalogContentCacheSeconds
+}
+
+/// 取得した時刻 `fetchedAt` の名前・説明文・種類の選び方・画像を出してよい残りの秒数を返す。もう出してはいけない時は 0。
+func shopifyCatalogContentRemainingSeconds(fetchedAt: Date, now: Date) -> TimeInterval {
+    max(0, shopifyCatalogContentCacheSeconds - now.timeIntervalSince(fetchedAt))
+}
+
+/// 商品の詳細ページに出す説明文を返す。`products` (先に使う順に並べた、出してよい商品) のうち、説明文に文字がある最初の商品のものを返す。どれにも無ければ nil。
+func shopifyCatalogDetailDescriptionText(products: [ShopifyCatalogProduct]) -> String? {
+    products.lazy.compactMap { shopifyCatalogDescriptionText(product: $0) }.first
+}
+
+/// 商品の詳細ページに出す画像の URL の並びを返す。`products` (先に使う順に並べた、出してよい商品) のうち、出せる画像 (`shopifyCatalogImageURLs`) がある最初の商品のものを返す。どれにも無ければ空。
+func shopifyCatalogDetailImageURLs(products: [ShopifyCatalogProduct], shopDomain: String) -> [URL] {
+    products.lazy.map { shopifyCatalogImageURLs(product: $0, shopDomain: shopDomain) }.first { !$0.isEmpty } ?? []
+}
+
+/// 種類の選び方のうち、商品の詳細ページに並べるもの (選べる値が 2 つ以上あるもの) を返す。値が 1 つだけの選び方は、選ぶものが無いので並べない。
+func shopifyCatalogChoiceOptions(options: [ShopifyCatalogOption]?) -> [ShopifyCatalogOption] {
+    (options ?? []).filter { $0.values.count >= 2 }
 }
 
 /// 店の入口の呼び出しの結果 `result` を受けた後に、商品の詳細ページが持つ店の入口の商品と、出す失敗の理由を返す。

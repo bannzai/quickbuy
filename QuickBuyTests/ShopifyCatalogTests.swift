@@ -551,23 +551,99 @@ import Testing
         #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: html))) == "検索の値")
     }
 
-    /// 商品の詳細ページの説明文は、店の入口の商品に説明文があればそれを、無い・文字が残らない・読み込む前なら、検索の結果の商品の説明文を出す。
-    @Test func 詳細ページの説明文は店の入口の商品に無ければ検索の結果の商品のものを出す() {
+    /// 商品の詳細ページの説明文は、並びの先の商品に説明文があればそれを、無い・文字が残らないなら、次の商品の説明文を出す。
+    @Test func 詳細ページの説明文は先の商品に無ければ次の商品のものを出す() {
         let searchedProduct = Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: "<p>検索の値</p>", html: nil))
         #expect(shopifyCatalogDetailDescriptionText(
-            searchedProduct: searchedProduct,
-            storefrontProduct: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "店の値"))
+            products: [Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "店の値")), searchedProduct]
         ) == "店の値")
-        #expect(shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: Self.detailProduct(media: nil, description: nil)) == "検索の値")
+        #expect(shopifyCatalogDetailDescriptionText(products: [Self.detailProduct(media: nil, description: nil), searchedProduct]) == "検索の値")
         #expect(shopifyCatalogDetailDescriptionText(
-            searchedProduct: searchedProduct,
-            storefrontProduct: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "<p> </p>"))
+            products: [Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: nil, html: "<p> </p>")), searchedProduct]
         ) == "検索の値")
-        #expect(shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: nil) == "検索の値")
-        #expect(shopifyCatalogDetailDescriptionText(
-            searchedProduct: Self.detailProduct(media: nil, description: nil),
-            storefrontProduct: Self.detailProduct(media: nil, description: nil)
-        ) == nil)
+        #expect(shopifyCatalogDetailDescriptionText(products: [searchedProduct]) == "検索の値")
+        #expect(shopifyCatalogDetailDescriptionText(products: [Self.detailProduct(media: nil, description: nil), Self.detailProduct(media: nil, description: nil)]) == nil)
+        #expect(shopifyCatalogDetailDescriptionText(products: []) == nil)
+    }
+
+    /// 商品の詳細ページの画像は、並びの先の商品に出せる画像があればその並びを、無ければ次の商品の並びを出す。どれにも無ければ空。
+    @Test func 詳細ページの画像は先の商品に無ければ次の商品のものを出す() {
+        let storefrontProduct = Self.detailProduct(media: [ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/c.jpg")], description: nil)
+        #expect(shopifyCatalogDetailImageURLs(
+            products: [
+                Self.detailProduct(
+                    media: [
+                        ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/a.jpg"),
+                        ShopifyCatalogMedia(type: "image", url: "https://cdn.shopify.com/s/files/1/b.jpg"),
+                    ],
+                    description: nil
+                ),
+                storefrontProduct,
+            ],
+            shopDomain: "chimney-coffee.com"
+        ).map(\.absoluteString) == [
+            "https://cdn.shopify.com/s/files/1/a.jpg",
+            "https://cdn.shopify.com/s/files/1/b.jpg",
+        ])
+        #expect(shopifyCatalogDetailImageURLs(
+            products: [Self.detailProduct(media: [ShopifyCatalogMedia(type: "video", url: "https://cdn.shopify.com/videos/x.m3u8")], description: nil), storefrontProduct],
+            shopDomain: "chimney-coffee.com"
+        ).map(\.absoluteString) == ["https://cdn.shopify.com/s/files/1/c.jpg"])
+        #expect(shopifyCatalogDetailImageURLs(products: [Self.detailProduct(media: nil, description: nil)], shopDomain: "chimney-coffee.com") == [])
+        #expect(shopifyCatalogDetailImageURLs(products: [], shopDomain: "chimney-coffee.com") == [])
+    }
+
+    /// 名前・説明文・種類の選び方・画像は、取得から 24 時間より前の時だけ出してよい。残りの秒数は 24 時間から減り、過ぎたら 0。
+    @Test func 名前と画像は取得から24時間より前だけ出してよい() {
+        let fetchedAt = Date(timeIntervalSince1970: 1_000_000)
+        #expect(isShopifyCatalogContentFresh(fetchedAt: fetchedAt, now: fetchedAt))
+        #expect(isShopifyCatalogContentFresh(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(86399)))
+        #expect(!isShopifyCatalogContentFresh(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(86400)))
+        #expect(shopifyCatalogContentRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt) == 86400)
+        #expect(shopifyCatalogContentRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(86399)) == 1)
+        #expect(shopifyCatalogContentRemainingSeconds(fetchedAt: fetchedAt, now: fetchedAt.addingTimeInterval(86401)) == 0)
+    }
+
+    /// 商品の詳細ページに並べる種類の選び方は、選べる値が 2 つ以上のものだけ。値が 1 つ・0 個の選び方と、選び方が無い時は並べない。
+    @Test func 詳細ページに並べる種類の選び方は値が2つ以上のものだけ() {
+        let twoValues = ShopifyCatalogOption(name: "内容量", values: [.init(label: "200g"), .init(label: "500g")])
+        #expect(shopifyCatalogChoiceOptions(options: [
+            ShopifyCatalogOption(name: "挽き方", values: [.init(label: "豆のまま")]),
+            twoValues,
+            ShopifyCatalogOption(name: "空", values: []),
+        ]) == [twoValues])
+        #expect(shopifyCatalogChoiceOptions(options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])]) == [])
+        #expect(shopifyCatalogChoiceOptions(options: []) == [])
+        #expect(shopifyCatalogChoiceOptions(options: nil) == [])
+    }
+
+    /// 説明文は、閉じタグ (`</div>`・`</li>`・`</tr>`・`</h1>`・`</h6>`) の位置でも行を分ける。行を分けないタグ (`</span>`・`</h7>`) の位置では分けない。
+    @Test(arguments: [
+        ("<div>一行目</div><div>二行目</div>", "一行目\n二行目"),
+        ("<ul><li>一行目</li><li>二行目</li></ul>", "一行目\n二行目"),
+        ("<table><tr><td>一行目</td></tr><tr><td>二行目</td></tr></table>", "一行目\n二行目"),
+        ("<h1>一行目</h1>二行目", "一行目\n二行目"),
+        ("<h6>一行目</h6>二行目", "一行目\n二行目"),
+        ("<span>一行目</span><span>二行目</span>", "一行目二行目"),
+        ("<h7>一行目</h7>二行目", "一行目二行目"),
+    ])
+    func 説明文は閉じタグの位置で行を分ける(html: String, expected: String) {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: html, html: nil))) == expected)
+    }
+
+    /// 説明文は、属性の引用符の中の `>` をタグの終わりにせず、`<style>` と `<script>` は中身ごと除く。タグでない `<` と `>` に挟まれた文字も除き、`>` だけ・`<` だけの文字は残す。
+    @Test(arguments: [
+        (#"<a title="1>0">本文</a>"#, "本文"),
+        ("<a title='1>0'>本文</a>", "本文"),
+        ("<style>.a{color:red}</style><p>本文</p>", "本文"),
+        ("<STYLE type=\"text/css\">\n.a > .b{color:red}\n</STYLE >本文", "本文"),
+        ("<script>if (a < b) { c() }</script>本文", "本文"),
+        ("1 < 2 かつ 3 > 2", "1  2"),
+        ("3 > 2 です", "3 > 2 です"),
+        ("1 < 2 です", "1 < 2 です"),
+    ])
+    func 説明文は引用符の中の山かっことstyleの中身を出さない(html: String, expected: String) {
+        #expect(shopifyCatalogDescriptionText(product: Self.detailProduct(media: nil, description: ShopifyCatalogDescription(plain: html, html: nil))) == expected)
     }
 
     /// 一覧と追加の画面の画像は、最初の 1 件が動画でも、その後ろの画像を出す。画像が 1 つも無ければ出さない。

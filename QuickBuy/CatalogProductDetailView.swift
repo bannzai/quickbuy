@@ -3,7 +3,8 @@ import SwiftUI
 /// 商品の詳細ページ。トップページの商品のカードを押すと開き、大きい画像・店のドメイン・名前・価格・在庫・種類の選び方・説明文を見せて、「お気に入り追加」から追加の画面へ進める。
 ///
 /// 開いた直後は検索の結果の商品を出し、店の入口の `get_product` が返ったら、店が付けた種類の選び方・説明文・取り直した価格と在庫に替える。
-/// 名前・画像・説明文・価格は画面に出すだけで保存しない。価格と在庫は、取得から `shopifyCatalogPriceCacheSeconds` 秒より前の時だけ出し、過ぎたら消して店の入口から読み直す (Shopify の「Caching limits」)。
+/// 名前・画像・説明文・価格は画面に出すだけで保存しない。価格と在庫は、取得から `shopifyCatalogPriceCacheSeconds` 秒より前の時だけ出し、過ぎたら消して店の入口から読み直す。
+/// 名前・画像・説明文・種類の選び方は、取得から `shopifyCatalogContentCacheSeconds` 秒より前の商品のものだけを出し、出せる商品が無くなったら画面を閉じる (Shopify の「Caching limits」)。
 /// 購入画面を開く入口は持たない (購入画面は保存済みのお気に入りからだけ開く。documents/adr/0003)。
 struct CatalogProductDetailView: View {
     /// 検索の結果で押した商品 (Global Catalog の `search_catalog` が返したもの)。
@@ -17,12 +18,14 @@ struct CatalogProductDetailView: View {
     /// 「お気に入り追加」を押した時に呼ぶ処理 (追加の画面を開く)。
     let onAddFavorite: () -> Void
 
-    /// アプリが前面にあるか。前面に戻った時に、古くなった価格を消して読み直すために見る。
+    /// アプリが前面にあるか。前面に戻った時に、古くなった値を消して読み直すために見る。
     @Environment(\.scenePhase) private var scenePhase
+    /// この画面を閉じる処理。出してよい商品が無くなった時に呼ぶ。
+    @Environment(\.dismiss) private var dismiss
     /// 店の入口が返した商品と、取得した時刻。読み込む前と、1 回も読み込めていない時は nil。
     @State private var storefrontProduct: (product: ShopifyCatalogProduct, fetchedAt: Date)?
-    /// 価格と在庫を出してよいかを判定する時刻。商品を出した時・価格の期限が来た時・アプリが前面に戻った時に今の時刻へ進める。
-    @State private var priceCheckedAt = Date.now
+    /// 値を出してよいかを判定する時刻。商品を出した時・値の期限が来た時・画面が出た時・アプリが前面に戻った時に今の時刻へ進める。
+    @State private var checkedAt = Date.now
     /// 店の入口を呼んでいる間は true。
     @State private var isLoading = false
     /// 最後に始めた店の入口の呼び出しの識別子。結果を受けた時に、この値と違う (後から別の呼び出しを始めた) 呼び出しの結果は捨てる。
@@ -33,6 +36,16 @@ struct CatalogProductDetailView: View {
     /// 画面に出している価格と在庫を取得した時刻 (店の入口の商品を読み込んだ後はその時刻、前は検索の結果の時刻)。
     private var shownPriceFetchedAt: Date {
         storefrontProduct?.fetchedAt ?? searchFetchedAt
+    }
+
+    /// 名前・説明文・種類の選び方・画像を出してよい店の入口の商品。読み込む前と、取得から `shopifyCatalogContentCacheSeconds` 秒を過ぎた時は nil。
+    private var freshStorefrontProduct: ShopifyCatalogProduct? {
+        storefrontProduct.flatMap { isShopifyCatalogContentFresh(fetchedAt: $0.fetchedAt, now: checkedAt) ? $0.product : nil }
+    }
+
+    /// 名前・説明文・画像を出してよい検索の結果の商品。取得から `shopifyCatalogContentCacheSeconds` 秒を過ぎた時は nil。
+    private var freshSearchedProduct: ShopifyCatalogProduct? {
+        isShopifyCatalogContentFresh(fetchedAt: searchFetchedAt, now: checkedAt) ? searchedProduct : nil
     }
 
     /// 画像・商品の情報・種類の選び方・説明文と、下に固定した「お気に入り追加」のボタン。
@@ -53,10 +66,11 @@ struct CatalogProductDetailView: View {
                             }
                         }
                     }
-                    if let storefrontProduct, hasShopifyCatalogVariantChoices(options: storefrontProduct.product.options) {
-                        options(storefrontOptions: storefrontProduct.product.options ?? [])
+                    if !shopifyCatalogChoiceOptions(options: freshStorefrontProduct?.options).isEmpty {
+                        options(choiceOptions: shopifyCatalogChoiceOptions(options: freshStorefrontProduct?.options))
                     }
-                    if let descriptionText = shopifyCatalogDetailDescriptionText(searchedProduct: searchedProduct, storefrontProduct: storefrontProduct?.product) {
+                    // 説明文は店が付けたものを先に使う。
+                    if let descriptionText = shopifyCatalogDetailDescriptionText(products: [freshStorefrontProduct, freshSearchedProduct].compactMap { $0 }) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("商品の説明")
                                 .font(.headline)
@@ -89,19 +103,32 @@ struct CatalogProductDetailView: View {
             .padding(.vertical, 10)
             .background(.bar)
         }
+        // 画面が出るたびに動く (ほかのタブから戻った時も)。
         .task {
-            await loadStorefrontProduct()
+            refreshExpiredValues()
         }
         // 画面を開いたまま価格を出してよい時間を過ぎたら、価格と在庫を消して店の入口から読み直す。
         .task(id: shownPriceFetchedAt) {
             try? await Task.sleep(for: .seconds(shopifyCatalogPriceRemainingSeconds(fetchedAt: shownPriceFetchedAt, now: .now)))
             if !Task.isCancelled {
-                refreshIfPriceExpired()
+                refreshExpiredValues()
+            }
+        }
+        // 画面を開いたまま、最後に取得した商品の名前・画像・説明文を出してよい時間を過ぎたら、判定をやり直す (出せる商品が無くなって画面が閉じる)。
+        .task(id: shownPriceFetchedAt) {
+            try? await Task.sleep(for: .seconds(shopifyCatalogContentRemainingSeconds(fetchedAt: shownPriceFetchedAt, now: .now)))
+            if !Task.isCancelled {
+                refreshExpiredValues()
             }
         }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .active {
-                refreshIfPriceExpired()
+                refreshExpiredValues()
+            }
+        }
+        .onChange(of: checkedAt) {
+            if freshStorefrontProduct == nil, freshSearchedProduct == nil {
+                dismiss()
             }
         }
     }
@@ -112,7 +139,11 @@ struct CatalogProductDetailView: View {
             .aspectRatio(1, contentMode: .fit)
             .overlay {
                 TabView {
-                    ForEach(shopifyCatalogImageURLs(product: searchedProduct, shopDomain: shopDomain), id: \.self) { imageURL in
+                    // 画像は検索の結果の商品のものを先に使う (店の入口の商品を読み込んだ時に、出している画像を読み込み直さないため)。
+                    ForEach(
+                        shopifyCatalogDetailImageURLs(products: [freshSearchedProduct, freshStorefrontProduct].compactMap { $0 }, shopDomain: shopDomain),
+                        id: \.self
+                    ) { imageURL in
                         CatalogProductImage(imageURL: imageURL, contentMode: .fit)
                     }
                 }
@@ -128,15 +159,18 @@ struct CatalogProductDetailView: View {
             Text(shopDomain)
                 .font(.footnote.weight(.bold))
                 .foregroundStyle(.secondary)
-            Text(searchedProduct.title)
-                .font(.title3.weight(.bold))
+            // 名前は検索の結果の商品のものを先に使う (押したカードと同じ名前を出すため)。
+            if let title = (freshSearchedProduct ?? freshStorefrontProduct)?.title {
+                Text(title)
+                    .font(.title3.weight(.bold))
+            }
             if let searchedVariant = searchedProduct.variants.first,
                let priceVariant = shopifyCatalogDetailPriceVariant(
                    searchedVariant: searchedVariant,
                    searchFetchedAt: searchFetchedAt,
                    storefrontProduct: storefrontProduct?.product,
                    storefrontFetchedAt: storefrontProduct?.fetchedAt,
-                   now: priceCheckedAt
+                   now: checkedAt
                )
             {
                 if let price = priceVariant.price {
@@ -164,12 +198,12 @@ struct CatalogProductDetailView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 
-    /// 店が付けた種類の選び方ごとの、選べる値の並び (見るだけ。選ぶのは追加の画面)。値が 1 つだけの選び方は出さない。
-    private func options(storefrontOptions: [ShopifyCatalogOption]) -> some View {
+    /// 店が付けた種類の選び方 `choiceOptions` (`shopifyCatalogChoiceOptions` の値) ごとの、選べる値の並び (見るだけ。選ぶのは追加の画面)。
+    private func options(choiceOptions: [ShopifyCatalogOption]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("選べる種類")
                 .font(.headline)
-            ForEach(storefrontOptions.filter { $0.values.count >= 2 }, id: \.name) { option in
+            ForEach(choiceOptions, id: \.name) { option in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(option.name)
                         .font(.footnote.weight(.bold))
@@ -186,11 +220,14 @@ struct CatalogProductDetailView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 
-    /// 価格と在庫を出してよいかの判定を今の時刻でやり直し、出している値が期限を過ぎていれば店の入口から読み直す。
-    /// 読み込み中と、失敗の文言を出している間は読み直さない (利用者の「もう一度読み込む」を待つ。検索の結果の取り直しと同じ決まり)。
-    private func refreshIfPriceExpired() {
-        priceCheckedAt = .now
-        if shouldRefreshShopifyCatalogSearch(fetchedAt: shownPriceFetchedAt, isSearching: isLoading, isShowingError: errorMessage != nil, now: priceCheckedAt) {
+    /// 値を出してよいかの判定を今の時刻でやり直し、店の入口の商品をまだ読み込んでいないか、その価格が期限を過ぎていれば、店の入口から読み込む。
+    /// 読み込み中と、失敗の文言を出している間は読み込まない (利用者の「もう一度読み込む」を待つ。検索の結果の取り直しと同じ決まり)。
+    /// 読み込みは画面が隠れても止めない (ほかのタブへ移った時に、通信の中断を失敗として出さないため)。
+    private func refreshExpiredValues() {
+        checkedAt = .now
+        if shouldRefreshShopifyCatalogSearch(fetchedAt: storefrontProduct?.fetchedAt, isSearching: isLoading, isShowingError: errorMessage != nil, now: checkedAt) {
+            // 下の `Task` が動き出す前にこの関数がもう一度呼ばれても、読み込みを重ねて始めないよう、ここで読み込み中にする。
+            isLoading = true
             Task {
                 await loadStorefrontProduct()
             }
@@ -227,7 +264,7 @@ struct CatalogProductDetailView: View {
         let loaded = shopifyCatalogDetailLoaded(previous: storefrontProduct, result: result, now: .now)
         storefrontProduct = loaded.storefrontProduct
         errorMessage = loaded.error.map { shopifyCatalogErrorMessage(error: $0, locale: appTextLocale) }
-        priceCheckedAt = .now
+        checkedAt = .now
         isLoading = false
     }
 }
