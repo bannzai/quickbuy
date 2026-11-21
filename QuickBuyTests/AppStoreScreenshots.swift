@@ -81,60 +81,66 @@ func appStoreScreenshotSubheadline(screen: AppStoreScreenshotScreen, locale: Loc
 
 /// スクリーンショットに写す見本のお気に入りを返す。開発者メニューの見本 (`sampleFavorites()`) に、`now` から見て状態の違うリマインドを付けたもの。
 ///
-/// 英語のスクリーンショットでは、名前と商品バリアントの名前を英語にする (`appStoreScreenshotShopText(japaneseText:locale:)`。見本の名前は日本語だけのため)。
+/// 英語のスクリーンショットでは、名前と商品バリアントの名前を `appStoreScreenshotFavoriteEnglishTexts` の値にする (見本の名前は日本語だけのため)。
 func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
-    zip(sampleFavorites(), [
+    zip(zip(sampleFavorites(), appStoreScreenshotFavoriteEnglishTexts), [
         // 2 日前に数え始めた 7 日ごとのリマインド。一覧で「次の知らせは 5 日後」を出す。
         Reminder(intervalDays: 7, countedFrom: now.addingTimeInterval(-2 * reminderDaySeconds)),
         nil,
         // 30 日前に数え始めた 30 日ごとのリマインド。一覧で「そろそろ買う頃」を出す。
         Reminder(intervalDays: 30, countedFrom: now.addingTimeInterval(-30 * reminderDaySeconds)),
-    ] as [Reminder?]).map { favorite, reminder in
-        var screenshotFavorite = favorite
-        screenshotFavorite.name = appStoreScreenshotShopText(japaneseText: favorite.name, locale: locale)
-        screenshotFavorite.variantName = favorite.variantName.map { appStoreScreenshotShopText(japaneseText: $0, locale: locale) }
+    ] as [Reminder?]).map { favoriteAndEnglishText, reminder in
+        var screenshotFavorite = favoriteAndEnglishText.0
+        if !isJapanese(locale: locale) {
+            screenshotFavorite.name = favoriteAndEnglishText.1.name
+            screenshotFavorite.variantName = favoriteAndEnglishText.1.variantName
+        }
         screenshotFavorite.reminder = reminder
         return screenshotFavorite
     }
 }
 
-/// 店が決める見本の文字列 (商品の名前・商品バリアントの名前・種類の選び方の名前) を `locale` の言語で返す。日本語の時は `japaneseText` のまま返す。
+/// `sampleFavorites()` の並びの位置ごとに、英語のスクリーンショットに出す名前と商品バリアントの名前。
 ///
 /// 店が決める値なので文字列カタログには入れず、スクリーンショットだけで使う。
-/// 商品バリアントの名前は Shopify が種類の値を「 / 」でつないで作るため、「 / 」で分けた部分ごとに英語へ替える。
-/// 対応の無い部分 (「200g」「1kg」) は、言語によらない表記なのでそのまま返す。日本語のまま英語の画像に残る文字列は、テスト「英語の見本の文字列に日本語が残らない」が見つける。
-func appStoreScreenshotShopText(japaneseText: String, locale: Locale) -> String {
-    isJapanese(locale: locale) ? japaneseText : japaneseText.components(separatedBy: " / ").map {
-        [
-            "コーヒー豆": "Coffee beans",
-            "洗濯用せっけん": "Laundry soap",
-            "プロテイン": "Protein",
-            "豆のまま": "Whole bean",
-            "深煎り 200g": "Dark Roast 200g",
-            "浅煎り 200g": "Light Roast 200g",
-            "デカフェ 150g": "Decaf 150g",
-            "内容量": "Size",
-        ][$0] ?? $0
-    }.joined(separator: " / ")
+/// 日本語の名前から引く表にせず並びの位置で対応させるのは、日本語の名前を `sampleFavorites()` とこの表の 2 か所に書かないため。
+/// 並びが `sampleFavorites()` と食い違った時は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見つける。
+private let appStoreScreenshotFavoriteEnglishTexts: [(name: String, variantName: String?)] = [
+    ("Coffee beans", "200g / Whole bean"),
+    ("Laundry soap", nil),
+    ("Protein", "1kg"),
+]
+
+/// 店が決める見本の文字列のうち、スクリーンショットだけに出すもの (検索の商品の名前・種類の選び方の名前) を `locale` の言語で返す。日本語なら `japanese`、ほかの言語は `english`。
+///
+/// 店が決める値なので文字列カタログには入れない。日本語と英語を呼び出しの 1 か所に並べて書かせ、対応を別の表に持たない。
+private func appStoreScreenshotShopText(japanese: String, english: String, locale: Locale) -> String {
+    isJapanese(locale: locale) ? japanese : english
 }
 
-/// 追加の画面 (`.addFavorite`) の「種類を選ぶ」に出す、種類の選び方の名前の見本。店が決める値で、選べる値は見本のお気に入りの商品バリアントの名前の先頭の部分 (「200g」)。
-let appStoreScreenshotOptionName = "内容量"
+/// 追加の画面 (`.addFavorite`) の「種類を選ぶ」に出す、種類の選び方の名前の見本を `locale` の言語で返す。店が決める値で、選べる値は見本のお気に入りの商品バリアントの名前の先頭の部分 (「200g」)。
+func appStoreScreenshotOptionName(locale: Locale) -> String {
+    appStoreScreenshotShopText(japanese: "内容量", english: "Size", locale: locale)
+}
 
 /// 検索の画面 (`.search`) に並べる見本の商品を、Global Catalog の検索の結果の形で `locale` の言語にして返す。
 ///
 /// 先頭は見本のお気に入りの先頭 (`sampleFavorites()[0]`) と同じ名前と店の商品で、追加の画面 (`.addFavorite`) はこの商品の価格を出す (検索の結果から追加の画面を開く流れに合わせる)。
 /// 店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン)。価格は、200g 前後のコーヒー豆として不自然でない値として agent が決めた見本の値。
 func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct] {
-    [
-        (sampleFavorites()[0].name, shopDomainText(favorite: sampleFavorites()[0]), 1480),
-        ("深煎り 200g", shopDomainText(favorite: sampleFavorites()[0]), 1280),
-        ("浅煎り 200g", "hoshi-roast.example", 1350),
-        ("デカフェ 150g", "hoshi-roast.example", 1200),
-    ].map { japaneseTitle, shopDomain, priceAmount in
+    ([
+        (
+            appStoreScreenshotShopText(japanese: sampleFavorites()[0].name, english: appStoreScreenshotFavoriteEnglishTexts[0].name, locale: locale),
+            shopDomainText(favorite: sampleFavorites()[0]),
+            1480
+        ),
+        (appStoreScreenshotShopText(japanese: "深煎り 200g", english: "Dark Roast 200g", locale: locale), shopDomainText(favorite: sampleFavorites()[0]), 1280),
+        (appStoreScreenshotShopText(japanese: "浅煎り 200g", english: "Light Roast 200g", locale: locale), "hoshi-roast.example", 1350),
+        (appStoreScreenshotShopText(japanese: "デカフェ 150g", english: "Decaf 150g", locale: locale), "hoshi-roast.example", 1200),
+    ] as [(title: String, shopDomain: String, priceAmount: Int)]).map { title, shopDomain, priceAmount in
         ShopifyCatalogProduct(
-            id: "gid://shopify/p/\(japaneseTitle)",
-            title: appStoreScreenshotShopText(japaneseText: japaneseTitle, locale: locale),
+            id: "gid://shopify/p/\(title)",
+            title: title,
             description: nil,
             media: nil,
             options: nil,
@@ -142,7 +148,7 @@ func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct]
             variants: [
                 ShopifyCatalogVariant(
                     id: "gid://shopify/ProductVariant/\(priceAmount)",
-                    title: appStoreScreenshotShopText(japaneseText: japaneseTitle, locale: locale),
+                    title: title,
                     price: ShopifyCatalogMoney(amount: priceAmount, currency: "JPY"),
                     availability: nil,
                     seller: ShopifyCatalogVariant.Seller(url: "https://\(shopDomain)")
@@ -669,7 +675,7 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
             section(headerKey: "種類を選ぶ") {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
-                        Text(verbatim: appStoreScreenshotShopText(japaneseText: appStoreScreenshotOptionName, locale: locale)).font(.system(size: 15))
+                        Text(verbatim: appStoreScreenshotOptionName(locale: locale)).font(.system(size: 15))
                         Spacer()
                         Text(verbatim: favorite.variantName!.components(separatedBy: " / ")[0]).font(.system(size: 15)).foregroundStyle(.secondary)
                         Image(systemName: "chevron.up.chevron.down").font(.system(size: 12)).foregroundStyle(.secondary)
