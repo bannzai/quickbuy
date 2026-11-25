@@ -266,7 +266,8 @@ struct FavoritesListTests {
     /// 見本を入れると、保存済みのお気に入りの後ろに 3 件が足される。もう一度入れても増えず、利用者が変えた見本の名前も戻らない。
     @Test func 見本を入れると末尾に足され2回目は増えない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let existingFavorite = favorite(name: "自分で入れた商品")
+        // 見本と同じ店・同じ種類だと行を足さずに個数を書き換えるので、自分で入れた商品は見本に無い店のものにする。
+        let existingFavorite = favorite(name: "自分で入れた商品", variantName: nil, quantity: 1, product: .shopify(ShopifyProduct(shopDomain: "own-shop.example", variantID: "1")), reminder: nil)
         try saveFavorites(favorites: [existingFavorite], fileURL: fileURL)
         try insertSampleFavorites(fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL) == [existingFavorite] + sampleFavorites())
@@ -278,8 +279,9 @@ struct FavoritesListTests {
     /// 見本を消すと、名前を変えた見本を含む見本の 3 件だけが無くなり、自分で入れたお気に入りは並びも値もそのまま残る。もう一度消しても変わらない。
     @Test func 見本を消すと自分で入れたお気に入りだけが残る() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let firstOwnFavorite = favorite(name: "自分で入れた商品")
-        let secondOwnFavorite = favorite(name: "後から入れた商品")
+        // 見本とも互いとも違う種類にする (同じ店・同じ種類の追加は行を足さない)。
+        let firstOwnFavorite = favorite(name: "自分で入れた商品", variantName: nil, quantity: 1, product: .shopify(ShopifyProduct(shopDomain: "own-shop.example", variantID: "1")), reminder: nil)
+        let secondOwnFavorite = favorite(name: "後から入れた商品", variantName: nil, quantity: 1, product: .shopify(ShopifyProduct(shopDomain: "own-shop.example", variantID: "2")), reminder: nil)
         try saveFavorites(favorites: [firstOwnFavorite], fileURL: fileURL)
         try insertSampleFavorites(fileURL: fileURL)
         try addFavorite(favorite: secondOwnFavorite, fileURL: fileURL)
