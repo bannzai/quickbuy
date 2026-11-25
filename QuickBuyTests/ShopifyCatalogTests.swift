@@ -272,14 +272,15 @@ import Testing
         defer { try? FileManager.default.removeItem(at: fileURL) }
         try finishFavoriteAddition(
             choice: .add,
-            favorites: [try #require(shopifyCatalogFavorite(
+            // お気に入りを作れなかった時 (nil) は 1 件も保存されず、下の保存済みの並びの確認で落ちる。
+            favorites: [shopifyCatalogFavorite(
                 shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
                 name: "いつものコーヒー",
                 hasVariantChoices: true,
                 variant: searchedVariant,
                 quantity: 3,
                 favoriteID: UUID()
-            ))],
+            )].compactMap { $0 },
             fileURL: fileURL
         )
         let savedFavorites = try loadFavorites(fileURL: fileURL)
@@ -298,14 +299,15 @@ import Testing
         let favoriteID = UUID()
         try finishFavoriteAddition(
             choice: .add,
-            favorites: [try #require(shopifyCatalogFavorite(
+            // お気に入りを作れなかった時 (nil) は 1 件も保存されず、下の保存済みの並びの確認で落ちる。
+            favorites: [shopifyCatalogFavorite(
                 shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
                 name: "いつものコーヒー",
                 hasVariantChoices: true,
                 variant: searchedVariant,
                 quantity: 3,
                 favoriteID: favoriteID
-            ))],
+            )].compactMap { $0 },
             fileURL: fileURL
         )
         var recordedEvents: [AnalyticsEvent] = []
