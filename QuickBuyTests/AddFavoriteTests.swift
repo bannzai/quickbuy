@@ -366,6 +366,28 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == [expectedSavedFavorite, confirmedFavorites[1], newVariantFavorite])
     }
 
+    /// 同じ識別子のお気に入りが渡された並びに 2 回あり、どちらも保存済みと同じ店・同じ種類の時、個数の書き換えは最初の 1 件の個数で行い、後の写しの個数にしない。
+    @Test func 同じ識別子の写しは保存済みの行の個数を上書きしない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try saveFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        try finishFavoriteAddition(
+            choice: .add,
+            favorites: [5, 9].map {
+                Favorite(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-0000000000F1")!,
+                    name: "店が付けた名前",
+                    imageURL: nil,
+                    quantity: $0,
+                    product: confirmedFavorites[0].product,
+                    reminder: nil
+                )
+            },
+            fileURL: fileURL
+        )
+        #expect(try loadFavorites(fileURL: fileURL).map(\.quantity) == [5])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.id) == [confirmedFavorites[0].id])
+    }
+
     /// 商品バリアントの ID が同じでも店が違うもの、店が同じでも商品バリアントの ID が違うものは、別の商品として末尾に足し、保存済みの行は変えない。
     @Test func 店か種類が違う追加は今までどおり行を足す() throws {
         let fileURL = temporaryFavoritesFileURL()
