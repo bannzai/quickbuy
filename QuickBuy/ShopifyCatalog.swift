@@ -472,37 +472,78 @@ func shopifyCatalogErrorMessage(error: ShopifyCatalogError, locale: Locale) -> S
     }
 }
 
-/// 検索の結果から開いた追加の画面で選んだ商品バリアント (店の入口が返したもの) ごとに 1 件ずつ、保存するお気に入りを作って返す。保存はしない。
+/// 店 `shopDomain` の商品バリアント `variant` (店の入口が返したもの) を、お気に入りが持つ商品の指し方にして返す。商品バリアントの ID が数字で終わらない時は nil (購入画面の URL を組み立てられず、お気に入りにできない)。
+func shopifyCatalogShopifyProduct(shopDomain: String, variant: ShopifyCatalogVariant) -> ShopifyProduct? {
+    shopifyVariantNumericID(variantGID: variant.id).map { ShopifyProduct(shopDomain: shopDomain, variantID: $0) }
+}
+
+/// 検索の結果から開いた追加の画面で、今選んでいる値の組の商品バリアント `variant` (店の入口が返したもの) から、保存するお気に入りを作って返す。保存はしない。
 ///
-/// 店のドメインは `shopDomain` (`seller.url` のホスト。追加の画面で利用者に見せたもの)、名前は `name` (利用者が確かめた名前)。
-/// 個数と識別子は、商品バリアントの ID (`ShopifyCatalogVariant.id`) をキーにした `quantitiesByVariantID`・`favoriteIDsByVariantID` の値で、どちらかが無い商品バリアントと、ID が数字で終わらない商品バリアントのお気に入りは作らない。
+/// 店のドメインは `shopDomain` (`seller.url` のホスト。追加の画面で利用者に見せたもの)、名前は `name` (利用者が確かめた名前)、個数は `quantity`、識別子は `favoriteID`。
+/// 商品バリアントの ID が数字で終わらない時は nil (`shopifyCatalogShopifyProduct`)。
 /// 商品バリアントの名前は、種類の選び方に値が 2 つ以上あるもの (`hasVariantChoices`) がある商品でだけ入れる (1 つだけの商品では店が付けた `Default Title` を見分けに使わないため nil)。
-/// Catalog が返した画像の URL と価格は入れない (Shopify の「Caching limits」の時間を超えて持たないため。documents/DIRECTION.md「決めたこと」)。並びは `selectedVariants` の順。
-func shopifyCatalogFavorites(
+/// Catalog が返した画像の URL と価格は入れない (Shopify の「Caching limits」の時間を超えて持たないため。documents/DIRECTION.md「決めたこと」)。
+func shopifyCatalogFavorite(
     shopDomain: String,
     name: String,
     hasVariantChoices: Bool,
-    selectedVariants: [ShopifyCatalogVariant],
-    quantitiesByVariantID: [String: Int],
-    favoriteIDsByVariantID: [String: UUID]
-) -> [Favorite] {
-    selectedVariants.compactMap { selectedVariant in
-        guard let quantity = quantitiesByVariantID[selectedVariant.id],
-              let favoriteID = favoriteIDsByVariantID[selectedVariant.id],
-              let numericVariantID = shopifyVariantNumericID(variantGID: selectedVariant.id)
-        else {
-            return nil
-        }
-        return Favorite(
+    variant: ShopifyCatalogVariant,
+    quantity: Int,
+    favoriteID: UUID
+) -> Favorite? {
+    shopifyCatalogShopifyProduct(shopDomain: shopDomain, variant: variant).map {
+        Favorite(
             id: favoriteID,
             name: name,
-            variantName: hasVariantChoices ? selectedVariant.title : nil,
+            variantName: hasVariantChoices ? variant.title : nil,
             imageURL: nil,
             quantity: quantity,
-            product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: numericVariantID)),
+            product: .shopify($0),
             reminder: nil
         )
     }
+}
+
+/// 検索の結果から開いた追加の画面で、今選んでいる値の組の商品バリアント `variant` と同じ店・同じ種類の、保存済みのお気に入りを返す。無い時と、`variant` が nil (読み込む前) の時は nil。
+///
+/// `savedFavorites` は追加の画面を開いた時に読んだ保存済みのお気に入り。
+func shopifyCatalogSavedFavorite(savedFavorites: [Favorite], shopDomain: String, variant: ShopifyCatalogVariant?) -> Favorite? {
+    variant
+        .flatMap { shopifyCatalogShopifyProduct(shopDomain: shopDomain, variant: $0) }
+        .flatMap { shopifyFavorite(favorites: savedFavorites, shopifyProduct: $0) }
+}
+
+/// 検索の結果から開いた追加の画面で、店の入口が商品バリアント `loadedVariant` を返した後の個数を返す。
+///
+/// 前に出していた商品バリアント (ID が `shownVariantID`。読み込む前は nil) と同じ時は、利用者が決めた個数 `quantity` のまま (価格の期限の読み直しで個数を戻さない)。
+/// 違う時は、同じ店・同じ種類の保存済みのお気に入り (`shopifyCatalogSavedFavorite`) の個数から始め、保存済みでなければ `initialVariantQuantity` から始める。
+func shopifyCatalogAdditionQuantity(
+    shownVariantID: String?,
+    quantity: Int,
+    loadedVariant: ShopifyCatalogVariant,
+    shopDomain: String,
+    savedFavorites: [Favorite]
+) -> Int {
+    shownVariantID == loadedVariant.id
+        ? quantity
+        : shopifyCatalogSavedFavorite(savedFavorites: savedFavorites, shopDomain: shopDomain, variant: loadedVariant)?.quantity ?? initialVariantQuantity
+}
+
+/// 検索の結果から開いた追加の画面の、保存するボタンを押せるかを返す。
+///
+/// 押せるのは、名前が保存できて (`isFavoriteNameSavable(name:)`)、店の入口を呼んでいる間 (`isLoading`) でなく、今選んでいる値の組の商品バリアント `variant` が読み込めていて (nil でない)、
+/// お気に入りにできる (`shopifyCatalogShopifyProduct` が nil でない) 時だけ。読み込み中は、選び直した値の組と違う種類を保存しないために押せない。
+func isShopifyCatalogAdditionSavable(name: String, shopDomain: String, variant: ShopifyCatalogVariant?, isLoading: Bool) -> Bool {
+    isFavoriteNameSavable(name: name) && !isLoading && variant.flatMap { shopifyCatalogShopifyProduct(shopDomain: shopDomain, variant: $0) } != nil
+}
+
+/// 検索の結果から開いた追加の画面の、保存するボタンの文言を `locale` の言語で返す。
+///
+/// 今選んでいる種類が保存済み (`isSaved`) の時は、押すと行を足さずに個数を書き換えるので `お気に入りの個数を変更`、保存済みでない時は `お気に入りに追加`。
+func shopifyCatalogAdditionButtonTitle(isSaved: Bool, locale: Locale) -> String {
+    isSaved
+        ? String(localized: LocalizedStringResource("お気に入りの個数を変更", locale: locale))
+        : String(localized: LocalizedStringResource("お気に入りに追加", locale: locale))
 }
 
 /// 検索窓の文字列から、検索に使う語 (前後の空白と改行を除いたもの) を返す。空になる時は検索しないので nil。
@@ -515,18 +556,6 @@ func shopifyCatalogSearchQuery(text: String) -> String? {
 /// 失敗の後は、利用者の「もう一度検索する」か検索し直しを待つ (HTTP 429 の間に呼ぶ回数を増やさず、`Retry-After` の文言と合わせるため)。
 func shouldRefreshShopifyCatalogSearch(fetchedAt: Date?, isSearching: Bool, isShowingError: Bool, now: Date) -> Bool {
     !isSearching && !isShowingError && fetchedAt.map { !isShopifyCatalogPriceFresh(fetchedAt: $0, now: now) } ?? true
-}
-
-/// 追加の画面で、選ぶ操作を挟まずに選んだ状態にする商品バリアントを返す。
-///
-/// 画面を開いて最初に読み込んだ商品 (`isFirstLoadedProduct`) で、種類の選び方が無く (`hasShopifyCatalogVariantChoices` が false)、
-/// 商品バリアントの ID が数字で終わる時だけ、店の入口が返した商品バリアントを返す。それ以外は nil。
-/// 2 回目以降の読み込み (価格の期限の読み直し・「もう一度読み込む」) では選ばない。利用者が外した種類を、操作なしに選び直さないため。
-func shopifyCatalogAutoSelectedVariant(product: ShopifyCatalogProduct, isFirstLoadedProduct: Bool) -> ShopifyCatalogVariant? {
-    guard isFirstLoadedProduct, !hasShopifyCatalogVariantChoices(options: product.options) else {
-        return nil
-    }
-    return product.variants.first.flatMap { shopifyVariantNumericID(variantGID: $0.id) != nil ? $0 : nil }
 }
 
 /// 種類の選び方に、値が 2 つ以上あるものがあるかを返す (商品バリアントが 2 つ以上ある商品か)。

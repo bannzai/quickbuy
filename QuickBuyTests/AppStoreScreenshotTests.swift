@@ -168,11 +168,11 @@ struct AppStoreScreenshotTests {
         #expect(japanese.contains("編集"), "\(japanese)")
     }
 
-    /// 追加の画面には、見本のお気に入りの種類の値 (「200g」) が種類の選び方・商品バリアントの名前・お気に入りにする種類の 3 か所に、検索の先頭の商品の価格 (「¥1,480」) が 1 か所に写る。
+    /// 追加の画面には、見本のお気に入りの種類の値 (「200g」) が種類の選び方・商品バリアントの名前の 2 か所に、検索の先頭の商品の価格 (「¥1,480」) が 1 か所に写る。
     @Test func 追加の画面に種類の値と価格が写る() throws {
         for language in appStoreScreenshotLanguages {
             let text = try comparableText(text: recognizedText(screen: .addFavorite, locale: language.locale))
-            #expect(text.components(separatedBy: "200g").count - 1 == 3, "\(language.directoryName) \(text)")
+            #expect(text.components(separatedBy: "200g").count - 1 == 2, "\(language.directoryName) \(text)")
             #expect(text.components(separatedBy: "1480").count - 1 == 1, "\(language.directoryName) \(text)")
         }
     }

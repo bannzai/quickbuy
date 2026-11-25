@@ -3,7 +3,9 @@ import SwiftUI
 /// トップページの検索の結果から開く、お気に入りの追加の画面。
 ///
 /// 店のドメイン (`seller.url` のホスト) を目立つ形で見せ、店の入口の `get_product` で種類 (商品バリアント) を選んでもらい、
-/// 選んだ種類ごとに個数を決めて、利用者が「お気に入りに追加」を押した時だけ保存する (documents/adr/0003)。
+/// そのすぐ下で個数を決めて、利用者が保存するボタンを押した時だけ保存する (documents/adr/0003)。
+/// 今選んでいる値の組の種類が、そのまま保存する種類になる。同じ店・同じ種類のお気に入りが保存済みの時は、個数を保存済みの個数から始め、
+/// ボタンを押すと行を足さずにその個数を書き換える (https://github.com/bannzai/quickbuy/issues/84 )。
 struct CatalogAddFavoriteView: View {
     /// 検索の結果で押した商品 (Global Catalog の `search_catalog` が返したもの)。
     let searchedProduct: ShopifyCatalogProduct
@@ -33,16 +35,16 @@ struct CatalogAddFavoriteView: View {
     @State private var errorMessage: String?
     /// 名前の欄の文字列。検索の結果の商品の名前から始まる。
     @State private var name = ""
-    /// 選んだ商品バリアント (店の入口が返したもの) の並び (選んだ順)。
-    @State private var selectedVariants: [ShopifyCatalogVariant] = []
-    /// 選んだ商品バリアントの、商品バリアントの ID (`ShopifyCatalogVariant.id`) ごとの個数。
-    @State private var quantitiesByVariantID: [String: Int] = [:]
-    /// 選んだ商品バリアントをお気に入りにする時の識別子。選んだ時に 1 回だけ作り、保存まで変えない (保存が 2 回動いても二重に保存しない)。
-    @State private var favoriteIDsByVariantID: [String: UUID] = [:]
+    /// 今選んでいる値の組の種類をお気に入りにする時の個数。種類が替わるたびに `shopifyCatalogAdditionQuantity` の値から始まる。
+    @State private var quantity = initialVariantQuantity
+    /// この画面を開いた時に保存済みだったお気に入り。選んでいる種類が保存済みかを見分けるために読む (読めなかった時は空で、保存の時に失敗を知らせる)。
+    @State private var savedFavorites: [Favorite] = []
+    /// 足すお気に入りの識別子。画面を開いた時に 1 回だけ作り、保存まで変えない (保存が 2 回動いても二重に保存しない)。
+    @State private var favoriteID = UUID()
     /// 保存に失敗したことを知らせる表示を出している間は true。
     @State private var isSaveFailed = false
 
-    /// 店のドメイン・名前・種類の選び方・選んだ種類と個数・保存のボタン。
+    /// 店のドメイン・名前・種類の選び方と個数・保存のボタン。
     var body: some View {
         NavigationStack {
             Form {
@@ -57,38 +59,12 @@ struct CatalogAddFavoriteView: View {
                     }
                 }
                 variantChoiceSection
-                if !selectedVariants.isEmpty {
-                    Section {
-                        ForEach(selectedVariants, id: \.id) { selectedVariant in
-                            VStack(alignment: .leading, spacing: 4) {
-                                if hasShopifyCatalogVariantChoices(options: storefrontProduct?.options) {
-                                    Text(selectedVariant.title)
-                                        .font(.subheadline.weight(.bold))
-                                }
-                                if let quantity = quantitiesByVariantID[selectedVariant.id] {
-                                    QuantityStepperRow(quantity: Binding(
-                                        get: { quantity },
-                                        set: { quantitiesByVariantID[selectedVariant.id] = $0 }
-                                    ))
-                                }
-                            }
-                        }
-                        .onDelete { deletedIndexes in
-                            selectedVariants.remove(atOffsets: deletedIndexes)
-                        }
-                    } header: {
-                        Text("お気に入りにする種類")
-                    } footer: {
-                        Text("選んだ種類ごとにお気に入りの行が 1 つできます")
-                    }
-                }
                 Section {
                     Button {
                         finish(choice: .add)
                     } label: {
-                        Text(favoriteAdditionButtonTitle(
-                            hasVariantChoices: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options),
-                            selectedVariantCount: selectedVariants.count,
+                        Text(shopifyCatalogAdditionButtonTitle(
+                            isSaved: shopifyCatalogSavedFavorite(savedFavorites: savedFavorites, shopDomain: shopDomain, variant: storefrontProduct?.variants.first) != nil,
                             locale: appTextLocale
                         ))
                         .bold()
@@ -98,7 +74,7 @@ struct CatalogAddFavoriteView: View {
                     .controlSize(.large)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
-                    .disabled(!isFavoriteAdditionSavable(name: name, selectedVariantCount: selectedVariants.count))
+                    .disabled(!isShopifyCatalogAdditionSavable(name: name, shopDomain: shopDomain, variant: storefrontProduct?.variants.first, isLoading: isLoading))
                     .accessibilityIdentifier("addFavoritesButton")
                 } footer: {
                     // 定期購入が必須の商品は検索に出るが、応答から見分けられないため、ここで 1 行だけ伝える (issue #34)。
@@ -119,6 +95,8 @@ struct CatalogAddFavoriteView: View {
         .tint(quickBuyAccentColor)
         .task {
             name = searchedProduct.title
+            // 読めない時は保存済みを見分けられないので、どの種類も保存済みでない扱いで出す。保存先が壊れている時は、ボタンを押した時の保存が失敗して知らせる。
+            savedFavorites = (try? loadFavorites(fileURL: favoritesFileURL)) ?? []
             if let searchedVariantID = searchedProduct.variants.first?.id {
                 await loadStorefrontProduct(productID: searchedVariantID, selected: nil)
             }
@@ -141,7 +119,7 @@ struct CatalogAddFavoriteView: View {
         }
     }
 
-    /// 種類の選び方ごとの値の選択と、選んだ値の組の商品バリアントを「お気に入りにする種類」へ足すボタン。
+    /// 種類の選び方ごとの値の選択と、選んだ値の組の商品バリアントの名前・価格・在庫と、その個数の増減。
     @ViewBuilder private var variantChoiceSection: some View {
         Section {
             if let storefrontProduct, let variant = storefrontProduct.variants.first {
@@ -178,12 +156,9 @@ struct CatalogAddFavoriteView: View {
                         ProgressView()
                     }
                 }
-                if shopifyVariantNumericID(variantGID: variant.id) != nil {
-                    Button(selectedVariants.contains { $0.id == variant.id } ? LocalizedStringKey("この種類は選んであります") : LocalizedStringKey("この種類を選ぶ")) {
-                        selectVariant(variant: variant)
-                    }
-                    .disabled(isLoading || selectedVariants.contains { $0.id == variant.id })
-                    .accessibilityIdentifier("selectVariantButton")
+                if shopifyCatalogShopifyProduct(shopDomain: shopDomain, variant: variant) != nil {
+                    QuantityStepperRow(quantity: $quantity)
+                        .disabled(isLoading)
                 }
             } else if isLoading {
                 ProgressView()
@@ -224,15 +199,6 @@ struct CatalogAddFavoriteView: View {
         )
     }
 
-    /// 選んだ商品バリアントを「お気に入りにする種類」の末尾に個数 `initialVariantQuantity` で足す。足した時に識別子を 1 回だけ作る。
-    private func selectVariant(variant: ShopifyCatalogVariant) {
-        selectedVariants.append(variant)
-        quantitiesByVariantID[variant.id] = initialVariantQuantity
-        if favoriteIDsByVariantID[variant.id] == nil {
-            favoriteIDsByVariantID[variant.id] = UUID()
-        }
-    }
-
     /// 店の入口の `get_product` を呼び、返った商品を画面に出す。呼べなかった時は理由を出し、前に出していた商品はそのまま残す。
     /// 呼び出しを重ねた時 (選び直しの最中に価格の期限で読み直した時など) は、最後に始めた呼び出しの結果だけを出す。
     private func loadStorefrontProduct(productID: String, selected: [ShopifyCatalogSelectedOption]?) async {
@@ -258,14 +224,20 @@ struct CatalogAddFavoriteView: View {
     }
 
     /// 呼び出し `loadID` が返した商品 `product` を、今の時刻で取得したものとして出す。後から別の呼び出しを始めていた時は何もしない。
-    /// 種類の選び方が無い商品は、選ぶ操作を挟まずに選んだ状態にする (`shopifyCatalogAutoSelectedVariant`)。
+    /// 返った商品バリアントが前に出していたものと違う時は、個数をその種類の始まりの値にする (`shopifyCatalogAdditionQuantity`)。
     private func applyStorefrontProduct(loadID: UUID, product: ShopifyCatalogProduct) {
         guard latestLoadID == loadID else {
             return
         }
-        // 最初に読み込んだ商品かは `storefrontProduct` を書き換える前に見る。
-        if let autoSelectedVariant = shopifyCatalogAutoSelectedVariant(product: product, isFirstLoadedProduct: storefrontProduct == nil) {
-            selectVariant(variant: autoSelectedVariant)
+        // 前に出していた商品バリアントは `storefrontProduct` を書き換える前に見る。`loadShopifyStorefrontProduct` は商品バリアントが 1 件以上ある商品だけを返す。
+        if let loadedVariant = product.variants.first {
+            quantity = shopifyCatalogAdditionQuantity(
+                shownVariantID: storefrontProduct?.variants.first?.id,
+                quantity: quantity,
+                loadedVariant: loadedVariant,
+                shopDomain: shopDomain,
+                savedFavorites: savedFavorites
+            )
         }
         storefrontProduct = product
         storefrontProductFetchedAt = .now
@@ -277,14 +249,16 @@ struct CatalogAddFavoriteView: View {
         do {
             try finishFavoriteAddition(
                 choice: choice,
-                favorites: shopifyCatalogFavorites(
-                    shopDomain: shopDomain,
-                    name: name,
-                    hasVariantChoices: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options),
-                    selectedVariants: selectedVariants,
-                    quantitiesByVariantID: quantitiesByVariantID,
-                    favoriteIDsByVariantID: favoriteIDsByVariantID
-                ),
+                favorites: [storefrontProduct?.variants.first.flatMap {
+                    shopifyCatalogFavorite(
+                        shopDomain: shopDomain,
+                        name: name,
+                        hasVariantChoices: hasShopifyCatalogVariantChoices(options: storefrontProduct?.options),
+                        variant: $0,
+                        quantity: quantity,
+                        favoriteID: favoriteID
+                    )
+                }].compactMap { $0 },
                 fileURL: favoritesFileURL
             )
             onFinish()
