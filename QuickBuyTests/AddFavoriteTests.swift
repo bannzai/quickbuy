@@ -328,6 +328,85 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == confirmedFavorites)
     }
 
+    /// 追加の画面を開き直して (識別子が新しい) 保存済みと同じ店・同じ種類を追加すると、行は増えず、その行の個数だけが渡した個数になる。
+    /// 名前・種類の名前・リマインド・並びの位置は保存済みのまま。同じ追加で渡した、保存済みでない種類は末尾に足される。
+    @Test func 同じ店同じ種類の追加は行を増やさず個数だけを書き換える() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var savedFavorite = confirmedFavorites[0]
+        savedFavorite.name = "名前を変えた豆"
+        savedFavorite.reminder = Reminder(intervalDays: 30, countedFrom: Date(timeIntervalSince1970: 1_800_000_000))
+        try saveFavorites(favorites: [savedFavorite, confirmedFavorites[1]], fileURL: fileURL)
+        let newVariantFavorite = Favorite(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000001A")!,
+            name: "店が付けた名前",
+            variantName: "1kg / 豆のまま",
+            imageURL: nil,
+            quantity: 2,
+            product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881414")),
+            reminder: nil
+        )
+        try finishFavoriteAddition(
+            choice: .add,
+            favorites: [
+                Favorite(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-00000000001B")!,
+                    name: "店が付けた名前",
+                    variantName: "店が付け直した種類の名前",
+                    imageURL: nil,
+                    quantity: 8,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")),
+                    reminder: nil
+                ),
+                newVariantFavorite,
+            ],
+            fileURL: fileURL
+        )
+        var expectedSavedFavorite = savedFavorite
+        expectedSavedFavorite.quantity = 8
+        #expect(try loadFavorites(fileURL: fileURL) == [expectedSavedFavorite, confirmedFavorites[1], newVariantFavorite])
+    }
+
+    /// 商品バリアントの ID が同じでも店が違うもの、店が同じでも商品バリアントの ID が違うものは、別の商品として末尾に足し、保存済みの行は変えない。
+    @Test func 店か種類が違う追加は今までどおり行を足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try saveFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        let otherShopFavorite = Favorite(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000001C")!,
+            name: "別の店の豆",
+            imageURL: nil,
+            quantity: 5,
+            product: .shopify(ShopifyProduct(shopDomain: "other-coffee.example", variantID: "70881412")),
+            reminder: nil
+        )
+        try finishFavoriteAddition(choice: .add, favorites: [otherShopFavorite, confirmedFavorites[1]], fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [confirmedFavorites[0], otherShopFavorite, confirmedFavorites[1]])
+    }
+
+    /// Amazon の商品は、同じ ASIN が保存済みでも、識別子が違えば今までどおり行を足す (書き換える個数を持たない)。
+    @Test func 同じASINのAmazonの商品の追加は行を足す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let amazonFavorites = ["00000000-0000-0000-0000-00000000001D", "00000000-0000-0000-0000-00000000001E"].map {
+            Favorite(id: UUID(uuidString: $0)!, name: "洗剤", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B000000111")), reminder: nil)
+        }
+        try saveFavorites(favorites: [amazonFavorites[0]], fileURL: fileURL)
+        try finishFavoriteAddition(choice: .add, favorites: [amazonFavorites[1]], fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == amazonFavorites)
+    }
+
+    /// 保存済みの並びから、同じ店・同じ種類の Shopify のお気に入りだけを返す。店か種類が違う時は nil。
+    @Test func 同じ店同じ種類の保存済みのお気に入りを返す() {
+        #expect(shopifyFavorite(
+            favorites: confirmedFavorites, shopifyProduct: ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")
+        ) == confirmedFavorites[1])
+        #expect(shopifyFavorite(
+            favorites: confirmedFavorites, shopifyProduct: ShopifyProduct(shopDomain: "other-coffee.example", variantID: "70881413")
+        ) == nil)
+        #expect(shopifyFavorite(
+            favorites: confirmedFavorites, shopifyProduct: ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881499")
+        ) == nil)
+        #expect(shopifyFavorite(favorites: [], shopifyProduct: ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881413")) == nil)
+    }
+
     /// 個数が 1 未満のものが、保存済みと同じ識別子のもの・並びの中で 2 回目に出てくるものであっても、追加はエラーになり、新しい 1 件も保存されない。
     @Test func 個数が1未満のものは重複として除かれる時でも追加を止める() throws {
         let fileURL = temporaryFavoritesFileURL()
