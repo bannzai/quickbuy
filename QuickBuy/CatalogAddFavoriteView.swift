@@ -95,8 +95,7 @@ struct CatalogAddFavoriteView: View {
         .tint(quickBuyAccentColor)
         .task {
             name = searchedProduct.title
-            // 読めない時は保存済みを見分けられないので、どの種類も保存済みでない扱いで出す。保存先が壊れている時は、ボタンを押した時の保存が失敗して知らせる。
-            savedFavorites = (try? loadFavorites(fileURL: favoritesFileURL)) ?? []
+            savedFavorites = shopifyCatalogAdditionSavedFavorites(fileURL: favoritesFileURL)
             if let searchedVariantID = searchedProduct.variants.first?.id {
                 await loadStorefrontProduct(productID: searchedVariantID, selected: nil)
             }

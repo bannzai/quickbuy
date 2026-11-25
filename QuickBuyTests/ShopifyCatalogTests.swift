@@ -481,6 +481,38 @@ import Testing
         ) == nil)
     }
 
+    /// 追加の画面は、保存先を読める時は保存済みの並びを、保存先のファイルが無い時と壊れている時は空を、保存済みのお気に入りとして扱う。
+    /// 壊れている時は、どの種類も保存済みでない扱い (個数は 1 個から、ボタンは追加の文言) になり、ボタンを押した時の保存が失敗する。
+    @Test func 保存先を読めない時の追加の画面はどの種類も保存済みでない扱いにして保存で失敗する() throws {
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("catalog-favorites-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == [])
+        try saveFavorites(favorites: Self.additionSavedFavorites, fileURL: fileURL)
+        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == Self.additionSavedFavorites)
+
+        try Data("お気に入りの並びではない中身".utf8).write(to: fileURL)
+        let savedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
+        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == [])
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: shopifyCatalogAdditionSavedFavorites(fileURL: fileURL), shopDomain: "chimney-coffee.com", variant: savedVariant
+        ) == nil)
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: nil, quantity: 1, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com",
+            savedFavorites: shopifyCatalogAdditionSavedFavorites(fileURL: fileURL)
+        ) == 1)
+        #expect(throws: (any Error).self) {
+            try finishFavoriteAddition(
+                choice: .add,
+                favorites: [shopifyCatalogFavorite(
+                    shopDomain: "chimney-coffee.com", name: "粉", hasVariantChoices: true, variant: savedVariant, quantity: 1, favoriteID: UUID()
+                )].compactMap { $0 },
+                fileURL: fileURL
+            )
+        }
+        // 失敗した保存は、壊れた保存先を書き換えない。
+        #expect(try Data(contentsOf: fileURL) == Data("お気に入りの並びではない中身".utf8))
+    }
+
     /// 種類が替わった時は保存済みの個数 (無ければ 1 個) から始め、同じ種類の読み直しでは利用者が決めた個数を保つ。
     @Test func 種類が替わると個数は保存済みの個数か1個から始まり読み直しでは変わらない() {
         let savedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
