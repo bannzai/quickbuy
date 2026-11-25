@@ -76,7 +76,7 @@ func shopifyFavorite(favorites: [Favorite], shopifyProduct: ShopifyProduct) -> F
 /// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる。
 /// 渡された並びに個数が 1 未満のお気に入りが 1 つでもあれば (保存済みと同じ識別子のものでも)、どれも保存せずにエラーを投げる。
 /// 同じ識別子のお気に入りが保存済みのものは足さず、書き換えもしない (同じ追加を 2 回呼んでも結果は変わらない)。
-/// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを足す (保存する並びに同じ識別子を 2 つ置かない)。
+/// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを使う (保存する並びに同じ識別子を 2 つ置かず、個数の書き換えも最初の 1 件の個数で行う)。
 /// 識別子は違うが、Shopify の店の同じ店・同じ種類 (`shopifyFavorite(favorites:shopifyProduct:)`) のお気に入りが並びにある時は、行を増やさず、その最初の 1 件の個数だけを渡された個数にする
 /// (名前・種類の名前・画像・リマインド・並びの位置は変えない。同じ商品の行を 2 つ作らないため。https://github.com/bannzai/quickbuy/issues/84 )。
 /// Amazon の商品は、同じ ASIN が保存済みでも足す (個数を持たず、書き換える値が無いため今までどおり)。
@@ -86,8 +86,12 @@ func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
         throw FavoriteStoreError.quantityLessThanOne
     }
     let savedFavorites = try loadFavorites(fileURL: fileURL)
-    let mergedFavorites = addedFavorites.reduce(into: savedFavorites) { mergedFavorites, addedFavorite in
-        guard !mergedFavorites.contains(where: { $0.id == addedFavorite.id }) else {
+    let mergedFavorites = addedFavorites.enumerated().reduce(into: savedFavorites) { mergedFavorites, enumeratedFavorite in
+        let (addedIndex, addedFavorite) = enumeratedFavorite
+        // 個数の書き換えに使ったお気に入りの識別子は並びに残らないので、渡された並びの前の方に同じ識別子があるかも見る (最初の 1 件だけを使う)。
+        guard !mergedFavorites.contains(where: { $0.id == addedFavorite.id }),
+              !addedFavorites[..<addedIndex].contains(where: { $0.id == addedFavorite.id })
+        else {
             return
         }
         if case .shopify = addedFavorite.product,
