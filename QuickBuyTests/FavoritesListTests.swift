@@ -290,6 +290,17 @@ struct FavoritesListTests {
         #expect(try loadFavorites(fileURL: fileURL) == [firstOwnFavorite, secondOwnFavorite])
     }
 
+    /// 見本と同じ店・同じ種類を自分で入れていても、見本の出し入れは自分の行の個数を書き換えない (見本は別の行として足され、消すとその行だけが無くなる)。
+    @Test func 見本と同じ商品の自分の行は見本の出し入れで変わらない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let ownFavorite = Favorite(id: UUID(), name: "自分で入れた商品", imageURL: nil, quantity: 1, product: sampleFavorites()[0].product, reminder: nil)
+        try saveFavorites(favorites: [ownFavorite], fileURL: fileURL)
+        try insertSampleFavorites(fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [ownFavorite] + sampleFavorites())
+        try deleteSampleFavorites(fileURL: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL) == [ownFavorite])
+    }
+
     /// 見本だけが入っている時に消すと 0 件になり、保存先のファイルが無い時に消しても 0 件のまま。
     @Test func 見本だけの時に消すと0件になる() throws {
         let fileURL = temporaryFavoritesFileURL()

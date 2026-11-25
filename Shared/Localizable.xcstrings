@@ -367,16 +367,6 @@
         }
       }
     },
-    "お気に入りにする種類" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Variants to Favorite"
-          }
-        }
-      }
-    },
     "お気に入りに入れるとホーム画面のウィジェットから買い直せます" : {
       "localizations" : {
         "en" : {
@@ -403,6 +393,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can also add a product page URL with + in Favorites"
+          }
+        }
+      }
+    },
+    "お気に入りの個数を変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Quantity in Favorites"
           }
         }
       }
@@ -513,26 +513,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This product is from this store"
-          }
-        }
-      }
-    },
-    "この種類は選んであります" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected"
-          }
-        }
-      }
-    },
-    "この種類を選ぶ" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select This Variant"
           }
         }
       }

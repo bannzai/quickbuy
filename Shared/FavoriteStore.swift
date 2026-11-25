@@ -60,30 +60,65 @@ func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
 /// お気に入りを並びの末尾に足して保存する。
 ///
 /// 同じ識別子のお気に入りが保存済みの時は何も変えない (同じ追加を 2 回呼んでも 1 件のまま)。
+/// 同じ店・同じ種類のお気に入りが保存済みでも、識別子が違えば別の行として足し、保存済みの行は変えない
+/// (開発者メニューの見本の出し入れが、利用者が入れた行の個数を書き換えないため)。
 func addFavorite(favorite: Favorite, fileURL: URL) throws {
-    try addFavorites(favorites: [favorite], fileURL: fileURL)
+    try addFavorites(favorites: [favorite], updatesSavedQuantity: false, fileURL: fileURL)
 }
 
-/// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。
+/// お気に入りの並び `favorites` のうち、Shopify の店の商品 `shopifyProduct` と同じ店・同じ種類 (店のドメインと商品バリアントの ID が同じ) の最初の 1 件を返す。無ければ nil。
+///
+/// 追加の画面が、選んでいる種類が保存済みかを見分けるのに使う。Amazon の商品のお気に入りは返さない。
+func shopifyFavorite(favorites: [Favorite], shopifyProduct: ShopifyProduct) -> Favorite? {
+    favorites.first { $0.product == .shopify(shopifyProduct) }
+}
+
+/// 追加の画面 (検索・URL の貼り付け・共有メニュー) が、選んだ種類が保存済みかを見分けるために読む、保存済みのお気に入りを返す。
+///
+/// 保存先 `fileURL` を読めない時 (ファイルが壊れている等) は空を返す。その時は、どの種類も保存済みでない扱いで画面を出し (個数は 1 個から)、
+/// 利用者がボタンを押した時の保存 (`finishFavoriteAddition`) が同じ理由で失敗して知らせる。開いただけの画面でエラーを出さないため。
+func favoriteAdditionSavedFavorites(fileURL: URL) -> [Favorite] {
+    // 読めない時に空にするのは、保存済みを見分けられない時に「保存済みでない」側へ倒すため (個数を書き換える側へ倒さない)。
+    (try? loadFavorites(fileURL: fileURL)) ?? []
+}
+
+/// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。`updatesSavedQuantity` が true の時は、同じ店・同じ種類のお気に入りが保存済みのものを、足さずにその個数の書き換えにする。
 ///
 /// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる。
 /// 渡された並びに個数が 1 未満のお気に入りが 1 つでもあれば (保存済みと同じ識別子のものでも)、どれも保存せずにエラーを投げる。
-/// 同じ識別子のお気に入りが保存済みのものは足さない (同じ追加を 2 回呼んでも件数は変わらない)。
-/// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを足す (保存する並びに同じ識別子を 2 つ置かない)。足すものが無い時は何も書かない。
-func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
+/// 同じ識別子のお気に入りが保存済みのものは足さず、書き換えもしない (同じ追加を 2 回呼んでも結果は変わらない)。
+/// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを使う (保存する並びに同じ識別子を 2 つ置かず、個数の書き換えも最初の 1 件の個数で行う)。
+/// `updatesSavedQuantity` が true (追加の画面からの保存) の時、識別子は違うが、Shopify の店の同じ店・同じ種類 (`shopifyFavorite(favorites:shopifyProduct:)`) のお気に入りが並びにある時は、行を増やさず、その最初の 1 件の個数だけを渡された個数にする
+/// (名前・種類の名前・画像・リマインド・並びの位置は変えない。同じ商品の行を 2 つ作らないため。https://github.com/bannzai/quickbuy/issues/84 )。
+/// Amazon の商品は、同じ ASIN が保存済みでも足す (個数を持たず、書き換える値が無いため今までどおり)。
+/// `updatesSavedQuantity` が false の時は、同じ店・同じ種類が保存済みでも別の行として足す (`addFavorite(favorite:fileURL:)`)。
+/// 保存済みの並びと変わらない時は何も書かない。
+func addFavorites(favorites addedFavorites: [Favorite], updatesSavedQuantity: Bool, fileURL: URL) throws {
     guard addedFavorites.allSatisfy({ $0.quantity >= 1 }) else {
         throw FavoriteStoreError.quantityLessThanOne
     }
     let savedFavorites = try loadFavorites(fileURL: fileURL)
-    let newFavorites = addedFavorites.reduce(into: [Favorite]()) { newFavorites, addedFavorite in
-        if !(savedFavorites + newFavorites).contains(where: { $0.id == addedFavorite.id }) {
-            newFavorites.append(addedFavorite)
+    let mergedFavorites = addedFavorites.enumerated().reduce(into: savedFavorites) { mergedFavorites, enumeratedFavorite in
+        let (addedIndex, addedFavorite) = enumeratedFavorite
+        // 個数の書き換えに使ったお気に入りの識別子は並びに残らないので、渡された並びの前の方に同じ識別子があるかも見る (最初の 1 件だけを使う)。
+        guard !mergedFavorites.contains(where: { $0.id == addedFavorite.id }),
+              !addedFavorites[..<addedIndex].contains(where: { $0.id == addedFavorite.id })
+        else {
+            return
+        }
+        if updatesSavedQuantity,
+           case .shopify = addedFavorite.product,
+           let sameProductIndex = mergedFavorites.firstIndex(where: { $0.product == addedFavorite.product })
+        {
+            mergedFavorites[sameProductIndex].quantity = addedFavorite.quantity
+        } else {
+            mergedFavorites.append(addedFavorite)
         }
     }
-    guard !newFavorites.isEmpty else {
+    guard mergedFavorites != savedFavorites else {
         return
     }
-    try saveFavorites(favorites: savedFavorites + newFavorites, fileURL: fileURL)
+    try saveFavorites(favorites: mergedFavorites, fileURL: fileURL)
 }
 
 /// 指定した識別子のお気に入りの名前と個数を書き換えて保存する。並びとほかの値は変えない。

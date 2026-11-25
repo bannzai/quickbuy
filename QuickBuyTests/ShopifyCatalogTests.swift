@@ -227,43 +227,40 @@ import Testing
         ShopifyCatalogVariant(id: variantGID, title: title, price: ShopifyCatalogMoney(amount: 2700, currency: "JPY"), availability: nil, seller: nil)
     }
 
-    /// Catalog の画像の URL と価格は保存せず、識別子・個数の無い種類と ID が数字で終わらない種類はお気に入りにしない。
+    /// Catalog の画像の URL と価格は保存せず、渡した識別子・名前・個数と、店のドメインと商品バリアントの ID の数字を持つ。
     @Test func 検索の結果から作るお気に入りはCatalogの画像と価格を持たない() {
-        let firstID = UUID()
-        let secondID = UUID()
-        #expect(shopifyCatalogFavorites(
+        let favoriteID = UUID()
+        #expect(shopifyCatalogFavorite(
             shopDomain: "chimney-coffee.com",
             name: "いつものコーヒー",
             hasVariantChoices: true,
-            selectedVariants: [
-                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/45476749770930", title: "MILD / 粉"),
-                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/45476745412786", title: "BITTER / 豆"),
-                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/999", title: "識別子の無い種類"),
-                Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/998", title: "個数の無い種類"),
-                Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "ID の形が違う種類"),
-            ],
-            quantitiesByVariantID: [
-                "gid://shopify/ProductVariant/45476749770930": 2,
-                "gid://shopify/ProductVariant/45476745412786": 1,
-                "gid://shopify/ProductVariant/999": 1,
-                "gid://shopify/p/abc/v1": 1,
-            ],
-            favoriteIDsByVariantID: [
-                "gid://shopify/ProductVariant/45476749770930": firstID,
-                "gid://shopify/ProductVariant/45476745412786": secondID,
-                "gid://shopify/ProductVariant/998": UUID(),
-                "gid://shopify/p/abc/v1": UUID(),
-            ]
-        ) == [
-            Favorite(
-                id: firstID, name: "いつものコーヒー", variantName: "MILD / 粉", imageURL: nil, quantity: 2,
-                product: .shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "45476749770930")), reminder: nil
-            ),
-            Favorite(
-                id: secondID, name: "いつものコーヒー", variantName: "BITTER / 豆", imageURL: nil, quantity: 1,
-                product: .shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "45476745412786")), reminder: nil
-            ),
-        ])
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/45476749770930", title: "MILD / 粉"),
+            quantity: 2,
+            favoriteID: favoriteID
+        ) == Favorite(
+            id: favoriteID, name: "いつものコーヒー", variantName: "MILD / 粉", imageURL: nil, quantity: 2,
+            product: .shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "45476749770930")), reminder: nil
+        ))
+    }
+
+    /// 商品バリアントの ID が数字で終わらない種類は、購入画面の URL を組み立てられないので、お気に入りにしない。
+    @Test func IDが数字で終わらない種類はお気に入りにしない() {
+        #expect(shopifyCatalogFavorite(
+            shopDomain: "chimney-coffee.com",
+            name: "いつものコーヒー",
+            hasVariantChoices: true,
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "ID の形が違う種類"),
+            quantity: 1,
+            favoriteID: UUID()
+        ) == nil)
+        #expect(shopifyCatalogShopifyProduct(
+            shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "ID の形が違う種類")
+        ) == nil)
+        #expect(shopifyCatalogShopifyProduct(
+            shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "豆")
+        ) == ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "1"))
     }
 
     /// 検索の結果から追加の画面を通って保存したお気に入りの購入画面の URL は `https://{seller.url のホスト}/cart/{商品バリアントの ID}:{個数}`。
@@ -275,14 +272,15 @@ import Testing
         defer { try? FileManager.default.removeItem(at: fileURL) }
         try finishFavoriteAddition(
             choice: .add,
-            favorites: shopifyCatalogFavorites(
+            // お気に入りを作れなかった時 (nil) は 1 件も保存されず、下の保存済みの並びの確認で落ちる。
+            favorites: [shopifyCatalogFavorite(
                 shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
                 name: "いつものコーヒー",
                 hasVariantChoices: true,
-                selectedVariants: [searchedVariant],
-                quantitiesByVariantID: [searchedVariant.id: 3],
-                favoriteIDsByVariantID: [searchedVariant.id: UUID()]
-            ),
+                variant: searchedVariant,
+                quantity: 3,
+                favoriteID: UUID()
+            )].compactMap { $0 },
             fileURL: fileURL
         )
         let savedFavorites = try loadFavorites(fileURL: fileURL)
@@ -301,14 +299,15 @@ import Testing
         let favoriteID = UUID()
         try finishFavoriteAddition(
             choice: .add,
-            favorites: shopifyCatalogFavorites(
+            // お気に入りを作れなかった時 (nil) は 1 件も保存されず、下の保存済みの並びの確認で落ちる。
+            favorites: [shopifyCatalogFavorite(
                 shopDomain: try #require(shopifyCatalogShopDomain(variant: searchedVariant)),
                 name: "いつものコーヒー",
                 hasVariantChoices: true,
-                selectedVariants: [searchedVariant],
-                quantitiesByVariantID: [searchedVariant.id: 3],
-                favoriteIDsByVariantID: [searchedVariant.id: favoriteID]
-            ),
+                variant: searchedVariant,
+                quantity: 3,
+                favoriteID: favoriteID
+            )].compactMap { $0 },
             fileURL: fileURL
         )
         var recordedEvents: [AnalyticsEvent] = []
@@ -326,15 +325,15 @@ import Testing
     }
 
     /// 種類の選び方が無い商品では、店が付けた `Default Title` を種類の名前に入れない。
-    @Test func 種類の無い商品のお気に入りは種類の名前を持たない() {
-        #expect(shopifyCatalogFavorites(
+    @Test func 種類の無い商品のお気に入りは種類の名前を持たない() throws {
+        #expect(try #require(shopifyCatalogFavorite(
             shopDomain: "chimney-coffee.com",
             name: "豆",
             hasVariantChoices: false,
-            selectedVariants: [Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")],
-            quantitiesByVariantID: ["gid://shopify/ProductVariant/1": 1],
-            favoriteIDsByVariantID: ["gid://shopify/ProductVariant/1": UUID()]
-        ).map(\.variantName) == [nil])
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title"),
+            quantity: 1,
+            favoriteID: UUID()
+        )).variantName == nil)
     }
 
     /// 画像は Shopify の CDN か店のドメインのものだけを出し、ほかのホストの画像は出さない。
@@ -441,29 +440,160 @@ import Testing
         #expect(!shouldRefreshShopifyCatalogSearch(fetchedAt: nil, isSearching: false, isShowingError: true, now: fetchedAt))
     }
 
-    /// 最初に読み込んだ、種類の選び方が無い商品だけ、選ぶ操作を挟まずに商品バリアントを選ぶ。2 回目以降の読み込みでは選ばない。
-    @Test func 種類の選び方が無い商品だけ選ぶ操作を挟まずに選ぶ() {
-        let singleVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/1", title: "Default Title")
-        let singleProduct = ShopifyCatalogProduct(
-            id: "gid://shopify/Product/1", title: "豆", description: nil, media: nil,
-            options: [ShopifyCatalogOption(name: "Title", values: [.init(label: "Default Title")])], selected: nil, variants: [singleVariant]
+    // MARK: - 検索からの追加の画面の個数とボタン
+
+    /// 検索からの追加の画面を開いた時の保存済みの並び: 利用者が名前を変えてリマインドを付けたこの店の「粉」が 4 個、別の店の商品 (この店の「豆」と同じ商品バリアントの ID) が 9 個、Amazon の商品。
+    static let additionSavedFavorites = [
+        Favorite(
+            id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!, name: "名前を変えた粉", variantName: "粉", imageURL: nil, quantity: 4,
+            product: .shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "222")),
+            reminder: Reminder(intervalDays: 14, countedFrom: Date(timeIntervalSince1970: 1_800_000_000))
+        ),
+        Favorite(
+            id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A2")!, name: "別の店の豆", variantName: nil, imageURL: nil, quantity: 9,
+            product: .shopify(ShopifyProduct(shopDomain: "other-shop.example", variantID: "111")), reminder: nil
+        ),
+        Favorite(
+            id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A3")!, name: "洗剤", variantName: nil, imageURL: nil, quantity: 1,
+            product: .amazon(AmazonProduct(asin: "B000000111")), reminder: nil
+        ),
+    ]
+
+    /// 同じ店・同じ種類のお気に入りだけを保存済みとして返す。別の店の同じ ID・保存していない種類・読み込む前・ID が数字で終わらない種類は nil。
+    @Test func 選んでいる種類と同じ店同じ種類のお気に入りだけを保存済みとして返す() {
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: Self.additionSavedFavorites, shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
+        ) == Self.additionSavedFavorites[0])
+        // 同じ商品バリアントの ID が別の店に保存済みでも、この店の種類は保存済みでない。
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: Self.additionSavedFavorites, shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/111", title: "豆")
+        ) == nil)
+        #expect(shopifyCatalogSavedFavorite(savedFavorites: Self.additionSavedFavorites, shopDomain: "chimney-coffee.com", variant: nil) == nil)
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: Self.additionSavedFavorites, shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v222", title: "粉")
+        ) == nil)
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: [], shopDomain: "chimney-coffee.com",
+            variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
+        ) == nil)
+    }
+
+    /// 追加の画面は、保存先を読める時は保存済みの並びを、保存先のファイルが無い時と壊れている時は空を、保存済みのお気に入りとして扱う。
+    /// 壊れている時は、どの種類も保存済みでない扱い (個数は 1 個から、ボタンは追加の文言) になり、ボタンを押した時の保存が失敗する。
+    @Test func 保存先を読めない時の追加の画面はどの種類も保存済みでない扱いにして保存で失敗する() throws {
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("catalog-favorites-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == [])
+        try saveFavorites(favorites: Self.additionSavedFavorites, fileURL: fileURL)
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == Self.additionSavedFavorites)
+
+        try Data("お気に入りの並びではない中身".utf8).write(to: fileURL)
+        let savedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == [])
+        #expect(shopifyCatalogSavedFavorite(
+            savedFavorites: favoriteAdditionSavedFavorites(fileURL: fileURL), shopDomain: "chimney-coffee.com", variant: savedVariant
+        ) == nil)
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: nil, quantity: 1, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com",
+            savedFavorites: favoriteAdditionSavedFavorites(fileURL: fileURL)
+        ) == 1)
+        #expect(throws: (any Error).self) {
+            try finishFavoriteAddition(
+                choice: .add,
+                favorites: [shopifyCatalogFavorite(
+                    shopDomain: "chimney-coffee.com", name: "粉", hasVariantChoices: true, variant: savedVariant, quantity: 1, favoriteID: UUID()
+                )].compactMap { $0 },
+                fileURL: fileURL
+            )
+        }
+        // 失敗した保存は、壊れた保存先を書き換えない。
+        #expect(try Data(contentsOf: fileURL) == Data("お気に入りの並びではない中身".utf8))
+    }
+
+    /// 種類が替わった時は保存済みの個数 (無ければ 1 個) から始め、同じ種類の読み直しでは利用者が決めた個数を保つ。
+    @Test func 種類が替わると個数は保存済みの個数か1個から始まり読み直しでは変わらない() {
+        let savedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
+        let unsavedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/111", title: "豆")
+        // 画面を開いて最初の読み込み (前に出していた種類が無い)。
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: nil, quantity: 1, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 4)
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: nil, quantity: 1, loadedVariant: unsavedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 1)
+        // 選び直して種類が替わった時は、前の種類で決めた個数 (7 個) を持ち越さない。
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: unsavedVariant.id, quantity: 7, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 4)
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: savedVariant.id, quantity: 7, loadedVariant: unsavedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 1)
+        // 同じ種類の読み直し (価格の期限) では、保存済みの種類でも保存済みでない種類でも、決めた個数 (7 個) のまま。
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: savedVariant.id, quantity: 7, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 7)
+        #expect(shopifyCatalogAdditionQuantity(
+            shownVariantID: unsavedVariant.id, quantity: 7, loadedVariant: unsavedVariant, shopDomain: "chimney-coffee.com", savedFavorites: Self.additionSavedFavorites
+        ) == 7)
+    }
+
+    /// 保存するボタンは、名前に字があり、読み込み中でなく、お気に入りにできる種類が読み込めている時だけ押せる。
+    @Test(arguments: [
+        ("豆", "gid://shopify/ProductVariant/1", false, true),
+        // 読み込み中 (選び直した値の組を読んでいる間) は押せない。
+        ("豆", "gid://shopify/ProductVariant/1", true, false),
+        // 種類を読み込む前・読み込めなかった時は押せない。
+        ("豆", nil, false, false),
+        ("豆", nil, true, false),
+        // 商品バリアントの ID が数字で終わらない種類は追加できないので押せない。
+        ("豆", "gid://shopify/p/abc/v1", false, false),
+        // 名前が空・空白だけの時は押せない。
+        ("", "gid://shopify/ProductVariant/1", false, false),
+        (" \n", "gid://shopify/ProductVariant/1", false, false),
+    ] as [(String, String?, Bool, Bool)])
+    func 名前があり種類が読み込めている時だけ保存できる(name: String, variantGID: String?, isLoading: Bool, expectedSavable: Bool) {
+        #expect(isShopifyCatalogAdditionSavable(
+            name: name,
+            shopDomain: "chimney-coffee.com",
+            variant: variantGID.map { Self.storefrontVariant(variantGID: $0, title: "豆") },
+            isLoading: isLoading
+        ) == expectedSavable)
+    }
+
+    /// 保存済みの種類では個数の変更、保存済みでない種類では追加の文言を、日本語と英語で返す。
+    @Test(arguments: [
+        (false, "ja", "お気に入りに追加"),
+        (true, "ja", "お気に入りの個数を変更"),
+        (false, "en", "Add to Favorites"),
+        (true, "en", "Update Quantity in Favorites"),
+    ])
+    func 保存するボタンの文言は保存済みの種類かで変わる(isSaved: Bool, localeIdentifier: String, expectedTitle: String) {
+        #expect(shopifyCatalogAdditionButtonTitle(isSaved: isSaved, locale: Locale(identifier: localeIdentifier)) == expectedTitle)
+    }
+
+    /// 検索からの追加の画面で保存済みの種類の個数を変えて保存すると、行は増えず、その行の個数だけが変わる (名前・種類の名前・並びは変わらない)。
+    @Test func 保存済みの種類を検索から追加し直すと行を増やさず個数だけを書き換える() throws {
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("catalog-favorites-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        try saveFavorites(favorites: Self.additionSavedFavorites, fileURL: fileURL)
+        try finishFavoriteAddition(
+            choice: .add,
+            favorites: [try #require(shopifyCatalogFavorite(
+                shopDomain: "chimney-coffee.com",
+                name: "検索の結果の名前",
+                hasVariantChoices: true,
+                variant: Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "MILD / 粉"),
+                quantity: 6,
+                favoriteID: UUID()
+            ))],
+            fileURL: fileURL
         )
-        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: true) == singleVariant)
-        #expect(shopifyCatalogAutoSelectedVariant(product: singleProduct, isFirstLoadedProduct: false) == nil)
-        #expect(shopifyCatalogAutoSelectedVariant(
-            product: ShopifyCatalogProduct(
-                id: "gid://shopify/Product/2", title: "豆", description: nil, media: nil,
-                options: [ShopifyCatalogOption(name: "挽き", values: [.init(label: "豆"), .init(label: "粉")])], selected: nil, variants: [singleVariant]
-            ),
-            isFirstLoadedProduct: true
-        ) == nil)
-        #expect(shopifyCatalogAutoSelectedVariant(
-            product: ShopifyCatalogProduct(
-                id: "gid://shopify/Product/3", title: "豆", description: nil, media: nil, options: nil, selected: nil,
-                variants: [Self.storefrontVariant(variantGID: "gid://shopify/p/abc/v1", title: "Default Title")]
-            ),
-            isFirstLoadedProduct: true
-        ) == nil)
+        var expectedFavorites = Self.additionSavedFavorites
+        expectedFavorites[0].quantity = 6
+        #expect(try loadFavorites(fileURL: fileURL) == expectedFavorites)
     }
 
     // MARK: - 商品の詳細ページ

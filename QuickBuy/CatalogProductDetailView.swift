@@ -199,18 +199,27 @@ struct CatalogProductDetailView: View {
     }
 
     /// 店が付けた種類の選び方 `choiceOptions` (`shopifyCatalogChoiceOptions` の値) ごとの、選べる値の並び (見るだけ。選ぶのは追加の画面)。
+    ///
+    /// 種類の選び方の名前を太字の見出しにし、値はその下に字下げして「・」を前に付けて並べる (名前と値が別の段だと見分けられるようにするため。https://github.com/bannzai/quickbuy/issues/84 )。
+    /// 店が付けた名前と値の文字は書き換えず、「・」は値とは別の文字として置く (読み上げには出さない)。
     private func options(choiceOptions: [ShopifyCatalogOption]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("選べる種類")
                 .font(.headline)
             ForEach(choiceOptions, id: \.name) { option in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(option.name)
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline.weight(.bold))
+                        .accessibilityAddTraits(.isHeader)
                     ForEach(option.values, id: \.label) { value in
-                        Text(value.label)
-                            .font(.subheadline)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(verbatim: "・")
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
+                            Text(value.label)
+                        }
+                        .font(.subheadline)
+                        .padding(.leading, 8)
                     }
                 }
             }

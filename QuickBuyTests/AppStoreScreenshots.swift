@@ -704,15 +704,6 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
                     }
                     .frame(height: 46)
                     Divider()
-                    Text(localized(key: "この種類は選んであります", locale: locale))
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color.gray)
-                        .frame(height: 40)
-                }
-            }
-            section(headerKey: "お気に入りにする種類") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(favorite.variantName!).font(.system(size: 14, weight: .bold))
                     HStack {
                         Text(localized(key: "個数", locale: locale)).font(.system(size: 15))
                         Spacer()
@@ -728,11 +719,11 @@ private struct AppStoreScreenshotAddFavoriteScreen: View {
                         .frame(height: 30)
                         .background(Color(white: 0.92), in: Capsule())
                     }
+                    .frame(height: 46)
                 }
-                .padding(.vertical, 8)
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text(favoriteAdditionButtonTitle(hasVariantChoices: true, selectedVariantCount: 1, locale: locale))
+                Text(shopifyCatalogAdditionButtonTitle(isSaved: false, locale: locale))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
