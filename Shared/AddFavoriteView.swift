@@ -28,6 +28,8 @@ struct AddFavoriteView: View {
     @State private var quantitiesByVariantID: [UInt64: Int] = [:]
     /// 確認の画面の商品の商品バリアントをお気に入りにする時の識別子。商品の情報を取得した時に 1 回だけ作り、保存まで変えない。
     @State private var favoriteIDsByVariantID: [UInt64: UUID] = [:]
+    /// 商品の情報を取得した時に保存済みだったお気に入り。選んだ種類の個数を保存済みの個数から始めるために読む (読めなかった時は空)。
+    @State private var savedFavorites: [Favorite] = []
     /// 入力欄の下に出す、登録できなかった理由の文言。出していない時は nil。
     @State private var errorMessage: String?
     /// 保存に失敗したことを知らせる表示を出している間は true。
@@ -133,7 +135,12 @@ struct AddFavoriteView: View {
                 Section {
                     ForEach(product.variants, id: \.id) { variant in
                         Button {
-                            quantitiesByVariantID = toggledVariantQuantities(quantitiesByVariantID: quantitiesByVariantID, variantID: variant.id)
+                            quantitiesByVariantID = variantQuantitiesStartingFromSaved(
+                                quantitiesByVariantID: toggledVariantQuantities(quantitiesByVariantID: quantitiesByVariantID, variantID: variant.id),
+                                selectedVariantIDs: [variant.id],
+                                shopDomain: productPage.shopDomain,
+                                savedFavorites: savedFavorites
+                            )
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: quantitiesByVariantID[variant.id] == nil ? "square" : "checkmark.square.fill")
@@ -232,7 +239,13 @@ struct AddFavoriteView: View {
             }
             let favoriteAddition = try await loadFavoriteAddition(text: text, urlSession: urlSession)
             name = favoriteAddition.product.title
-            quantitiesByVariantID = favoriteAddition.quantitiesByVariantID
+            savedFavorites = favoriteAdditionSavedFavorites(fileURL: favoritesFileURL)
+            quantitiesByVariantID = variantQuantitiesStartingFromSaved(
+                quantitiesByVariantID: favoriteAddition.quantitiesByVariantID,
+                selectedVariantIDs: Array(favoriteAddition.quantitiesByVariantID.keys),
+                shopDomain: favoriteAddition.productPage.shopDomain,
+                savedFavorites: savedFavorites
+            )
             favoriteIDsByVariantID = makeFavoriteIDsByVariantID(product: favoriteAddition.product, makeID: { UUID() })
             loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {

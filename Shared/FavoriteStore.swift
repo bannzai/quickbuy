@@ -73,6 +73,15 @@ func shopifyFavorite(favorites: [Favorite], shopifyProduct: ShopifyProduct) -> F
     favorites.first { $0.product == .shopify(shopifyProduct) }
 }
 
+/// 追加の画面 (検索・URL の貼り付け・共有メニュー) が、選んだ種類が保存済みかを見分けるために読む、保存済みのお気に入りを返す。
+///
+/// 保存先 `fileURL` を読めない時 (ファイルが壊れている等) は空を返す。その時は、どの種類も保存済みでない扱いで画面を出し (個数は 1 個から)、
+/// 利用者がボタンを押した時の保存 (`finishFavoriteAddition`) が同じ理由で失敗して知らせる。開いただけの画面でエラーを出さないため。
+func favoriteAdditionSavedFavorites(fileURL: URL) -> [Favorite] {
+    // 読めない時に空にするのは、保存済みを見分けられない時に「保存済みでない」側へ倒すため (個数を書き換える側へ倒さない)。
+    (try? loadFavorites(fileURL: fileURL)) ?? []
+}
+
 /// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。`updatesSavedQuantity` が true の時は、同じ店・同じ種類のお気に入りが保存済みのものを、足さずにその個数の書き換えにする。
 ///
 /// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる。

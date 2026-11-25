@@ -486,19 +486,19 @@ import Testing
     @Test func 保存先を読めない時の追加の画面はどの種類も保存済みでない扱いにして保存で失敗する() throws {
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("catalog-favorites-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: fileURL) }
-        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == [])
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == [])
         try saveFavorites(favorites: Self.additionSavedFavorites, fileURL: fileURL)
-        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == Self.additionSavedFavorites)
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == Self.additionSavedFavorites)
 
         try Data("お気に入りの並びではない中身".utf8).write(to: fileURL)
         let savedVariant = Self.storefrontVariant(variantGID: "gid://shopify/ProductVariant/222", title: "粉")
-        #expect(shopifyCatalogAdditionSavedFavorites(fileURL: fileURL) == [])
+        #expect(favoriteAdditionSavedFavorites(fileURL: fileURL) == [])
         #expect(shopifyCatalogSavedFavorite(
-            savedFavorites: shopifyCatalogAdditionSavedFavorites(fileURL: fileURL), shopDomain: "chimney-coffee.com", variant: savedVariant
+            savedFavorites: favoriteAdditionSavedFavorites(fileURL: fileURL), shopDomain: "chimney-coffee.com", variant: savedVariant
         ) == nil)
         #expect(shopifyCatalogAdditionQuantity(
             shownVariantID: nil, quantity: 1, loadedVariant: savedVariant, shopDomain: "chimney-coffee.com",
-            savedFavorites: shopifyCatalogAdditionSavedFavorites(fileURL: fileURL)
+            savedFavorites: favoriteAdditionSavedFavorites(fileURL: fileURL)
         ) == 1)
         #expect(throws: (any Error).self) {
             try finishFavoriteAddition(

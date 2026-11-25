@@ -388,6 +388,39 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.id) == [confirmedFavorites[0].id])
     }
 
+    /// URL の貼り付け・共有メニューの確認の画面で、選んだばかりの種類の個数は、同じ店・同じ種類が保存済みならその個数から始まる。
+    /// 保存済みでない種類・別の店の同じ ID・選んだばかりでない種類 (利用者が個数を変えたかもしれない)・選んでいない種類は変わらない。
+    @Test func 選んだばかりの保存済みの種類の個数は保存済みの個数から始まる() {
+        let savedFavorites = [
+            Favorite(
+                id: UUID(), name: "豆", imageURL: nil, quantity: 4,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "101")), reminder: nil
+            ),
+            Favorite(
+                id: UUID(), name: "豆", imageURL: nil, quantity: 6,
+                product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "102")), reminder: nil
+            ),
+            Favorite(
+                id: UUID(), name: "別の店の豆", imageURL: nil, quantity: 9,
+                product: .shopify(ShopifyProduct(shopDomain: "other-coffee.example", variantID: "103")), reminder: nil
+            ),
+        ]
+        // 101: 選んだばかりで保存済み → 4。102: 保存済みだが選んだばかりでない → 2 のまま。103: この店では保存済みでない → 1 のまま。
+        #expect(variantQuantitiesStartingFromSaved(
+            quantitiesByVariantID: [101: 1, 102: 2, 103: 1], selectedVariantIDs: [101, 103], shopDomain: "mori-coffee.example", savedFavorites: savedFavorites
+        ) == [101: 4, 102: 2, 103: 1])
+        // 選ぶのをやめた種類 (並びに無い) は、保存済みでも足さない。
+        #expect(variantQuantitiesStartingFromSaved(
+            quantitiesByVariantID: [102: 2], selectedVariantIDs: [101], shopDomain: "mori-coffee.example", savedFavorites: savedFavorites
+        ) == [102: 2])
+        #expect(variantQuantitiesStartingFromSaved(
+            quantitiesByVariantID: [101: 1], selectedVariantIDs: [101], shopDomain: "mori-coffee.example", savedFavorites: []
+        ) == [101: 1])
+        #expect(variantQuantitiesStartingFromSaved(
+            quantitiesByVariantID: [:], selectedVariantIDs: [], shopDomain: "mori-coffee.example", savedFavorites: savedFavorites
+        ) == [:])
+    }
+
     /// 商品バリアントの ID が同じでも店が違うもの、店が同じでも商品バリアントの ID が違うものは、別の商品として末尾に足し、保存済みの行は変えない。
     @Test func 店か種類が違う追加は今までどおり行を足す() throws {
         let fileURL = temporaryFavoritesFileURL()

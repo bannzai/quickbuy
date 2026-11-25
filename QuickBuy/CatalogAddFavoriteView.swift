@@ -95,7 +95,7 @@ struct CatalogAddFavoriteView: View {
         .tint(quickBuyAccentColor)
         .task {
             name = searchedProduct.title
-            savedFavorites = shopifyCatalogAdditionSavedFavorites(fileURL: favoritesFileURL)
+            savedFavorites = favoriteAdditionSavedFavorites(fileURL: favoritesFileURL)
             if let searchedVariantID = searchedProduct.variants.first?.id {
                 await loadStorefrontProduct(productID: searchedVariantID, selected: nil)
             }

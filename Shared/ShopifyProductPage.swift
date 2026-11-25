@@ -167,6 +167,26 @@ func toggledVariantQuantities(quantitiesByVariantID: [UInt64: Int], variantID: U
     return toggledQuantitiesByVariantID
 }
 
+/// 確認の画面で選んである商品バリアントと個数 `quantitiesByVariantID` のうち、選んだばかりの商品バリアント (`selectedVariantIDs`) の個数を、
+/// 同じ店・同じ種類の保存済みのお気に入り (`shopifyFavorite(favorites:shopifyProduct:)`) があればその個数にして返す。
+///
+/// 保存済みの種類を選んで追加のボタンを押すと、行を足さずに個数を書き換える (`addFavorites`) ので、利用者が変えていない個数で保存済みの個数を上書きしないため。
+/// 保存済みでない商品バリアント、`selectedVariantIDs` に無い商品バリアント、選んでいない (`quantitiesByVariantID` に無い) 商品バリアントは変えない。
+func variantQuantitiesStartingFromSaved(
+    quantitiesByVariantID: [UInt64: Int],
+    selectedVariantIDs: [UInt64],
+    shopDomain: String,
+    savedFavorites: [Favorite]
+) -> [UInt64: Int] {
+    selectedVariantIDs.reduce(into: quantitiesByVariantID) { startingQuantitiesByVariantID, selectedVariantID in
+        if startingQuantitiesByVariantID[selectedVariantID] != nil,
+           let savedFavorite = shopifyFavorite(favorites: savedFavorites, shopifyProduct: ShopifyProduct(shopDomain: shopDomain, variantID: String(selectedVariantID)))
+        {
+            startingQuantitiesByVariantID[selectedVariantID] = savedFavorite.quantity
+        }
+    }
+}
+
 /// 確認の画面で選んだ商品バリアントごとに 1 件ずつ、保存するお気に入りを作って返す。保存はしない。
 ///
 /// 並びは商品の商品バリアントの並び順で、`quantitiesByVariantID` に無い商品バリアントのお気に入りは作らない (1 つも選んでいなければ空の配列)。
