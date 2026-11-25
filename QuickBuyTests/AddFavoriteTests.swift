@@ -276,7 +276,7 @@ struct AddFavoriteTests {
     /// 選んだうちの 1 件でも個数が 1 未満なら、ほかの 1 件も保存されず、保存済みの並びが残る。
     @Test func 個数が1未満のものが混ざる追加は1件も保存しない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        try addFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        try addFavorites(favorites: [confirmedFavorites[0]], updatesSavedQuantity: true, fileURL: fileURL)
         var zeroQuantityFavorite = confirmedFavorites[1]
         zeroQuantityFavorite.quantity = 0
         #expect(throws: FavoriteStoreError.quantityLessThanOne) {
@@ -311,7 +311,7 @@ struct AddFavoriteTests {
     /// 選んだうちの 1 件が保存済みの時は、保存済みの 1 件 (名前と個数を後から変えたもの) を変えず、まだ無い 1 件だけを末尾に足す。
     @Test func 一部が保存済みの追加は無いものだけを足す() throws {
         let fileURL = temporaryFavoritesFileURL()
-        try addFavorites(favorites: [confirmedFavorites[1]], fileURL: fileURL)
+        try addFavorites(favorites: [confirmedFavorites[1]], updatesSavedQuantity: true, fileURL: fileURL)
         try updateFavorite(id: confirmedFavorites[1].id, name: "名前を変えた豆", quantity: 5, fileURL: fileURL)
         try finishFavoriteAddition(choice: .add, favorites: confirmedFavorites, fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL).map(\.id) == [confirmedFavorites[1].id, confirmedFavorites[0].id])
@@ -432,7 +432,7 @@ struct AddFavoriteTests {
     /// 個数が 1 未満のものが、保存済みと同じ識別子のもの・並びの中で 2 回目に出てくるものであっても、追加はエラーになり、新しい 1 件も保存されない。
     @Test func 個数が1未満のものは重複として除かれる時でも追加を止める() throws {
         let fileURL = temporaryFavoritesFileURL()
-        try addFavorites(favorites: [confirmedFavorites[0]], fileURL: fileURL)
+        try addFavorites(favorites: [confirmedFavorites[0]], updatesSavedQuantity: true, fileURL: fileURL)
         var zeroQuantitySavedFavorite = confirmedFavorites[0]
         zeroQuantitySavedFavorite.quantity = 0
         #expect(throws: FavoriteStoreError.quantityLessThanOne) {

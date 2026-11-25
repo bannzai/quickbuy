@@ -266,14 +266,7 @@ struct FavoriteStoreTests {
         let fileURL = temporaryFavoritesFileURL()
         try addFavorite(favorite: shopifyFavorite(id: firstID, name: "洗剤"), fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤"])
-        // 「洗剤」と同じ店・同じ種類だと行を足さずに個数を書き換えるので、別の種類を足す。
-        try addFavorite(
-            favorite: Favorite(
-                id: secondID, name: "電池", imageURL: nil, quantity: 1,
-                product: .shopify(ShopifyProduct(shopDomain: "example.myshopify.com", variantID: "70881413")), reminder: nil
-            ),
-            fileURL: fileURL
-        )
+        try addFavorite(favorite: shopifyFavorite(id: secondID, name: "電池"), fileURL: fileURL)
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤", "電池"])
     }
 

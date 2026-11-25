@@ -314,7 +314,7 @@ enum FavoriteAdditionChoice {
 func finishFavoriteAddition(choice: FavoriteAdditionChoice, favorites: [Favorite], fileURL: URL) throws {
     switch choice {
     case .add:
-        try addFavorites(favorites: favorites, fileURL: fileURL)
+        try addFavorites(favorites: favorites, updatesSavedQuantity: true, fileURL: fileURL)
     case .cancel:
         break
     }

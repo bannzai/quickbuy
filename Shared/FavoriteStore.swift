@@ -60,8 +60,10 @@ func saveFavorites(favorites: [Favorite], fileURL: URL) throws {
 /// お気に入りを並びの末尾に足して保存する。
 ///
 /// 同じ識別子のお気に入りが保存済みの時は何も変えない (同じ追加を 2 回呼んでも 1 件のまま)。
+/// 同じ店・同じ種類のお気に入りが保存済みでも、識別子が違えば別の行として足し、保存済みの行は変えない
+/// (開発者メニューの見本の出し入れが、利用者が入れた行の個数を書き換えないため)。
 func addFavorite(favorite: Favorite, fileURL: URL) throws {
-    try addFavorites(favorites: [favorite], fileURL: fileURL)
+    try addFavorites(favorites: [favorite], updatesSavedQuantity: false, fileURL: fileURL)
 }
 
 /// お気に入りの並び `favorites` のうち、Shopify の店の商品 `shopifyProduct` と同じ店・同じ種類 (店のドメインと商品バリアントの ID が同じ) の最初の 1 件を返す。無ければ nil。
@@ -71,17 +73,18 @@ func shopifyFavorite(favorites: [Favorite], shopifyProduct: ShopifyProduct) -> F
     favorites.first { $0.product == .shopify(shopifyProduct) }
 }
 
-/// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。同じ店・同じ種類のお気に入りが保存済みのものは、足さずにその個数を書き換える。
+/// 複数のお気に入りを、渡された並びのまま、保存済みの並びの末尾に足して保存する。`updatesSavedQuantity` が true の時は、同じ店・同じ種類のお気に入りが保存済みのものを、足さずにその個数の書き換えにする。
 ///
 /// 書き込みは 1 回で、全部が保存されるか 1 件も保存されないかのどちらかになる。
 /// 渡された並びに個数が 1 未満のお気に入りが 1 つでもあれば (保存済みと同じ識別子のものでも)、どれも保存せずにエラーを投げる。
 /// 同じ識別子のお気に入りが保存済みのものは足さず、書き換えもしない (同じ追加を 2 回呼んでも結果は変わらない)。
 /// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを使う (保存する並びに同じ識別子を 2 つ置かず、個数の書き換えも最初の 1 件の個数で行う)。
-/// 識別子は違うが、Shopify の店の同じ店・同じ種類 (`shopifyFavorite(favorites:shopifyProduct:)`) のお気に入りが並びにある時は、行を増やさず、その最初の 1 件の個数だけを渡された個数にする
+/// `updatesSavedQuantity` が true (追加の画面からの保存) の時、識別子は違うが、Shopify の店の同じ店・同じ種類 (`shopifyFavorite(favorites:shopifyProduct:)`) のお気に入りが並びにある時は、行を増やさず、その最初の 1 件の個数だけを渡された個数にする
 /// (名前・種類の名前・画像・リマインド・並びの位置は変えない。同じ商品の行を 2 つ作らないため。https://github.com/bannzai/quickbuy/issues/84 )。
 /// Amazon の商品は、同じ ASIN が保存済みでも足す (個数を持たず、書き換える値が無いため今までどおり)。
+/// `updatesSavedQuantity` が false の時は、同じ店・同じ種類が保存済みでも別の行として足す (`addFavorite(favorite:fileURL:)`)。
 /// 保存済みの並びと変わらない時は何も書かない。
-func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
+func addFavorites(favorites addedFavorites: [Favorite], updatesSavedQuantity: Bool, fileURL: URL) throws {
     guard addedFavorites.allSatisfy({ $0.quantity >= 1 }) else {
         throw FavoriteStoreError.quantityLessThanOne
     }
@@ -94,7 +97,8 @@ func addFavorites(favorites addedFavorites: [Favorite], fileURL: URL) throws {
         else {
             return
         }
-        if case .shopify = addedFavorite.product,
+        if updatesSavedQuantity,
+           case .shopify = addedFavorite.product,
            let sameProductIndex = mergedFavorites.firstIndex(where: { $0.product == addedFavorite.product })
         {
             mergedFavorites[sameProductIndex].quantity = addedFavorite.quantity
