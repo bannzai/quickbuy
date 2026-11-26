@@ -10,11 +10,11 @@ struct FavoriteOpeningURLTests {
         Favorite(id: UUID(), name: "コーヒー豆", imageURL: nil, quantity: quantity, product: product, reminder: nil)
     }
 
-    /// Shopify の商品は、保存した個数がカートに入る cart permalink になる。
-    @Test func Shopifyの商品は個数分がカートに入るURLになる() {
+    /// Shopify の商品は、保存した個数を店のカートに足す URL になる。
+    @Test func Shopifyの商品は個数分をカートに足すURLになる() {
         #expect(
             openingURL(favorite: favorite(quantity: 2, product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412"))))?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
+                == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
     }
 
@@ -22,7 +22,7 @@ struct FavoriteOpeningURLTests {
     @Test func 個数を変えるとURLの個数も変わる() {
         #expect(
             openingURL(favorite: favorite(quantity: 5, product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412"))))?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:5"
+                == "https://mori-coffee.example/cart/add?id=70881412&quantity=5"
         )
     }
 

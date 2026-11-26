@@ -39,7 +39,7 @@ struct AppAnalyticsTests {
                 now: Date(timeIntervalSince1970: 1_800_000_000),
                 fileURL: fileURL,
                 recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://mori-coffee.example/cart/70881412:2"
+            )?.absoluteString == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "shopify"])])
     }
@@ -130,7 +130,7 @@ struct AppAnalyticsTests {
                 now: Date(timeIntervalSince1970: 1_800_000_000),
                 fileURL: fileURL,
                 recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://mori-coffee.example/cart/70881412:2"
+            )?.absoluteString == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
 
         let recordedValues = recordedEvents.flatMap { [$0.name] + $0.parameters.keys + $0.parameters.values }

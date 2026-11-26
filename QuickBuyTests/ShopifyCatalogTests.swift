@@ -263,7 +263,7 @@ import Testing
         ) == ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "1"))
     }
 
-    /// 検索の結果から追加の画面を通って保存したお気に入りの購入画面の URL は `https://{seller.url のホスト}/cart/{商品バリアントの ID}:{個数}`。
+    /// 検索の結果から追加の画面を通って保存したお気に入りの購入画面の URL は `https://{seller.url のホスト}/cart/add?id={商品バリアントの ID}&quantity={個数}`。
     @Test func 検索の結果から保存したお気に入りは店のドメインと商品バリアントのIDと個数で購入画面を開く() async throws {
         let endpointURL = Self.endpointURL(name: "search-save")
         StubURLProtocol.stubResponses.withLock { $0[endpointURL.absoluteString] = .http(statusCode: 200, body: Self.searchResponseJSON) }
@@ -286,7 +286,7 @@ import Testing
         let savedFavorites = try loadFavorites(fileURL: fileURL)
         #expect(savedFavorites.map(\.product) == [.shopify(ShopifyProduct(shopDomain: "chimney-coffee.com", variantID: "45476745412786"))])
         #expect(savedFavorites.map(\.imageURL) == [nil])
-        #expect(savedFavorites.first.flatMap(openingURL(favorite:))?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3")
+        #expect(savedFavorites.first.flatMap(openingURL(favorite:))?.absoluteString == "https://chimney-coffee.com/cart/add?id=45476745412786&quantity=3")
     }
 
     /// 検索の結果から保存したお気に入りの購入画面を一覧の確認の「開く」で開くと、入口が一覧・店が Shopify の記録を 1 件だけ取る (記録の引数に店のドメインと商品バリアントの ID を入れない)。
@@ -319,7 +319,7 @@ import Testing
                 now: Date(timeIntervalSince1970: 1_800_000_000),
                 fileURL: fileURL,
                 recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://chimney-coffee.com/cart/45476745412786:3"
+            )?.absoluteString == "https://chimney-coffee.com/cart/add?id=45476745412786&quantity=3"
         )
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "shopify"])])
     }

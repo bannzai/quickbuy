@@ -265,7 +265,7 @@ struct ReminderTests {
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) },
                 recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://mori-coffee.example/cart/70881412:2"
+            )?.absoluteString == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [recountedFavorite])
         #expect(appliedChanges == [[.schedule(favorite: recountedFavorite)]])
@@ -367,7 +367,7 @@ struct ReminderTests {
         #expect(
             appTabForNotificationResponse(
                 actionIdentifier: UNNotificationDefaultActionIdentifier,
-                openingURL: try #require(URL(string: "https://mori-coffee.example/cart/70881412:2"))
+                openingURL: try #require(URL(string: "https://mori-coffee.example/cart/add?id=70881412&quantity=2"))
             ) == nil
         )
     }
@@ -510,7 +510,7 @@ struct ReminderTests {
 
         #expect(
             try openingURL(favoriteID: openedFavorite.id, now: openedAt, fileURL: fileURL)?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
+                == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
         #expect(
             try loadFavorites(fileURL: fileURL) == [
@@ -528,7 +528,7 @@ struct ReminderTests {
 
         #expect(
             try openingURL(favoriteID: openedFavorite.id, now: countedFrom, fileURL: fileURL)?.absoluteString
-                == "https://mori-coffee.example/cart/70881412:2"
+                == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [openedFavorite])
     }
