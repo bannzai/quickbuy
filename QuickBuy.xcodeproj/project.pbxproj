@@ -10,12 +10,12 @@
 		1E510AF7F06AF7D287B04471 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E40B1782B9401D57C38BBA /* Assets.xcassets */; };
 		615220FED162B9C99257C96B /* QuickBuyWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CC0DA1ED3CBC2A94384E919E /* QuickBuyWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6176567ED72EA8A01DD20E9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB475B718CDC27643AF3FAA8 /* ContentView.swift */; };
-		630B9AF57D0E2713E505BD72 /* ShopifyCartPermalink.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */; };
+		630B9AF57D0E2713E505BD72 /* ShopifyCartAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartAdd.swift */; };
 		76132C1EF59E00AEE7EF022B /* QuickBuyWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BF07603093DE31EB60A2AA5 /* QuickBuyWidgetBundle.swift */; };
 		834ED59FF7E782B26E69E7CB /* QuickBuyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED3753C994B4E8ECC98A2C0 /* QuickBuyApp.swift */; };
-		8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */; };
+		8484ED2233D37B812320A343 /* ShopifyCartAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartAdd.swift */; };
 		BCEFBD09BA95E1B6F336CF6D /* FavoritesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB9167DB2F1CFC7FAF99C47 /* FavoritesWidget.swift */; };
-		E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */; };
+		E131617B6D7A22A7B12D1739 /* ShopifyCartAddTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07B6BF13913EB2F80E7BFE6 /* ShopifyCartAddTests.swift */; };
 		B10000000000000000000001 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
 		B10000000000000000000002 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
 		B10000000000000000000003 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
@@ -44,7 +44,7 @@
 		B20000000000000000000008 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ShareViewController.swift */; };
 		B20000000000000000000009 /* Favorite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Favorite.swift */; };
 		B2000000000000000000000A /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* FavoriteStore.swift */; };
-		B2000000000000000000000B /* ShopifyCartPermalink.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */; };
+		B2000000000000000000000B /* ShopifyCartAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF5887E96AD72C024B5FECCE /* ShopifyCartAdd.swift */; };
 		B2000000000000000000000D /* FavoriteOpeningURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* FavoriteOpeningURLTests.swift */; };
 		B2000000000000000000000E /* ShopifyProductPageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* ShopifyProductPageTests.swift */; };
 		B2000000000000000000000F /* FavoritesListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* FavoritesListTests.swift */; };
@@ -131,10 +131,10 @@
 		85E185745E6906802A51F0F5 /* QuickBuy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = QuickBuy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AB9167DB2F1CFC7FAF99C47 /* FavoritesWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesWidget.swift; sourceTree = "<group>"; };
 		B5E40B1782B9401D57C38BBA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCartPermalinkTests.swift; sourceTree = "<group>"; };
+		C07B6BF13913EB2F80E7BFE6 /* ShopifyCartAddTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCartAddTests.swift; sourceTree = "<group>"; };
 		CC0DA1ED3CBC2A94384E919E /* QuickBuyWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = QuickBuyWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB475B718CDC27643AF3FAA8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCartPermalink.swift; sourceTree = "<group>"; };
+		DF5887E96AD72C024B5FECCE /* ShopifyCartAdd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopifyCartAdd.swift; sourceTree = "<group>"; };
 		FF038E9464EE15A192F75816 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000001 /* Favorite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Favorite.swift; sourceTree = "<group>"; };
 		A10000000000000000000002 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
@@ -263,7 +263,7 @@
 				A50000000000000000000001 /* FavoritesWidgetContent.swift */,
 				A90000000000000000000001 /* Localizable.xcstrings */,
 				A50000000000000000000002 /* QuickBuyAccentColor.swift */,
-				DF5887E96AD72C024B5FECCE /* ShopifyCartPermalink.swift */,
+				DF5887E96AD72C024B5FECCE /* ShopifyCartAdd.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -299,7 +299,7 @@
 				A34000000000000000000004 /* ShopifyCatalogTests.swift */,
 				A10000000000000000000004 /* AppGroupEntitlementsTests.swift */,
 				A10000000000000000000003 /* FavoriteStoreTests.swift */,
-				C07B6BF13913EB2F80E7BFE6 /* ShopifyCartPermalinkTests.swift */,
+				C07B6BF13913EB2F80E7BFE6 /* ShopifyCartAddTests.swift */,
 			);
 			path = QuickBuyTests;
 			sourceTree = "<group>";
@@ -517,7 +517,7 @@
 				B10000000000000000000004 /* FavoriteStore.swift in Sources */,
 				B50000000000000000000002 /* FavoritesWidgetContent.swift in Sources */,
 				B50000000000000000000005 /* QuickBuyAccentColor.swift in Sources */,
-				630B9AF57D0E2713E505BD72 /* ShopifyCartPermalink.swift in Sources */,
+				630B9AF57D0E2713E505BD72 /* ShopifyCartAdd.swift in Sources */,
 				B70000000000000000000002 /* CartInConfirmationNotification.swift in Sources */,
 				B70000000000000000000003 /* CartInIntent.swift in Sources */,
 				B70000000000000000000004 /* ReminderSchedule.swift in Sources */,
@@ -536,7 +536,7 @@
 				B90000000000000000000007 /* AppTextLocale.swift in Sources */,
 				B2000000000000000000000A /* FavoriteStore.swift in Sources */,
 				B50000000000000000000004 /* QuickBuyAccentColor.swift in Sources */,
-				B2000000000000000000000B /* ShopifyCartPermalink.swift in Sources */,
+				B2000000000000000000000B /* ShopifyCartAdd.swift in Sources */,
 				B80000000000000000000002 /* AmazonProductPage.swift in Sources */,
 				B80000000000000000000005 /* AmazonFavoriteAddition.swift in Sources */,
 			);
@@ -559,7 +559,7 @@
 				BC0000000000000000000002 /* AppStoreScreenshotTests.swift in Sources */,
 				B34000000000000000000004 /* ShopifyCatalogTests.swift in Sources */,
 				B20000000000000000000010 /* AddFavoriteTests.swift in Sources */,
-				E131617B6D7A22A7B12D1739 /* ShopifyCartPermalinkTests.swift in Sources */,
+				E131617B6D7A22A7B12D1739 /* ShopifyCartAddTests.swift in Sources */,
 				B70000000000000000000005 /* CartInConfirmationNotificationTests.swift in Sources */,
 				E10000000000000000000003 /* AppAnalyticsTests.swift in Sources */,
 				B80000000000000000000006 /* AmazonProductPageTests.swift in Sources */,
@@ -591,7 +591,7 @@
 				B34000000000000000000002 /* HomeView.swift in Sources */,
 				B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */,
 				B76000000000000000000001 /* CatalogProductDetailView.swift in Sources */,
-				8484ED2233D37B812320A343 /* ShopifyCartPermalink.swift in Sources */,
+				8484ED2233D37B812320A343 /* ShopifyCartAdd.swift in Sources */,
 				B70000000000000000000001 /* CartInConfirmationNotification.swift in Sources */,
 				E10000000000000000000001 /* AppAnalytics.swift in Sources */,
 				B80000000000000000000001 /* AmazonProductPage.swift in Sources */,

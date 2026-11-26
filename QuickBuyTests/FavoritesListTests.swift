@@ -219,7 +219,7 @@ struct FavoritesListTests {
                 now: openedAt,
                 fileURL: fileURL
             )?.absoluteString
-                == "https://mori-coffee.example/cart/70881413:3"
+                == "https://mori-coffee.example/cart/add?id=70881413&quantity=3"
         )
         #expect(try loadFavorites(fileURL: fileURL).map(\.reminder) == [
             Reminder(intervalDays: 30, countedFrom: countedFrom),
@@ -247,9 +247,9 @@ struct FavoritesListTests {
         #expect(sampleFavorites().map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
         #expect(
             sampleFavorites().map { openingURL(favorite: $0)?.absoluteString } == [
-                "https://mori-coffee.example/cart/70881412:2",
-                "https://sukoyaka-soap.example/cart/70881382:1",
-                "https://karada-store.example/cart/70881999:1",
+                "https://mori-coffee.example/cart/add?id=70881412&quantity=2",
+                "https://sukoyaka-soap.example/cart/add?id=70881382&quantity=1",
+                "https://karada-store.example/cart/add?id=70881999&quantity=1",
             ]
         )
     }

@@ -62,7 +62,7 @@ struct CartInConfirmationNotificationTests {
         #expect(content.userInfo.count == 1)
         #expect(content.userInfo["favoriteID"] as? String == "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1")
         let allText = "\(content.title)\(content.subtitle)\(content.body)\(content.userInfo)"
-        #expect(!allText.contains("https://mori-coffee.example/cart/70881412:2"))
+        #expect(!allText.contains("https://mori-coffee.example/cart/add?id=70881412&quantity=2"))
         #expect(!allText.contains("/cart/"))
     }
 
@@ -175,7 +175,7 @@ struct CartInConfirmationNotificationTests {
                 fileURL: fileURL,
                 applyChanges: { appliedChanges.append($0) },
                 recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://sukoyaka-soap.example/cart/70881382:5"
+            )?.absoluteString == "https://sukoyaka-soap.example/cart/add?id=70881382&quantity=5"
         )
         #expect(try loadFavorites(fileURL: fileURL) == [coffeeFavorite, recountedSoapFavorite])
         #expect(appliedChanges == [[.schedule(favorite: recountedSoapFavorite)]])
@@ -229,7 +229,7 @@ struct CartInConfirmationNotificationTests {
                 fileURL: fileURL,
                 applyChanges: { _ in },
                 recordAnalyticsEvent: { _ in }
-            )?.absoluteString == "https://mori-coffee.example/cart/70881412:3"
+            )?.absoluteString == "https://mori-coffee.example/cart/add?id=70881412&quantity=3"
         )
     }
 

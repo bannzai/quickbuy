@@ -3,15 +3,12 @@ import Foundation
 /// 保存済みのお気に入りから、確認の後に開く URL を組み立てて返す。
 ///
 /// 渡してよいのは、登録の画面で利用者が店のドメインを確かめて保存したお気に入りだけ (documents/adr/0003)。
-/// Shopify の店の商品は、その商品が個数分カートに入った購入画面の URL を `shopifyCartPermalinkURL(shopDomain:lines:)` で組み立て、同関数が組み立てない値 (ホスト名の形でない店のドメイン等) では nil を返す。
+/// Shopify の店の商品は、その店のカートに商品を個数分足して購入画面 (店の `/cart`) を開く URL を `shopifyCartAddURL(shopDomain:variantID:quantity:)` で組み立て、同関数が組み立てない値 (ホスト名の形でない店のドメイン等) では nil を返す。
 /// Amazon の商品は、商品ページの URL を `amazonProductPageURL(asin:)` で組み立て、ASIN の形でない保存値では nil を返す (開いた時に商品はカートに入っていない。documents/DIRECTION.md「必要な機能」)。
 func openingURL(favorite: Favorite) -> URL? {
     switch favorite.product {
     case let .shopify(shopifyProduct):
-        shopifyCartPermalinkURL(
-            shopDomain: shopifyProduct.shopDomain,
-            lines: [ShopifyCartLine(variantID: shopifyProduct.variantID, quantity: favorite.quantity)]
-        )
+        shopifyCartAddURL(shopDomain: shopifyProduct.shopDomain, variantID: shopifyProduct.variantID, quantity: favorite.quantity)
     case let .amazon(amazonProduct):
         amazonProductPageURL(asin: amazonProduct.asin)
     }

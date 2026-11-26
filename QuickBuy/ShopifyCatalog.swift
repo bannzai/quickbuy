@@ -281,7 +281,7 @@ func loadShopifyStorefrontProduct(
 
 /// 商品バリアントの ID (`gid://shopify/ProductVariant/{数字}`) から数字の部分を返す。この形でない時は nil。
 ///
-/// 数字の部分が購入画面の URL (`/cart/{商品バリアントの ID}:{個数}`) に入る ID (documents/research/2026-11-18/search-api-and-amazon-purchase-url.md の表「商品バリアントの ID」)。
+/// 数字の部分が購入画面の URL (`/cart/add?id={商品バリアントの ID}&quantity={個数}`) に入る ID (documents/research/2026-11-18/search-api-and-amazon-purchase-url.md の表「商品バリアントの ID」)。
 func shopifyVariantNumericID(variantGID: String) -> String? {
     let prefix = "gid://shopify/ProductVariant/"
     guard variantGID.hasPrefix(prefix), isASCIIDigits(text: String(variantGID.dropFirst(prefix.count))) else {
