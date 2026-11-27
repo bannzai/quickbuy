@@ -165,7 +165,7 @@ func favoriteIDsMissingReminderNotification(favorites: [Favorite], pendingNotifi
 ///
 /// 通知を拒否している間に保存したリマインドは予約されない (拒否された状態の予約は失敗する。
 /// https://developer.apple.com/documentation/usernotifications/unerror/notificationsnotallowed )。後から設定アプリで許可した時に届くようにする。
-/// 通知が許可されていない時、予約の無いリマインドが無い時、保存先を読めない・書けない時は何も変えない。
+/// 通知が許可されていない時、予約の無いリマインドも取り消す予約も無い時、保存先を読めない・書けない時は何も変えない。
 /// 画面からの保存の操作と同時に保存先を読み書きしないよう、メインのスレッド (画面の操作と同じ) で実行する。
 @MainActor
 func restoreMissingReminderNotifications(fileURL: URL, center: any ReminderNotificationCenter, now: Date) async {
