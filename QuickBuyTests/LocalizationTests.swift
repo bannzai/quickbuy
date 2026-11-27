@@ -169,7 +169,8 @@ struct LocalizationTests {
         #expect(widgetNotificationRequiredText(locale: Locale(identifier: identifier)) == notificationRequiredText)
     }
 
-    /// ドイツ語のウィジェットの行の説明は、英語と同じく個数を「×N」で出す (「2 Stück」では大サイズのウィジェットで見本の説明が「2 Stü…」と切れたため。PR #93)。
+    /// ドイツ語のウィジェットの行の説明は、英語・スペイン語・フランス語・ポルトガル語と同じく個数を「×N」で出す (「2 Stück」では大サイズのウィジェットで見本の説明が「2 Stü…」と切れたため。PR #93)。
+    /// 行の説明は文字列カタログの「%lld 個」を使い、同じ訳を追加の画面の個数の欄も使う。
     @Test func ドイツ語の行の説明は英語と同じ個数の書き方() {
         #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: Locale(identifier: "de")) == "200g · ×2")
     }
