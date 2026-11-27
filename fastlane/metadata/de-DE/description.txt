@@ -1,11 +1,11 @@
-Quick Buy speichert die Produkte, die du in Shopify-Shops immer wieder kaufst, als Favoriten, damit du sie in der App oder über ein Widget auf dem Home-Bildschirm nachkaufen kannst. Jedes Mal, wenn du auf „In den Warenkorb" tippst, wirst du um eine Bestätigung gebeten, bevor sich etwas öffnet. Nach der Bestätigung öffnet sich die Kasse des Shops mit dem Produkt bereits im Warenkorb. Die Zahlung bestätigst du immer selbst im Shop.
+Quick Buy speichert die Produkte, die du in Shopify-Shops immer wieder kaufst, als Favoriten, damit du sie in der App oder über ein Widget auf dem Home-Bildschirm nachkaufen kannst. Jedes Mal, wenn du auf „In den Korb“ tippst, wirst du um eine Bestätigung gebeten, bevor sich etwas öffnet. Nach der Bestätigung öffnet sich die Kasse des Shops mit dem Produkt bereits im Warenkorb. Die Zahlung bestätigst du immer selbst im Shop.
 
 SO FUNKTIONIERT ES
 1. Suchen und als Favorit speichern
-Suche im Tab „Startseite" der App nach Produkten aus Shopify-Shops, wähle Variante und Menge und speichere sie als Favoriten. Füge hinzu, was du regelmäßig kaufst, etwa Kaffeebohnen, Waschmittel oder Tierfutter. Du kannst auch die URL einer Produktseite einfügen oder sie über das Teilen-Menü senden.
+Suche im Tab „Startseite“ der App nach Produkten aus Shopify-Shops, wähle Variante und Menge und speichere sie als Favoriten. Füge hinzu, was du regelmäßig kaufst, etwa Kaffeebohnen, Waschmittel oder Tierfutter. Du kannst auch die URL einer Produktseite einfügen oder sie über das Teilen-Menü senden.
 
-2. Auf „In den Warenkorb" tippen und bestätigen
-Tippe in deinen Favoriten auf „In den Warenkorb", dann erscheint „Kasse öffnen?". Deine Favoriten erscheinen auch in einem Widget auf dem Home-Bildschirm. Tippst du im Widget auf „In den Warenkorb", kommt dieselbe Bestätigung als Mitteilung. Für das Widget müssen Mitteilungen erlaubt sein.
+2. Auf „In den Korb“ tippen und bestätigen
+Tippe in deinen Favoriten auf „In den Korb“, dann erscheint „Kasse öffnen?“. Deine Favoriten erscheinen auch in einem Widget auf dem Home-Bildschirm. Tippst du im Widget auf „In den Korb“, kommt dieselbe Bestätigung als Mitteilung. Für das Widget müssen Mitteilungen erlaubt sein.
 
 3. Die Kasse öffnet sich
 Nach der Bestätigung öffnet sich die Kasse des Shops mit dem Produkt im Warenkorb. Prüfe alles und bestätige die Zahlung selbst.

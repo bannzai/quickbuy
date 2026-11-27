@@ -172,7 +172,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@\nDie nächste Benachrichtigung kommt am %@\nMitteilungen sind nicht erlaubt\nErlaube Mitteilungen von Quick Buy in den Einstellungen, um sie zu erhalten"
+            "value" : "%@\nNächste Erinnerung: %@\nMitteilungen sind nicht erlaubt\nErlaube Mitteilungen von Quick Buy in den Einstellungen, um sie zu erhalten"
           }
         },
         "en" : {
@@ -352,7 +352,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ %lld개를 장바구니에 담고 구매 화면을 엽니다"
+            "value" : "%@ %lld개를 장바구니에 담고 결제 화면을 엽니다"
           }
         },
         "pt-BR" : {
@@ -925,7 +925,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippe nach „In den Warenkorb“ auf „Öffnen“, um zur Kasse des Shops zu gelangen\nDu bestätigst die Zahlung auf der Shopseite"
+            "value" : "Tippe nach „In den Korb“ auf „Öffnen“, um zur Kasse des Shops zu gelangen\nDu bestätigst die Zahlung auf der Shopseite"
           }
         },
         "en" : {
@@ -937,13 +937,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Después de «Añadir al carrito», toca «Abrir» para ir a la página de pago de la tienda\nConfirmas el pago en la página de la tienda"
+            "value" : "Después de «Al carrito», toca «Abrir» para ir a la página de pago de la tienda\nConfirmas el pago en la página de la tienda"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Après « Ajouter au panier », touchez « Ouvrir » pour accéder à la page de paiement de la boutique\nVous confirmez le paiement sur la page de la boutique"
+            "value" : "Après « Au panier », touchez « Ouvrir » pour accéder à la page de paiement de la boutique\nVous confirmez le paiement sur la page de la boutique"
           }
         },
         "ko" : {
@@ -955,7 +955,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Depois de «Adicionar ao carrinho», toque em «Abrir» para acessar a página de pagamento da loja\nVocê confirma o pagamento na página da loja"
+            "value" : "Depois de «Ao carrinho», toque em «Abrir» para acessar a página de pagamento da loja\nVocê confirma o pagamento na página da loja"
           }
         },
         "zh-Hans" : {
@@ -977,7 +977,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Benachrichtigung „Zur Kasse gehen?“ erscheint. Tippe darauf, um die Kassenseite des Shops zu öffnen."
+            "value" : "Die Mitteilung „Kasse öffnen?“ erscheint. Tippe darauf, um die Kasse des Shops zu öffnen."
           }
         },
         "en" : {
@@ -1081,7 +1081,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In den Warenkorb: deine gewohnten Produkte direkt vom Home-Bildschirm"
+            "value" : "Deine gewohnten Produkte vom Home-Bildschirm in den Korb"
           }
         },
         "en" : {
@@ -1093,13 +1093,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Añadir al carrito tus productos habituales desde la pantalla de inicio"
+            "value" : "Tus productos de siempre al carrito desde la pantalla de inicio"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajouter au panier vos produits habituels depuis l’écran d’accueil"
+            "value" : "Vos produits habituels au panier depuis l’écran d’accueil"
           }
         },
         "ko" : {
@@ -1111,7 +1111,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adicionar ao carrinho seus produtos de sempre pela tela inicial"
+            "value" : "Seus produtos de sempre ao carrinho pela Tela de Início"
           }
         },
         "zh-Hans" : {
@@ -2537,7 +2537,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wenn du im Widget auf „In den Warenkorb“ tippst"
+            "value" : "Wenn du im Widget auf „In den Korb“ tippst"
           }
         },
         "en" : {
@@ -2549,13 +2549,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Al tocar «Añadir al carrito» en el widget"
+            "value" : "Al tocar «Al carrito» en el widget"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lorsque vous touchez « Ajouter au panier » dans le widget"
+            "value" : "Lorsque vous touchez « Au panier » dans le widget"
           }
         },
         "ko" : {
@@ -2567,7 +2567,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quando você toca em “Adicionar ao carrinho” no widget"
+            "value" : "Quando você toca em “Ao carrinho” no widget"
           }
         },
         "zh-Hans" : {
@@ -2589,7 +2589,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In den Warenkorb"
+            "value" : "In den Korb"
           }
         },
         "en" : {
@@ -2601,13 +2601,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Añadir al carrito"
+            "value" : "Al carrito"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajouter au panier"
+            "value" : "Au panier"
           }
         },
         "ko" : {
@@ -2619,7 +2619,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adicionar ao carrinho"
+            "value" : "Ao carrinho"
           }
         },
         "zh-Hans" : {
@@ -4789,7 +4789,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Möchtest du die Kasse öffnen?"
+            "value" : "Kasse öffnen?"
           }
         },
         "en" : {
@@ -4801,37 +4801,37 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¿Quieres abrir la página de pago?"
+            "value" : "¿Abrir la página de pago?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voulez-vous ouvrir la page de paiement ?"
+            "value" : "Ouvrir la page de paiement ?"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "결제 화면을 열겠습니까?"
+            "value" : "결제 화면을 열까요?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Você quer abrir a página de pagamento?"
+            "value" : "Abrir a página de pagamento?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你要打开结账页面吗？"
+            "value" : "要打开结账页面吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你要開啟結帳頁面嗎？"
+            "value" : "要開啟結帳頁面嗎？"
           }
         }
       }
@@ -5049,7 +5049,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benachrichtigungen aktivieren"
+            "value" : "Mitteilungen aktivieren"
           }
         },
         "en" : {

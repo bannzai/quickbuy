@@ -1,11 +1,11 @@
-O Quick Buy guarda como favoritos os produtos que você compra sempre em lojas Shopify, para você recomprá-los pelo app ou por um widget na Tela de Início. Toda vez que você toca em "Adicionar ao carrinho", é pedida uma confirmação antes de abrir qualquer coisa. Ao confirmar, a página de pagamento da loja abre com o produto já no carrinho. Você sempre confirma o pagamento por conta própria na loja.
+O Quick Buy guarda como favoritos os produtos que você compra sempre em lojas Shopify, para você recomprá-los pelo app ou por um widget na Tela de Início. Toda vez que você toca em "Ao carrinho", é pedida uma confirmação antes de abrir qualquer coisa. Ao confirmar, a página de pagamento da loja abre com o produto já no carrinho. Você sempre confirma o pagamento por conta própria na loja.
 
 COMO FUNCIONA
 1. Pesquise e salve favoritos
 Pesquise produtos de lojas Shopify na aba Início do app, escolha a variante e a quantidade e salve como favoritos. Adicione o que você compra com frequência, como café em grãos, detergente ou ração para pets. Você também pode colar a URL da página de um produto ou enviá-la pelo menu Compartilhar.
 
-2. Toque em "Adicionar ao carrinho" e confirme
-Toque em "Adicionar ao carrinho" nos seus favoritos para ver "Abrir a página de pagamento?". Seus favoritos também aparecem em um widget na Tela de Início. Ao tocar em "Adicionar ao carrinho" no widget, a mesma confirmação chega como notificação, por isso o widget precisa da permissão de notificações.
+2. Toque em "Ao carrinho" e confirme
+Toque em "Ao carrinho" nos seus favoritos para ver "Abrir a página de pagamento?". Seus favoritos também aparecem em um widget na Tela de Início. Ao tocar em "Ao carrinho" no widget, a mesma confirmação chega como notificação, por isso o widget precisa da permissão de notificações.
 
 3. A página de pagamento abre
 Depois de confirmar, a página de pagamento da loja abre com o produto no carrinho. Confira e confirme o pagamento você mesmo.

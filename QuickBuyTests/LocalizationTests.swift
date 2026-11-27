@@ -143,7 +143,7 @@ struct LocalizationTests {
             #expect(Bundle.main.localizations.contains(localization), "\(localization) \(Bundle.main.localizations)")
         }
         for (identifier, cartInTitle) in [
-            ("es", "Añadir al carrito"), ("fr", "Ajouter au panier"), ("de", "In den Warenkorb"), ("pt-BR", "Adicionar ao carrinho"),
+            ("es", "Al carrito"), ("fr", "Au panier"), ("de", "In den Korb"), ("pt-BR", "Ao carrinho"),
             ("ko", "장바구니 담기"), ("zh-Hans", "加入购物车"), ("zh-Hant", "加入購物車"),
         ] {
             #expect(String(localized: LocalizedStringResource("カートイン", locale: Locale(identifier: identifier))) == cartInTitle, "\(identifier)")
