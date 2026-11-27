@@ -96,7 +96,7 @@ struct AppStoreScreenshotTests {
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.name) == ["Coffee beans", "Laundry soap", "Protein"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.variantName) == ["200g / Whole bean", nil, "1kg"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
-        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "de"), now: now).map(\.name) == ["Kaffeebohnen", "Waschseife", "Protein"])
+        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "de"), now: now).map(\.name) == ["Kaffee", "Waschseife", "Protein"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "de"), now: now).map(\.variantName) == ["200g / Ganze Bohnen", nil, "1kg"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ko"), now: now).map(\.name) == ["원두", "세탁 비누", "프로틴"])
         // 日本語のほかの言語は、どの言語も見出しと見本のお気に入りの名前が日本語と違う (訳を入れ忘れた言語が日本語の画像にならない)。

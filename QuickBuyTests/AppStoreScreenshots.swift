@@ -172,7 +172,7 @@ let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
             .addFavorite: "Hinzufügen kauft noch nichts",
             .reminder: "Tage für jeden Favoriten festlegen",
         ],
-        favoriteTexts: [("Kaffeebohnen", [1: "Ganze Bohnen"]), ("Waschseife", [:]), ("Protein", [:])],
+        favoriteTexts: [("Kaffee", [1: "Ganze Bohnen"]), ("Waschseife", [:]), ("Protein", [:])],
         searchProductTitles: ["Dunkle Röstung 200g", "Helle Röstung 200g", "Entkoffeiniert 150g"],
         optionName: "Inhalt",
         editButtonTitle: "Bearbeiten"
@@ -195,7 +195,7 @@ let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
             .addFavorite: "Adicionar não faz nenhuma compra",
             .reminder: "Defina os dias de cada favorito",
         ],
-        favoriteTexts: [("Café em grãos", [1: "Grãos inteiros"]), ("Sabão para roupas", [:]), ("Proteína", [:])],
+        favoriteTexts: [("Café", [1: "Grãos inteiros"]), ("Sabão em pó", [:]), ("Proteína", [:])],
         searchProductTitles: ["Torra escura 200g", "Torra clara 200g", "Descafeinado 150g"],
         optionName: "Conteúdo",
         editButtonTitle: "Editar"
