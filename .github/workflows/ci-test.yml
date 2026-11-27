@@ -30,7 +30,8 @@ jobs:
 
   test:
     runs-on: macos-26
-    timeout-minutes: 20
+    # スクリーンショットのテストが 9 言語の画像を描いて文字を読むようになり、run 45964679019 で 20 分を超えて止められたため (9 言語にする前の run は 17 分 51 秒)。
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: 設定ファイルを書き出すスクリプトのテスト
