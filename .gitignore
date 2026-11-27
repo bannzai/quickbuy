@@ -9,8 +9,12 @@ tmp/
 # simtunnel mcp-config が worktree ごとに書き込む接続設定 (セッション固有のためコミットしない)
 .mcp.json
 
-# 審査の連絡先 (氏名・電話番号・メールアドレス) は個人情報のためコミットしない (fastlane deliver が読む場所)
-fastlane/metadata/review_information/
+# 審査の連絡先 (氏名・電話番号・メールアドレス) とデモ用のアカウントは個人情報のためコミットしない (fastlane deliver が読む場所)。
+# 審査の担当者向けのメモ (notes.txt) だけは個人情報を含まないためコミットする。
+# 共通の ~/.gitignore がディレクトリごと ignore しているため、ディレクトリを ignore から外してから中身を ignore する
+!fastlane/metadata/review_information/
+fastlane/metadata/review_information/*
+!fastlane/metadata/review_information/notes.txt
 
 # Firebase のクライアント設定ファイル (API キーを含む。Firebase を使う時もコミットせず、CI では secret から復元する)
 lib/firebase_options.dart
@@ -25,3 +29,7 @@ local.properties
 
 # bundler のローカルインストール先 (~/.bundle/config の path=vendor/bundle が作る)
 vendor/bundle/
+
+# fastlane が lane の実行ごとに書き出す結果と lane の一覧 (Fastfile から作り直せる)
+fastlane/report.xml
+fastlane/README.md
