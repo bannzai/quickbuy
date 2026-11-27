@@ -193,7 +193,7 @@ struct AppStoreScreenshotTests {
 
     /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「英語の画像に日本語の文字が写らない」では見つからない)。
     ///
-    /// 期待値は、iOS がその言語で `EditButton` に出す文言 (日本語・英語は main で画像に写っていた文言、ほかは各言語の iOS の「編集」の訳)。
+    /// 期待値は、iOS がその言語で `EditButton` に出す文言。2026-11-27 に simtunnel の iPhone 17 (iOS 26.5) でアプリを `-AppleLanguages` で 9 言語それぞれで起動し、お気に入りの一覧の `EditButton` のラベルを WDA で読んだ値 (PR #93)。
     @Test(arguments: [
         ("ja", "編集"), ("en-US", "Edit"), ("es-ES", "Editar"), ("fr-FR", "Modifier"), ("de-DE", "Bearbeiten"),
         ("pt-BR", "Editar"), ("ko", "편집"), ("zh-Hans", "编辑"), ("zh-Hant", "編輯"),
