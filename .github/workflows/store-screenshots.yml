@@ -25,7 +25,9 @@ permissions:
 jobs:
   screenshots:
     runs-on: macos-26
-    timeout-minutes: 20
+    # 9 言語の画像を描いて文字を読むと、通った run 45997154131 は 14 分 57 秒、46002667405 は 18 分 20 秒かかり、run 46059466916 は 20 分を超えて止められた。
+    # 長い方の 18 分 20 秒に、runner の混み具合の揺れを見込んで 2 倍ほどの 35 分にした (ci-test.yml の test と同じ上限)。
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Firebase の設定ファイルを secret から書き出す
