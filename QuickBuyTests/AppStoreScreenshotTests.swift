@@ -135,11 +135,16 @@ struct AppStoreScreenshotTests {
     }
 
     /// 画像に写った店のドメインの形の文字列は、どれも `.example` で終わる (画面のコードに直に書いた店のドメインも見つける)。
+    ///
+    /// 見本の店のドメインと画面のコードに直に書いたドメインはどの言語の画像にも同じに写るため、日本語と英語の画像で見つけられる。ほかの言語の画像は見ない。
+    /// スペイン語の画像では、一覧の行が幅に収まらず縮めた「mori-…xample」を、run 45957458585 の文字の認識が「mori-.xample」と読み、実在しないドメインの形になって落ちた。
     @Test func 画像に写る店のドメインはexampleだけ() throws {
         for language in appStoreScreenshotLanguages {
-            for screen in AppStoreScreenshotScreen.allCases {
-                for domainText in try recognizedText(screen: screen, language: language).lowercased().matches(of: #/[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/#).map(\.output.0) {
-                    #expect(domainText.hasSuffix(".example"), "\(language.directoryName) \(screen) \(domainText)")
+            if ["ja", "en-US"].contains(language.directoryName) {
+                for screen in AppStoreScreenshotScreen.allCases {
+                    for domainText in try recognizedText(screen: screen, language: language).lowercased().matches(of: #/[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/#).map(\.output.0) {
+                        #expect(domainText.hasSuffix(".example"), "\(language.directoryName) \(screen) \(domainText)")
+                    }
                 }
             }
             // 店のドメインを読めていること (読めない認識では上の確認が何も見ない)。
@@ -166,19 +171,18 @@ struct AppStoreScreenshotTests {
         #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "ja")) == "内容量")
     }
 
-    /// ラテン文字の言語 (英語・スペイン語・フランス語・ドイツ語・ポルトガル語) のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
+    /// 英語のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
     ///
-    /// 韓国語と中国語の画像は、日本語の文字の認識で読むとハングルと漢字を日本語の文字と見分けられないため、この画像の確認から外す。
-    /// 2 つの言語の文言に日本語が残っていないことは、文字列カタログの検査 (translate-app-xcstrings skill の `check` の「原文の言語の文字の残り」) と、テスト「日本語のほかの言語の見本の文字列に日本語が残らない」で確かめる。
-    @Test func ラテン文字の言語の画像に日本語の文字が写らない() throws {
+    /// 画面のコードに直に書いた文言はどの言語の画像にも同じに写るため、英語の 1 つの言語で見つけられる。英語のほかの言語の画像は見ない。
+    /// スペイン語の画像では、run 45960213834 で日本語の文字の認識が一覧の行から「リール」を読み、日本語の文言が無いのに落ちた (同じ画像を macOS の Vision で読むと出なかった)。
+    /// 言語ごとに違う文言に日本語が残っていないことは、文字列カタログの検査 (translate-app-xcstrings skill の `check` の「原文の言語の文字の残り」) と、テスト「日本語のほかの言語の見本の文字列に日本語が残らない」で確かめる。
+    @Test func 英語の画像に日本語の文字が写らない() throws {
         let japaneseRecognitionLanguages = ["ja-JP", "en-US"]
-        for language in appStoreScreenshotLanguages where ![.japanese, .korean, .chinese].contains(language.locale.language.languageCode) {
-            for screen in AppStoreScreenshotScreen.allCases {
-                let japaneseLines = try recognizedText(screen: screen, locale: language.locale, recognitionLanguages: japaneseRecognitionLanguages)
-                    .split(separator: "\n")
-                    .filter { containsRecognizedJapanese(text: String($0)) }
-                #expect(japaneseLines.isEmpty, "\(language.directoryName) \(screen) \(japaneseLines)")
-            }
+        for screen in AppStoreScreenshotScreen.allCases {
+            let japaneseLines = try recognizedText(screen: screen, locale: Locale(identifier: "en"), recognitionLanguages: japaneseRecognitionLanguages)
+                .split(separator: "\n")
+                .filter { containsRecognizedJapanese(text: String($0)) }
+            #expect(japaneseLines.isEmpty, "\(screen) \(japaneseLines)")
         }
         for screen in AppStoreScreenshotScreen.allCases {
             // 日本語を読めていること (読めない認識では上の確認が何も見ない)。
@@ -186,7 +190,7 @@ struct AppStoreScreenshotTests {
         }
     }
 
-    /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「ラテン文字の言語の画像に日本語の文字が写らない」では見つからない)。
+    /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「英語の画像に日本語の文字が写らない」では見つからない)。
     @Test func 編集のボタンは言語ごとの文言で画像に写る() throws {
         for language in appStoreScreenshotLanguages {
             let text = try recognizedText(screen: .confirmation, language: language)
@@ -227,10 +231,8 @@ struct AppStoreScreenshotTests {
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
                 for line in (appStoreScreenshotHeadline(screen: screen, locale: language.locale) + "\n" + appStoreScreenshotSubheadline(screen: screen, locale: language.locale)).split(separator: "\n") {
-                    #expect(
-                        try comparableText(text: recognizedText(screen: screen, language: language, regionOfInterest: headingRegion)).contains(comparableText(text: String(line))),
-                        "\(language.directoryName) \(screen) \(line)"
-                    )
+                    let headingText = try recognizedText(screen: screen, language: language, regionOfInterest: headingRegion)
+                    #expect(comparableText(text: headingText).contains(comparableText(text: String(line))), "\(language.directoryName) \(screen) \(line) / 読めた文字: \(headingText)")
                 }
             }
         }

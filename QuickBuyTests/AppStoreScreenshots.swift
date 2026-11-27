@@ -113,10 +113,10 @@ let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
         locale: Locale(identifier: "es"),
         textRecognitionLanguage: "es-ES",
         headlines: [
-            .widget: "Recompra lo de siempre\ndesde la pantalla de inicio",
-            .confirmation: "Confirma y se abre\nel pago de la tienda",
+            .widget: "Recompra lo de siempre\ndesde el inicio",
+            .confirmation: "Al confirmar se abre\nel pago de la tienda",
             .search: "Busca lo que\nvuelves a comprar",
-            .addFavorite: "Elige la variante\ny la cantidad",
+            .addFavorite: "Elige la variante\ncon su cantidad",
             .reminder: "Te avisa cuando toca\nvolver a comprar",
         ],
         subheadlines: [
@@ -137,7 +137,7 @@ let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
         textRecognitionLanguage: "fr-FR",
         headlines: [
             .widget: "Rachetez l'habituel\ndepuis l'écran d'accueil",
-            .confirmation: "Confirmez et le paiement\nde la boutique s'ouvre",
+            .confirmation: "Confirmez et\nle paiement s'ouvre",
             .search: "Trouvez ce que\nvous rachetez",
             .addFavorite: "Choisissez la variante\net la quantité",
             .reminder: "Un rappel quand il est\ntemps de racheter",
@@ -186,7 +186,7 @@ let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
             .confirmation: "Confirme e o pagamento\nda loja se abre",
             .search: "Encontre o que\nvocê compra de novo",
             .addFavorite: "Escolha a variante\ne a quantidade",
-            .reminder: "Um aviso quando for\nhora de comprar de novo",
+            .reminder: "Um aviso na hora\nde comprar de novo",
         ],
         subheadlines: [
             .widget: "Da notificação ao pagamento da loja",
