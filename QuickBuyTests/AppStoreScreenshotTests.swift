@@ -152,12 +152,13 @@ struct AppStoreScreenshotTests {
         }
     }
 
-    /// 日本語のほかの言語の見本の文字列 (お気に入りの名前・商品バリアントの名前・検索の商品の名前・種類の選び方の名前・編集のボタン) に仮名が残らず、中国語のほかは漢字も残らない。
+    /// 日本語のほかの言語の見本の文字列 (お気に入りの名前・商品バリアントの名前・検索の商品の名前・種類の選び方の名前・編集のボタン・全部の画面の見出しと補足) に仮名が残らず、中国語のほかは漢字も残らない。
     @Test func 日本語のほかの言語の見本の文字列に日本語が残らない() {
         for language in appStoreScreenshotLanguages where language.directoryName != "ja" {
             for text in appStoreScreenshotFavorites(locale: language.locale, now: now).flatMap({ [$0.name, $0.variantName ?? ""] })
                 + appStoreScreenshotSearchProducts(locale: language.locale).map(\.title)
                 + [appStoreScreenshotOptionName(locale: language.locale), appStoreScreenshotEditButtonTitle(locale: language.locale)]
+                + AppStoreScreenshotScreen.allCases.flatMap { [appStoreScreenshotHeadline(screen: $0, locale: language.locale), appStoreScreenshotSubheadline(screen: $0, locale: language.locale)] }
             {
                 #expect(!containsKana(text: text), "\(language.directoryName) \(text)")
                 if language.locale.language.languageCode != .chinese {
@@ -191,13 +192,19 @@ struct AppStoreScreenshotTests {
     }
 
     /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「英語の画像に日本語の文字が写らない」では見つからない)。
-    @Test func 編集のボタンは言語ごとの文言で画像に写る() throws {
-        for language in appStoreScreenshotLanguages {
-            let text = try recognizedText(screen: .confirmation, language: language)
-            #expect(comparableText(text: text).contains(comparableText(text: appStoreScreenshotEditButtonTitle(locale: language.locale))), "\(language.directoryName) \(text)")
-            if language.directoryName != "ja" {
-                #expect(!text.contains("編集"), "\(language.directoryName) \(text)")
-            }
+    ///
+    /// 期待値は、iOS がその言語で `EditButton` に出す文言 (日本語・英語は main で画像に写っていた文言、ほかは各言語の iOS の「編集」の訳)。
+    @Test(arguments: [
+        ("ja", "編集"), ("en-US", "Edit"), ("es-ES", "Editar"), ("fr-FR", "Modifier"), ("de-DE", "Bearbeiten"),
+        ("pt-BR", "Editar"), ("ko", "편집"), ("zh-Hans", "编辑"), ("zh-Hant", "編輯"),
+    ])
+    func 編集のボタンは言語ごとの文言で画像に写る(directoryName: String, editButtonTitle: String) throws {
+        let language = try #require(appStoreScreenshotLanguages.first { $0.directoryName == directoryName })
+        #expect(appStoreScreenshotEditButtonTitle(locale: language.locale) == editButtonTitle)
+        let text = try recognizedText(screen: .confirmation, language: language)
+        #expect(comparableText(text: text).contains(comparableText(text: editButtonTitle)), "\(directoryName) \(text)")
+        if directoryName != "ja" {
+            #expect(!text.contains("編集"), "\(directoryName) \(text)")
         }
     }
 
@@ -302,6 +309,6 @@ struct AppStoreScreenshotTests {
 
     /// `text` に日本語の文字 (ひらがな・カタカナ・漢字) があるか。
     private func containsJapanese(text: String) -> Bool {
-        text.unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) || (0x4E00...0x9FFF).contains($0.value) }
+        containsKana(text: text) || text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
     }
 }
