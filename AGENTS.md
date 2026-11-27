@@ -41,6 +41,17 @@ Shopify の店のいつもの商品を、探さずに買い直すアプリ。
 - 外部のマシンがどれも使えない時は、作業用の Mac での実行に黙って切り替えない。その検証を未検証として、何にブロックされたかを完了報告 (PR があれば PR body) に書く。作業用の Mac で実行するのは owner が明示した時だけにする
 - `make` (既定 target `ios`) は、人が手元で触って確かめるための入口として残す。agent は実行しない
 
+## App Store Connect への入稿と審査への提出
+
+`fastlane/Fastfile` の lane で行う。ビルドのアップロードは `.github/workflows/ios-deploy.yml` が行う。
+
+- 説明文・キーワード・著作権・カテゴリ・審査のメモ (`fastlane/metadata/`) とスクリーンショット (`fastlane/screenshots/`) を送る: `bundle exec fastlane metadata_upload`。審査には提出しない
+- 提出の前の状態 (バージョンの状態・ビルド・審査連絡先の未設定の項目) を表示する: `bundle exec fastlane submit_for_review version:<版> build_number:<ビルド番号> dry_run:true`。App Store Connect を読むだけで書き込まない
+- 審査に提出する: `bundle exec fastlane submit_for_review version:<版> build_number:<ビルド番号>`。owner が提出してよいと答えた後に agent が行う (https://github.com/bannzai/quickbuy/issues/18#issuecomment-7211395996 )
+- 要る環境変数: `ASC_API_KEY_ID`・`ASC_API_KEY_ISSUER_ID`・`ASC_API_KEY_P8_BASE64` (3 つのコマンド)、`RELEASE_APP_REVIEW_FIRST_NAME`・`RELEASE_APP_REVIEW_LAST_NAME`・`RELEASE_APP_REVIEW_PHONE_NUMBER`・`RELEASE_APP_REVIEW_EMAIL_ADDRESS` (審査連絡先が App Store Connect に未設定の時の `submit_for_review`)。値はリポジトリに書かない
+- `submit_for_review` は release-app skill の雛形 (`~/.agents/skills/release-app/templates/submit_for_review/Fastfile`) を読み込むため、castle の無い環境 (GitHub Actions の runner) には無い
+- 「App のプライバシー」の回答は `fastlane/app_privacy_details.json` で、根拠は `documents/app-store-privacy.md`。2 つを合わせて直し、`bash ~/.agents/skills/appstore-app-privacy/scripts/privacy_validate_json.sh fastlane/app_privacy_details.json` で検査する。App Store Connect への反映は appstore-app-privacy skill で行う
+
 <!-- ai-review-config begin -->
 <!--
 このブロックは自動生成です。直接編集せず、テンプレートを更新してから再生成してください。

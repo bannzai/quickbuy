@@ -1,6 +1,6 @@
 # 「App のプライバシー」の回答の一覧
 
-App Store Connect の「App のプライバシー」(App Privacy) に何と答えるかと、その根拠。2026-11-20 時点の main のコード (Firebase の SDK は `firebase-ios-sdk` 13.1.1 の `FirebaseAnalyticsCore` と `FirebaseCrashlytics`) で決めた。SDK・通信先・送る値を変えた時は、この一覧と `docs/PrivacyPolicy-ja.md` を合わせて直す。
+App Store Connect の「App のプライバシー」(App Privacy) に何と答えるかと、その根拠。2026-11-20 時点の main のコード (Firebase の SDK は `firebase-ios-sdk` 13.1.1 の `FirebaseAnalyticsCore` と `FirebaseCrashlytics`) で決めた。SDK・通信先・送る値を変えた時は、この一覧と `docs/PrivacyPolicy-ja.md`、App Store Connect に反映する回答のファイル `fastlane/app_privacy_details.json` を合わせて直す。
 
 回答の項目の意味は Apple の定義 (https://developer.apple.com/app-store/app-privacy-details/ ) に従う。下の「Apple の項目」の名前は App Store Connect の英語の表記。
 

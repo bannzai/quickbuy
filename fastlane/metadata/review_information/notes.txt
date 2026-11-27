@@ -1,0 +1,19 @@
+【日本語】
+- ログインは不要です。アカウントの登録もありません。
+- このアプリは購入を完了させません。お気に入りの商品をカートに入れた状態の店 (Shopify のストア) の購入画面を、端末の既定のブラウザで開くところまでを行います。支払いの確定は利用者が店の画面で行います。
+- ホーム画面のウィジェットの「カートイン」を押すと、アプリは開かずに「購入画面を開きますか？」の確認の通知が届きます。通知をタップすると購入画面がブラウザで開きます。通知の許可が無い間、ウィジェットは「カートイン」の代わりに通知の許可が要ることを表示します。
+
+試す手順:
+1. アプリを開き、トップページの検索欄に商品名 (例: coffee) を入れて検索します。
+2. 検索の結果から商品を選び、種類と個数を選んで「お気に入り追加」を押します。
+3. お気に入りの一覧で「カートイン」を押し、「購入画面を開きますか？」の確認で開く操作をすると、その商品がカートに入った店の購入画面がブラウザで開きます。
+
+[English]
+- No sign-in is required, and there is no account registration.
+- The app never completes a purchase. It only opens the store's (Shopify store's) purchase screen, with the favorite item already in the cart, in the device's default browser. The user confirms payment on the store's own page.
+- Tapping "Add to Cart" on the Home Screen widget does not open the app. Instead, a confirmation notification ("Open checkout?") is delivered, and tapping it opens the purchase screen in the browser. Until notifications are allowed, the widget shows that notification permission is required instead of "Add to Cart".
+
+Steps to try:
+1. Open the app and search for a product name (e.g. coffee) in the search field on the top page.
+2. Choose a product from the results, select a variant and quantity, and tap "Add Favorite".
+3. In the favorites list, tap "Add to Cart" and confirm "Open checkout?". The store's purchase screen opens in the browser with the item in the cart.
