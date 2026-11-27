@@ -46,12 +46,25 @@ struct ShopifyProductPageTests {
             "https://mori-coffee.example/products/%E7%8F%88%E7%90%B2",
             ShopifyProductPage(shopDomain: "mori-coffee.example", localePathComponent: nil, percentEncodedProductHandle: "%E7%8F%88%E7%90%B2", variantID: nil)
         ),
+        // 名前に amazon を含むだけで Amazon が持たないドメインは、Shopify の店として通す (`amazonOwnedHost(host:)` の境界)。
+        (
+            "https://amazon-coffee.example/products/coffee-beans-200g",
+            ShopifyProductPage(shopDomain: "amazon-coffee.example", localePathComponent: nil, percentEncodedProductHandle: "coffee-beans-200g", variantID: nil)
+        ),
+        (
+            "https://www.amazon.co.jp.example/products/coffee-beans-200g",
+            ShopifyProductPage(shopDomain: "www.amazon.co.jp.example", localePathComponent: nil, percentEncodedProductHandle: "coffee-beans-200g", variantID: nil)
+        ),
+        (
+            "https://shopamazon.com/products/coffee-beans-200g",
+            ShopifyProductPage(shopDomain: "shopamazon.com", localePathComponent: nil, percentEncodedProductHandle: "coffee-beans-200g", variantID: nil)
+        ),
     ])
     func 商品ページのURLを分解できる(text: String, expectedProductPage: ShopifyProductPage) {
         #expect(shopifyProductPage(text: text) == expectedProductPage)
     }
 
-    /// 通す形に似ているが、スキーム・認証情報・ポート・店のドメイン・パス・商品バリアントの ID のどれかが決まった形でない入力は分解しない。
+    /// 通す形に似ているが、スキーム・認証情報・ポート・店のドメイン (Amazon が持つホストを含む)・パス・商品バリアントの ID のどれかが決まった形でない入力は分解しない。
     @Test(arguments: [
         "",
         "mori-coffee.example/products/coffee-beans-200g",
@@ -74,6 +87,13 @@ struct ShopifyProductPageTests {
         "https://mori-coffee.example/ja/en/products/coffee-beans-200g",
         "https://mori-coffee.example/cart/70881412:1",
         "https://www.amazon.co.jp/dp/B00EXAMPLE",
+        // Amazon が持つホストは、Shopify の商品ページの形のパスでも分解しない (https://github.com/bannzai/quickbuy/issues/88 )。
+        "https://www.amazon.co.jp/products/coffee-beans-200g",
+        "https://AMAZON.CO.JP/products/coffee-beans-200g",
+        "https://smile.amazon.com/products/coffee-beans-200g",
+        "https://amzn.asia/products/coffee-beans-200g",
+        "https://amzn.to/products/coffee-beans-200g",
+        "https://a.co/products/coffee-beans-200g",
         "https://mori-coffee.example/products/coffee-beans-200g?variant=",
         "https://mori-coffee.example/products/coffee-beans-200g?variant=70881412:9",
         "https://mori-coffee.example/products/coffee-beans-200g?variant=abc",

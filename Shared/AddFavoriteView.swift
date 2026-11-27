@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// お気に入りの追加の画面。商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面で、Shopify の店の商品は種類 (商品バリアント) と個数を選んでもらい、
-/// Amazon の商品は名前を付けてもらい、利用者が「お気に入りに追加」を押した時だけ保存する。
+/// お気に入りの追加の画面。Shopify の店の商品ページの URL を受け取り、店のドメインを目立つ形で見せる確認の画面で種類 (商品バリアント) と個数を選んでもらい、
+/// 利用者が「お気に入りに追加」を押した時だけ保存する。
 ///
 /// アプリの中 (貼り付け) と共有メニューの拡張の両方がこの画面を使うため、どちらから渡した URL も同じ確認の画面を通る (documents/adr/0003)。
 struct AddFavoriteView: View {
@@ -18,11 +18,9 @@ struct AddFavoriteView: View {
     @State private var text = ""
     /// 商品の情報を取得している間は true。
     @State private var isLoading = false
-    /// 確認の画面に出している Shopify の店の商品 (商品ページの URL から取り出した値と、店から取得した商品の JSON)。まだ URL を受け取っていない間と、Amazon の商品の時は nil。
+    /// 確認の画面に出している Shopify の店の商品 (商品ページの URL から取り出した値と、店から取得した商品の JSON)。まだ URL を受け取っていない間は nil。
     @State private var loadedProduct: (productPage: ShopifyProductPage, product: ShopifyAjaxProduct)?
-    /// 確認の画面に出している Amazon の商品の ASIN と、お気に入りにする時の識別子 (ASIN を受け取った時に 1 回だけ作り、保存まで変えない)。まだ URL を受け取っていない間と、Shopify の店の商品の時は nil。
-    @State private var loadedAmazonProduct: (asin: String, favoriteID: UUID)?
-    /// 確認の画面の名前の欄の文字列。Shopify の店の商品は、商品の情報を取得した時に商品の名前を入れる。Amazon の商品は空のまま出す (Amazon のページから名前を読み取らない)。
+    /// 確認の画面の名前の欄の文字列。商品の情報を取得した時に商品の名前を入れる。
     @State private var name = ""
     /// 確認の画面で選んである商品バリアントの、商品バリアントの ID ごとの個数。選んでいない商品バリアントは入らない。
     @State private var quantitiesByVariantID: [UInt64: Int] = [:]
@@ -35,14 +33,12 @@ struct AddFavoriteView: View {
     /// 保存に失敗したことを知らせる表示を出している間は true。
     @State private var isSaveFailed = false
 
-    /// URL を受け取る前は入力の画面、受け取った後は店ごとの確認の画面。
+    /// URL を受け取る前は入力の画面、受け取った後は確認の画面。
     var body: some View {
         NavigationStack {
             Group {
                 if let loadedProduct {
                     confirmationForm(productPage: loadedProduct.productPage, product: loadedProduct.product)
-                } else if let loadedAmazonProduct {
-                    amazonConfirmationForm(asin: loadedAmazonProduct.asin)
                 } else {
                     inputForm
                 }
@@ -85,8 +81,7 @@ struct AddFavoriteView: View {
             } header: {
                 Text("商品ページの URL")
             } footer: {
-                // 訳した文言を String で渡すのは、LocalizedStringKey で渡すと www.amazon.co.jp が押せるリンクになり、確認の画面を通さずに Amazon を開けてしまうため (2026-11-19 に simtunnel で、リンクとして表示されることを確かめた)。
-                Text(String(localized: LocalizedStringResource("Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください", locale: appTextLocale)))
+                Text(String(localized: LocalizedStringResource("Shopify の店の商品ページの URL を貼り付けてください", locale: appTextLocale)))
             }
             if let errorMessage {
                 Section {
@@ -185,42 +180,6 @@ struct AddFavoriteView: View {
         }
     }
 
-    /// Amazon の商品の、ドメイン (`amazonHost`) と ASIN を確かめ、名前を付ける画面。
-    ///
-    /// 名前の欄は空で出し、画像は出さない (Amazon のページから名前と画像を読み取らない)。個数の欄は出さない (個数は利用者が Amazon の画面で選ぶ。`amazonFavorite(asin:name:id:)`)。
-    private func amazonConfirmationForm(asin: String) -> some View {
-        Form {
-            Section {
-                ShopDomainBox(shopDomain: amazonHost)
-            }
-            Section {
-                TextField("名前 (一覧で見分けられる名前)", text: $name, axis: .vertical)
-                    .accessibilityIdentifier("favoriteNameField")
-                LabeledContent("ASIN", value: asin)
-                    .accessibilityIdentifier("amazonASIN")
-            } footer: {
-                Text("Amazon の商品ページが開きます\n商品は Amazon の画面でカートに入れてください")
-            }
-            Section {
-                Button {
-                    finish(choice: .add)
-                } label: {
-                    Text("お気に入りに追加")
-                        .bold()
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .disabled(!isFavoriteNameSavable(name: name))
-                .accessibilityIdentifier("addFavoritesButton")
-            } footer: {
-                Text("追加しただけでは購入されません")
-            }
-        }
-    }
-
     /// 選んである商品バリアントの個数を、個数の行が読み書きするための値にして返す。`quantity` はその商品バリアントの今の個数。
     private func quantityBinding(variantID: UInt64, quantity: Int) -> Binding<Int> {
         Binding(get: { quantity }, set: { quantitiesByVariantID[variantID] = $0 })
@@ -231,12 +190,6 @@ struct AddFavoriteView: View {
         isLoading = true
         errorMessage = nil
         do {
-            if let asin = try await loadAmazonASIN(text: text, urlSession: urlSession) {
-                name = ""
-                loadedAmazonProduct = (asin, UUID())
-                isLoading = false
-                return
-            }
             let favoriteAddition = try await loadFavoriteAddition(text: text, urlSession: urlSession)
             name = favoriteAddition.product.title
             savedFavorites = favoriteAdditionSavedFavorites(fileURL: favoritesFileURL)
@@ -249,7 +202,7 @@ struct AddFavoriteView: View {
             favoriteIDsByVariantID = makeFavoriteIDsByVariantID(product: favoriteAddition.product, makeID: { UUID() })
             loadedProduct = (favoriteAddition.productPage, favoriteAddition.product)
         } catch {
-            // `loadAmazonASIN` と `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
+            // `loadFavoriteAddition` が投げるのは `FavoriteAdditionLoadError` だけ。それ以外が来た時は、登録できない扱いにして確認の画面へ進めない。
             errorMessage = favoriteAdditionLoadErrorMessage(error: error as? FavoriteAdditionLoadError ?? .notRegistrable, locale: appTextLocale)
         }
         isLoading = false
@@ -268,12 +221,6 @@ struct AddFavoriteView: View {
                         quantitiesByVariantID: quantitiesByVariantID,
                         favoriteIDsByVariantID: favoriteIDsByVariantID
                     ),
-                    fileURL: favoritesFileURL
-                )
-            } else if let loadedAmazonProduct {
-                try finishFavoriteAddition(
-                    choice: choice,
-                    favorites: [amazonFavorite(asin: loadedAmazonProduct.asin, name: name, id: loadedAmazonProduct.favoriteID)],
                     fileURL: favoritesFileURL
                 )
             }
@@ -358,9 +305,7 @@ func sharedText(itemProviders: [NSItemProvider]) async -> String? {
 func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError, locale: Locale) -> String {
     switch error {
     case .notProductPageURL:
-        String(localized: LocalizedStringResource("この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください", locale: locale))
-    case .notAmazonProductPageURL:
-        String(localized: LocalizedStringResource("この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください", locale: locale))
+        String(localized: LocalizedStringResource("この URL は登録できません\nShopify の店の商品ページの URL を入れてください", locale: locale))
     case .temporarilyUnavailable:
         String(localized: LocalizedStringResource("商品の情報を取得できませんでした\n少し待ってからもう一度お試しください", locale: locale))
     case .notRegistrable:
@@ -368,13 +313,11 @@ func favoriteAdditionLoadErrorMessage(error: FavoriteAdditionLoadError, locale: 
     }
 }
 
-/// お気に入りの店のドメインを、画面に出す文字列にして返す。Amazon の商品は `amazonHost` (追加の確認の画面で見せたドメインと同じ表記)。
+/// お気に入りの店のドメインを、画面に出す文字列にして返す。
 func shopDomainText(favorite: Favorite) -> String {
     switch favorite.product {
     case let .shopify(shopifyProduct):
         shopifyProduct.shopDomain
-    case .amazon:
-        amazonHost
     }
 }
 

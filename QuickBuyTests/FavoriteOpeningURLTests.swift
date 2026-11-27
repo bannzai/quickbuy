@@ -3,7 +3,7 @@ import Testing
 @testable import QuickBuy
 
 /// 保存済みのお気に入りから組み立てる開く URL が、決まった形であることを確かめる。
-/// Shopify の店の商品は店のドメイン・商品バリアントの ID・個数だけからなる購入画面の URL、Amazon の商品は ASIN だけからなる商品ページの URL。
+/// Shopify の店の商品は店のドメイン・商品バリアントの ID・個数だけからなる購入画面の URL。
 struct FavoriteOpeningURLTests {
     /// 商品と個数だけを指定したお気に入りを返す。
     private func favorite(quantity: Int, product: Favorite.Product) -> Favorite {
@@ -36,27 +36,9 @@ struct FavoriteOpeningURLTests {
         #expect(openingURL(favorite: favorite(quantity: quantity, product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: variantID)))) == nil)
     }
 
-    /// Amazon の商品は、www.amazon.co.jp の商品ページの URL になる。個数とアソシエイトの ID は URL に入れない。
-    @Test func Amazonの商品は商品ページのURLになる() {
-        #expect(
-            openingURL(favorite: favorite(quantity: 3, product: .amazon(AmazonProduct(asin: "B00EXAMPLE"))))?.absoluteString
-                == "https://www.amazon.co.jp/dp/B00EXAMPLE"
-        )
-    }
-
-    /// ASIN の形でない保存値 (9 文字・小文字・パスを含む) の Amazon の商品では URL を返さない。
-    @Test(arguments: ["B00EXAMPL", "b00example", "B00EXAMPLE/../cart"])
-    func ASINの形でない保存値ではURLを返さない(asin: String) {
-        #expect(openingURL(favorite: favorite(quantity: 1, product: .amazon(AmazonProduct(asin: asin)))) == nil)
-    }
-
-    /// 確認を出すボタンと確認の見出しの文言は、Shopify の店の商品は購入画面、Amazon の商品は商品ページを開くと読める。
-    @Test func ボタンと確認の文言は店ごとに変わる() {
-        let shopifyFavorite = favorite(quantity: 1, product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")))
-        let amazonFavorite = favorite(quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")))
-        #expect(cartInButtonTitle(favorite: shopifyFavorite, locale: Locale(identifier: "ja")) == "カートイン")
-        #expect(cartInButtonTitle(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon で開く")
-        #expect(cartInConfirmationTitle(favorite: shopifyFavorite, locale: Locale(identifier: "ja")) == "購入画面を開きますか？")
-        #expect(cartInConfirmationTitle(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon の商品ページを開きますか？")
+    /// 確認を出すボタンと確認の見出しの文言は、購入画面を開くと読める。
+    @Test func ボタンと確認の文言() {
+        #expect(cartInButtonTitle(locale: Locale(identifier: "ja")) == "カートイン")
+        #expect(cartInConfirmationTitle(locale: Locale(identifier: "ja")) == "購入画面を開きますか？")
     }
 }

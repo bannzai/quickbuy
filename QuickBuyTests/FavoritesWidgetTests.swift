@@ -119,22 +119,9 @@ struct FavoritesWidgetTests {
         #expect(favoriteWidgetRowCaption(favorite: favorite(name: "洗濯用せっけん", quantity: 1), locale: Locale(identifier: "ja")) == "1 個")
     }
 
-    /// Amazon の商品の行は個数を出さず、店を見分ける「Amazon」を出す (Amazon の商品は個数を持たない)。
-    @Test func Amazonの商品の行は個数を出さない() {
-        #expect(
-            favoriteWidgetRowCaption(
-                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil), locale: Locale(identifier: "ja")
-            ) == "Amazon"
-        )
-    }
-
-    /// 通知の許可が要ることの文は、並べているお気に入りのボタンの名前を出す。Amazon の商品だけなら「カートイン」と書かない。
-    @Test func 通知の許可が要ることの文は並べたお気に入りのボタンの名前を出す() {
-        let amazonFavorite = Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), favorite(name: "豆")], locale: Locale(identifier: "ja")) == "カートインには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: [amazonFavorite], locale: Locale(identifier: "ja")) == "Amazon で開くには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: [favorite(name: "洗剤"), amazonFavorite], locale: Locale(identifier: "ja")) == "カートイン・Amazon で開くには通知の許可が要ります")
-        #expect(widgetNotificationRequiredText(favorites: [], locale: Locale(identifier: "ja")) == "カートインには通知の許可が要ります")
+    /// 通知の許可が要ることの文は「カートイン」に通知の許可が要ると書く。
+    @Test func 通知の許可が要ることの文() {
+        #expect(widgetNotificationRequiredText(locale: Locale(identifier: "ja")) == "カートインには通知の許可が要ります")
     }
 
     // MARK: - 「カートイン」を出すか
@@ -163,16 +150,16 @@ struct FavoritesWidgetTests {
         #expect(isCartInAvailable(authorizationStatus: .authorized, alertSetting: alertSetting, notificationCenterSetting: notificationCenterSetting, lockScreenSetting: lockScreenSetting) == expected)
     }
 
-    /// Shopify の商品と Amazon の商品は通知が許可されている時だけボタンを出す。開く URL を組み立てられない Amazon の商品 (ASIN の形でない保存値) は許可されていても出さない。
+    /// 通知が許可されている時だけボタンを出す。開く URL を組み立てられないお気に入り (数字だけでない商品バリアントの ID の保存値) は許可されていても出さない。
     @Test func カートインのボタンは許可された開けるお気に入りだけに出す() {
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
         #expect(isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: true))
         #expect(!isCartInButtonShown(favorite: favorite(name: "洗剤"), isNotificationAuthorized: false))
-        #expect(isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: true))
-        #expect(!isCartInButtonShown(favorite: amazonFavorite, isNotificationAuthorized: false))
         #expect(
             !isCartInButtonShown(
-                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil),
+                favorite: Favorite(
+                    id: UUID(), name: "電池", imageURL: nil, quantity: 1,
+                    product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412:9")), reminder: nil
+                ),
                 isNotificationAuthorized: true
             )
         )

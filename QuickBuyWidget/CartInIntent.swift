@@ -1,7 +1,7 @@
 import AppIntents
 import UserNotifications
 
-/// ウィジェットの行の「カートイン」(Amazon の商品は「Amazon で開く」) のボタンの処理。アプリを開かずに、そのお気に入りの確認の通知 (`cartInConfirmationNotificationContent(favorite:locale:)`) を出す。
+/// ウィジェットの行の「カートイン」のボタンの処理。アプリを開かずに、そのお気に入りの確認の通知 (`cartInConfirmationNotificationContent(favorite:locale:)`) を出す。
 ///
 /// 購入画面も商品ページも開かない。開くのは、利用者が確認の通知をタップした時のアプリ (`ReminderNotificationDelegate`)。
 struct CartInIntent: AppIntent {

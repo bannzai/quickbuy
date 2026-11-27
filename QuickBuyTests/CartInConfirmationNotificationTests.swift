@@ -66,23 +66,11 @@ struct CartInConfirmationNotificationTests {
         #expect(!allText.contains("/cart/"))
     }
 
-    /// Amazon の商品の通知は、見出しを「Amazon の商品ページを開きますか？」にし、本文に個数を出さずに商品ページが開くことを書く。商品ページの URL は載せない。
-    @Test func Amazonの商品の通知は商品ページが開くことを書く() throws {
-        let content = try #require(
-            cartInConfirmationNotificationContent(
-                favorite: Favorite(id: UUID(), name: "単3電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil), locale: Locale(identifier: "ja")
-            )
-        )
-        #expect(content.title == "Amazon の商品ページを開きますか？")
-        #expect(content.body == "単3電池\nタップすると www.amazon.co.jp の商品ページが開きます")
-        #expect(!"\(content.title)\(content.body)\(content.userInfo)".contains("/dp/"))
-    }
-
-    /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・ホスト名の形でない店のドメイン) では、確認の通知を作らない。
+    /// 開く URL を組み立てられないお気に入り (ホスト名の形でない店のドメイン・数字だけでない商品バリアントの ID) では、確認の通知を作らない。
     @Test func 開くURLを組み立てられないお気に入りでは通知を作らない() {
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
-        #expect(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
-        #expect(cartInConfirmationNotificationRequest(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == nil)
+        let brokenVariantFavorite = shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412:9", quantity: 1)
+        #expect(cartInConfirmationNotificationContent(favorite: brokenVariantFavorite, locale: Locale(identifier: "ja")) == nil)
+        #expect(cartInConfirmationNotificationRequest(favorite: brokenVariantFavorite, locale: Locale(identifier: "ja")) == nil)
         #expect(
             cartInConfirmationNotificationContent(
                 favorite: shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "https://evil.example/cart", variantID: "70881412", quantity: 1), locale: Locale(identifier: "ja")
@@ -130,17 +118,17 @@ struct CartInConfirmationNotificationTests {
         #expect(try Data(contentsOf: fileURL) == savedData)
     }
 
-    /// 保存されていない識別子と、開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品) では要求を作らない。
+    /// 保存されていない識別子と、開く URL を組み立てられないお気に入り (数字だけでない商品バリアントの ID) では要求を作らない。
     @Test func 保存されていないお気に入りと組み立てられないお気に入りでは要求を作らない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let amazonFavorite = Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPL")), reminder: nil)
+        let brokenVariantFavorite = shopifyFavorite(idSuffix: "2", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412:9", quantity: 1)
         try saveFavorites(
-            favorites: [shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), amazonFavorite],
+            favorites: [shopifyFavorite(idSuffix: "1", variantName: nil, shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2), brokenVariantFavorite],
             fileURL: fileURL
         )
 
         #expect(try cartInConfirmationNotificationRequest(favoriteID: UUID(uuidString: "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA9")!, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
-        #expect(try cartInConfirmationNotificationRequest(favoriteID: amazonFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
+        #expect(try cartInConfirmationNotificationRequest(favoriteID: brokenVariantFavorite.id, fileURL: fileURL, locale: Locale(identifier: "ja")) == nil)
     }
 
     /// 保存先を読めない時 (中身が JSON でない) はエラーを投げる。
@@ -180,37 +168,6 @@ struct CartInConfirmationNotificationTests {
         #expect(try loadFavorites(fileURL: fileURL) == [coffeeFavorite, recountedSoapFavorite])
         #expect(appliedChanges == [[.schedule(favorite: recountedSoapFavorite)]])
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "shopify"])])
-    }
-
-    /// Amazon の商品の確認の通知のタップでは、www.amazon.co.jp の商品ページの URL を返し、リマインドをタップした時刻から数え直す。
-    @Test func Amazonの商品の通知のタップで商品ページのURLを返して数え直す() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let amazonFavorite = Favorite(
-            id: UUID(),
-            name: "単3電池",
-            imageURL: nil,
-            quantity: 1,
-            product: .amazon(AmazonProduct(asin: "B0DTESTAB1")),
-            reminder: Reminder(intervalDays: 30, countedFrom: countedFrom)
-        )
-        try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
-        var recountedAmazonFavorite = amazonFavorite
-        recountedAmazonFavorite.reminder = Reminder(intervalDays: 30, countedFrom: tappedAt)
-        var recordedEvents: [AnalyticsEvent] = []
-
-        #expect(
-            try openingURLForNotificationResponse(
-                actionIdentifier: UNNotificationDefaultActionIdentifier,
-                notificationIdentifier: cartInConfirmationNotificationIdentifier(favoriteID: amazonFavorite.id),
-                userInfo: #require(cartInConfirmationNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja"))).userInfo,
-                now: tappedAt,
-                fileURL: fileURL,
-                applyChanges: { _ in },
-                recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://www.amazon.co.jp/dp/B0DTESTAB1"
-        )
-        #expect(try loadFavorites(fileURL: fileURL) == [recountedAmazonFavorite])
-        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "cart_in_notification", "store": "amazon"])])
     }
 
     /// 確認の通知を出した後に個数を変えた時は、通知の文言の個数ではなく、タップした時に保存されている個数で組み立てる (購入画面の URL を通知に載せないため)。

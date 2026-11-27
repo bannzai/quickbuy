@@ -134,9 +134,9 @@ struct FavoritesListTests {
         )
     }
 
-    /// 開く URL を組み立てられないお気に入り (ASIN の形でない Amazon の商品・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
+    /// 開く URL を組み立てられないお気に入り (商品バリアントの ID が数字だけでないもの・店のドメインがホスト名の形でないもの) は、識別子が合っていても確認が指さない。
     @Test(arguments: [
-        Favorite.Product.amazon(AmazonProduct(asin: "B00EXAMPL")),
+        Favorite.Product.shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412:9")),
         Favorite.Product.shopify(ShopifyProduct(shopDomain: "mori-coffee.example/evil", variantID: "70881412")),
     ])
     func 購入画面を開けないお気に入りには確認を出さない(product: Favorite.Product) {
@@ -168,13 +168,6 @@ struct FavoritesListTests {
                 ), locale: Locale(identifier: "ja")
             ) == "洗濯用せっけん を 12 個カートに入れて開きます"
         )
-    }
-
-    /// Amazon の商品の確認は、個数を出さずに商品ページを開くことと、カートに入らないことを書く。確認は Amazon の商品も指す。
-    @Test func Amazonの商品の確認は商品ページを開くことを書く() {
-        let amazonFavorite = favorite(name: "単3電池", variantName: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B0DTESTAB1")), reminder: nil)
-        #expect(cartInConfirmationText(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "単3電池 の商品ページを開きます (カートには入りません)")
-        #expect(cartInConfirmationFavorite(confirmation: (favoriteID: amazonFavorite.id, shownAt: pressedAt), favorites: [amazonFavorite], now: pressedAt) == amazonFavorite)
     }
 
     /// 確認の「開く」で、確認が指すお気に入りの店のドメイン・商品バリアントの ID・保存済みの個数 (確認を出した後に変えた個数を含む) から組み立てた URL が返り、
@@ -229,14 +222,9 @@ struct FavoritesListTests {
 
     // MARK: - 店のドメインの表示
 
-    /// Shopify の商品は保存した店のドメイン、Amazon の商品は追加の確認の画面と同じ `www.amazon.co.jp` を表示する。
+    /// 保存した店のドメインを表示する。
     @Test func 店のドメインを表示の文字列にする() {
         #expect(shopDomainText(favorite: favorite(name: "コーヒー豆")) == "mori-coffee.example")
-        #expect(
-            shopDomainText(
-                favorite: Favorite(id: UUID(), name: "電池", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-            ) == "www.amazon.co.jp"
-        )
     }
 
     // MARK: - 開発者メニュー

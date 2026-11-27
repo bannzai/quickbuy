@@ -554,29 +554,15 @@ struct ReminderTests {
         #expect(try openingURL(favoriteID: UUID(), now: countedFrom, fileURL: temporaryFavoritesFileURL()) == nil)
     }
 
-    /// 開く URL を組み立てられないお気に入り (ASIN の形でない保存値の Amazon の商品) は、開いたことにならないので数え直さない。
+    /// 開く URL を組み立てられないお気に入り (数字だけでない商品バリアントの ID の保存値) は、開いたことにならないので数え直さない。
     @Test func 開くURLを組み立てられないお気に入りでは数え直さない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        var amazonFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
-        amazonFavorite.product = .amazon(AmazonProduct(asin: "B00000000"))
-        try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
+        var unopenableFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
+        unopenableFavorite.product = .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412:9"))
+        try saveFavorites(favorites: [unopenableFavorite], fileURL: fileURL)
 
-        #expect(try openingURL(favoriteID: amazonFavorite.id, now: countedFrom.addingTimeInterval(40 * daySeconds), fileURL: fileURL) == nil)
-        #expect(try loadFavorites(fileURL: fileURL) == [amazonFavorite])
-    }
-
-    /// Amazon の商品のお気に入りは、商品ページの URL を返し、開いた時刻から数え直す。
-    @Test func Amazonの商品は商品ページを開いた時刻から数え直す() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        var amazonFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
-        amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
-        try saveFavorites(favorites: [amazonFavorite], fileURL: fileURL)
-        let openedAt = countedFrom.addingTimeInterval(40 * daySeconds)
-        var recountedAmazonFavorite = amazonFavorite
-        recountedAmazonFavorite.reminder = Reminder(intervalDays: 30, countedFrom: openedAt)
-
-        #expect(try openingURL(favoriteID: amazonFavorite.id, now: openedAt, fileURL: fileURL)?.absoluteString == "https://www.amazon.co.jp/dp/B000000000")
-        #expect(try loadFavorites(fileURL: fileURL) == [recountedAmazonFavorite])
+        #expect(try openingURL(favoriteID: unopenableFavorite.id, now: countedFrom.addingTimeInterval(40 * daySeconds), fileURL: fileURL) == nil)
+        #expect(try loadFavorites(fileURL: fileURL) == [unopenableFavorite])
     }
 
     // MARK: - 通知の内容
@@ -613,22 +599,9 @@ struct ReminderTests {
         #expect(reminderNotificationContent(favorite: favoriteWithoutVariantName, locale: Locale(identifier: "ja")).body == "コーヒー豆 1\nタップすると購入画面が開きます")
     }
 
-    /// 編集の画面の、日数を数え直す時の文は、Shopify の店の商品は購入画面、Amazon の商品は商品ページを開いた日から数え直すと書く。
-    @Test func 数え直す時の文は店ごとに開くものを書く() {
-        var amazonFavorite = favorite(idSuffix: "1", reminder: nil)
-        amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
-
-        #expect(reminderRecountText(favorite: favorite(idSuffix: "2", reminder: nil), locale: Locale(identifier: "ja")) == "購入画面を開いた日から数え直します")
-        #expect(reminderRecountText(favorite: amazonFavorite, locale: Locale(identifier: "ja")) == "Amazon の商品ページを開いた日から数え直します")
-    }
-
-    /// Amazon の商品の通知の本文は、名前の行と、タップで Amazon の商品ページが開く案内の行。
-    @Test func Amazonの商品の通知の本文は商品ページが開く案内() {
-        var amazonFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
-        amazonFavorite.variantName = nil
-        amazonFavorite.product = .amazon(AmazonProduct(asin: "B000000000"))
-
-        #expect(reminderNotificationContent(favorite: amazonFavorite, locale: Locale(identifier: "ja")).body == "コーヒー豆 1\nタップすると Amazon の商品ページが開きます")
+    /// 編集の画面の、日数を数え直す時の文は、購入画面を開いた日から数え直すと書く。
+    @Test func 数え直す時の文は購入画面を開いた日から() {
+        #expect(reminderRecountText(locale: Locale(identifier: "ja")) == "購入画面を開いた日から数え直します")
     }
 
     /// 付加情報が空・文字列が識別子の形でない・値が文字列でない時は nil を返す。

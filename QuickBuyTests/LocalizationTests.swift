@@ -24,11 +24,6 @@ struct LocalizationTests {
         )
     }
 
-    /// 名前を指定した Amazon の商品のお気に入りを返す。
-    private func amazonFavorite(name: String) -> Favorite {
-        Favorite(id: UUID(), name: name, imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B00EXAMPLE")), reminder: nil)
-    }
-
     // MARK: - 通知
 
     /// ウィジェットの「カートイン」の確認の通知は、見出しと本文が英語になる。店と商品の名前は訳さない。
@@ -38,10 +33,6 @@ struct LocalizationTests {
         )
         #expect(shopifyContent.title == "Open checkout?")
         #expect(shopifyContent.body == "コーヒー豆 200g ×2\nTap to open checkout on mori-coffee.example")
-
-        let amazonContent = try #require(cartInConfirmationNotificationContent(favorite: amazonFavorite(name: "単3電池"), locale: englishLocale))
-        #expect(amazonContent.title == "Open the Amazon product page?")
-        #expect(amazonContent.body == "単3電池\nTap to open the product page on www.amazon.co.jp")
     }
 
     /// リマインドの通知は、見出しと本文が英語になる。
@@ -49,34 +40,25 @@ struct LocalizationTests {
         let shopifyContent = reminderNotificationContent(favorite: shopifyFavorite(name: "コーヒー豆", variantName: "200g", quantity: 1), locale: englishLocale)
         #expect(shopifyContent.title == "Time to buy again")
         #expect(shopifyContent.body == "コーヒー豆 200g\nTap to open checkout")
-        #expect(reminderNotificationContent(favorite: amazonFavorite(name: "単3電池"), locale: englishLocale).body == "単3電池\nTap to open the Amazon product page")
     }
 
     // MARK: - ウィジェット
 
     /// ウィジェットの行のボタンは英語になる。
     @Test func ボタンと確認の見出しは英語() {
-        #expect(cartInButtonTitle(favorite: shopifyFavorite(name: "豆", variantName: nil, quantity: 1), locale: englishLocale) == "Add to Cart")
-        #expect(cartInButtonTitle(favorite: amazonFavorite(name: "電池"), locale: englishLocale) == "Open in Amazon")
-        #expect(cartInConfirmationTitle(favorite: shopifyFavorite(name: "豆", variantName: nil, quantity: 1), locale: englishLocale) == "Open checkout?")
-        #expect(cartInConfirmationTitle(favorite: amazonFavorite(name: "電池"), locale: englishLocale) == "Open the Amazon product page?")
+        #expect(cartInButtonTitle(locale: englishLocale) == "Add to Cart")
+        #expect(cartInConfirmationTitle(locale: englishLocale) == "Open checkout?")
     }
 
-    /// 通知の許可が要ることの文は、ボタンの英語の名前を入れた英語の文になる。両方の店を並べた時は 2 つの名前を「 / 」で区切る。
+    /// 通知の許可が要ることの文は、ボタンの英語の名前を入れた英語の文になる。
     @Test func 通知の許可が要ることの文は英語() {
-        #expect(widgetNotificationRequiredText(favorites: [shopifyFavorite(name: "豆", variantName: nil, quantity: 1)], locale: englishLocale) == "Add to Cart needs notification permission")
-        #expect(
-            widgetNotificationRequiredText(favorites: [shopifyFavorite(name: "豆", variantName: nil, quantity: 1), amazonFavorite(name: "電池")], locale: englishLocale)
-                == "Add to Cart / Open in Amazon needs notification permission"
-        )
-        #expect(widgetNotificationRequiredText(favorites: [], locale: englishLocale) == "Add to Cart needs notification permission")
+        #expect(widgetNotificationRequiredText(locale: englishLocale) == "Add to Cart needs notification permission")
     }
 
     /// ウィジェットの行の説明は、個数を「×N」で出し、商品バリアントの名前との区切りを「 · 」にする。
     @Test func 行の説明は英語の個数() {
         #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "豆", variantName: "200g", quantity: 2), locale: englishLocale) == "200g · ×2")
         #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "豆", variantName: nil, quantity: 1), locale: englishLocale) == "×1")
-        #expect(favoriteWidgetRowCaption(favorite: amazonFavorite(name: "電池"), locale: englishLocale) == "Amazon")
     }
 
     /// リマインドの状態は英語で、残りの日数が 1 日の時は単数、2 日以上の時は複数の形になる。
@@ -93,9 +75,7 @@ struct LocalizationTests {
     /// 一覧の確認の 2 行目と、編集の画面の数え直しの文は英語になる。
     @Test func 確認の文と数え直しの文は英語() {
         #expect(cartInConfirmationText(favorite: shopifyFavorite(name: "コーヒー豆", variantName: "200g", quantity: 2), locale: englishLocale) == "Opens with コーヒー豆 200g ×2 in the cart")
-        #expect(cartInConfirmationText(favorite: amazonFavorite(name: "単3電池"), locale: englishLocale) == "Opens the product page for 単3電池 (not added to cart)")
-        #expect(reminderRecountText(favorite: shopifyFavorite(name: "豆", variantName: nil, quantity: 1), locale: englishLocale) == "The count restarts on the day you open checkout")
-        #expect(reminderRecountText(favorite: amazonFavorite(name: "電池"), locale: englishLocale) == "The count restarts on the day you open the Amazon product page")
+        #expect(reminderRecountText(locale: englishLocale) == "The count restarts on the day you open checkout")
     }
 
     /// 追加の画面の保存するボタンは、選んだ種類が 1 つの時は単数、2 つ以上の時は複数の形になる。
@@ -111,8 +91,7 @@ struct LocalizationTests {
 
     /// 登録できない理由の文言は、どの理由でも英語になる。
     @Test(arguments: [
-        (FavoriteAdditionLoadError.notProductPageURL, "This URL can't be added\nEnter a product page URL from a Shopify store or Amazon"),
-        (.notAmazonProductPageURL, "This Amazon URL can't be added\nOn an Amazon product page in the app or website, tap Share and choose Quick Buy"),
+        (FavoriteAdditionLoadError.notProductPageURL, "This URL can't be added\nEnter a product page URL from a Shopify store"),
         (.temporarilyUnavailable, "Couldn't get product info\nPlease wait a moment and try again"),
         (.notRegistrable, "This product can't be added\nThe store doesn't share product info or the product wasn't found"),
     ])
@@ -181,11 +160,11 @@ struct LocalizationTests {
         )
     }
 
-    /// 追加の画面の URL の説明が英語で引ける。`www.amazon.co.jp` を含むが、画面は `Text(String)` で渡すためリンクにならない (2026-11-19 に simtunnel で英語と日本語の両方を確かめた)。
+    /// 追加の画面の URL の説明が英語で引ける。
     @Test func 追加の画面のURLの説明は英語() {
         #expect(
-            String(localized: LocalizedStringResource("Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください", locale: englishLocale))
-                == "Paste a product page URL from a Shopify store or Amazon (www.amazon.co.jp)"
+            String(localized: LocalizedStringResource("Shopify の店の商品ページの URL を貼り付けてください", locale: englishLocale))
+                == "Paste a product page URL from a Shopify store"
         )
     }
 

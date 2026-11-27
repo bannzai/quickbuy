@@ -7,18 +7,13 @@ import UserNotifications
 /// 載せるのは見出し・お気に入りの名前・商品バリアントの名前 (持つお気に入りだけ)・案内の文言と、タップされた時にお気に入りを探すための識別子だけ。
 /// 商品バリアントの名前は、同じ商品の商品バリアントごとのお気に入りの通知を見分けられるよう、名前と同じ行に空白で区切って続ける
 /// (並べ方は documents/design/mock-2026-11-18/project/WidgetPush.dc.html の通知の見本「コーヒー豆 200g / 豆のまま」)。
-/// 案内の文言は、タップで開くもの (Shopify の店の商品は購入画面、Amazon の商品は商品ページ) を書く。
+/// 案内の文言は、タップで購入画面が開くことを書く。
 /// 開く URL は載せない (.claude/rules/purchase-url.md。URL はタップされた時に保存済みのお気に入りから組み立てる)。
 /// 文言は `locale` の言語にする。予約した時に文言を決めるため、予約した後に端末の言語を変えても、届く通知は予約した時の言語のまま。
 func reminderNotificationContent(favorite: Favorite, locale: Locale) -> UNMutableNotificationContent {
     let content = UNMutableNotificationContent()
     content.title = String(localized: LocalizedStringResource("そろそろ買う頃です", locale: locale))
-    content.body = switch favorite.product {
-    case .shopify:
-        String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます", locale: locale))
-    case .amazon:
-        String(localized: LocalizedStringResource("\(favorite.name)\nタップすると Amazon の商品ページが開きます", locale: locale))
-    }
+    content.body = String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " "))\nタップすると購入画面が開きます", locale: locale))
     content.sound = .default
     content.userInfo = [favoriteNotificationFavoriteIDKey: favorite.id.uuidString]
     return content
@@ -112,7 +107,7 @@ func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) ->
     try operation()
 }
 
-/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く URL (`openingURL(favorite:)`。Shopify の店は購入画面、Amazon は商品ページ) を返す。
+/// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く URL (`openingURL(favorite:)`。購入画面) を返す。
 /// 開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、開いた記録を `recordAnalyticsEvent` に渡す。
 ///
 /// `notificationIdentifier` は通知の識別子。「カートイン」の確認の通知の識別子 (`cartInConfirmationNotificationIdentifier(favoriteID:)`) なら入口を確認の通知、それ以外ならリマインドの通知として記録する。
@@ -234,7 +229,7 @@ final class ReminderNotificationDelegate: NSObject, UNUserNotificationCenterDele
         completionHandler([.banner, .list, .sound])
     }
 
-    /// 通知がタップされた時に、通知が指すお気に入りの購入画面 (Amazon の商品は商品ページ) をアプリの外で開き、リマインドの日数を数え直す。
+    /// 通知がタップされた時に、通知が指すお気に入りの購入画面をアプリの外で開き、リマインドの日数を数え直す。
     ///
     /// 通知が指すお気に入りが保存されていない時など、開く URL が無い時は何も開かず、お気に入りのタブを出すよう画面へ求める (`appTabForNotificationResponse`)。
     /// 画面からの保存の操作と同時に保存先を読み書きしないよう、数え直しの保存もメインのスレッド (画面の操作と同じ) で実行する。

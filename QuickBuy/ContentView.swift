@@ -215,7 +215,7 @@ struct FavoritesListView: View {
                         }
                     }
                 } footer: {
-                    Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います")
+                    Text("「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -230,13 +230,13 @@ struct FavoritesListView: View {
         }
     }
 
-    /// 「カートイン」(Amazon の商品は「Amazon で開く」) を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面 (Amazon の商品は商品ページ) を開く。
+    /// 「カートイン」を押した後に画面の下に出す確認。「開く」を押すと、確認が指すお気に入りの購入画面を開く。
     /// 確認が指すお気に入りが保存先から消えた時と、開く URL を組み立てられなくなった時は出さない。
     @ViewBuilder private var cartInConfirmationView: some View {
         if let confirmingFavorite = cartInConfirmationFavorite(confirmation: cartInConfirmation, favorites: favorites, now: .now) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(cartInConfirmationTitle(favorite: confirmingFavorite, locale: appTextLocale))
+                    Text(cartInConfirmationTitle(locale: appTextLocale))
                         .font(.subheadline.weight(.heavy))
                     Text(cartInConfirmationText(favorite: confirmingFavorite, locale: appTextLocale))
                         .font(.caption)
@@ -275,7 +275,7 @@ struct FavoritesListView: View {
         }
     }
 
-    /// お気に入り 1 件の行。名前の側を押すと編集の画面が開き、「カートイン」(Amazon の商品は「Amazon で開く」) を押すと開くかの確認が出る (まだ開かない)。
+    /// お気に入り 1 件の行。名前の側を押すと編集の画面が開き、「カートイン」を押すと開くかの確認が出る (まだ開かない)。
     private func row(favorite: Favorite) -> some View {
         HStack(spacing: 12) {
             Button {
@@ -296,11 +296,8 @@ struct FavoritesListView: View {
                             Text(shopDomainText(favorite: favorite))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
-                            // Amazon の商品は個数を持たない (個数は利用者が Amazon の画面で選ぶ。`amazonFavorite(asin:name:id:)`)。
-                            if case .shopify = favorite.product {
-                                Text(" ・ \(favorite.quantity) 個")
-                                    .fixedSize()
-                            }
+                            Text(" ・ \(favorite.quantity) 個")
+                                .fixedSize()
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -324,7 +321,7 @@ struct FavoritesListView: View {
             }
             .buttonStyle(.plain)
             if openingURL(favorite: favorite) != nil {
-                Button(cartInButtonTitle(favorite: favorite, locale: appTextLocale)) {
+                Button(cartInButtonTitle(locale: appTextLocale)) {
                     cartInConfirmation = (favoriteID: favorite.id, shownAt: .now)
                 }
                 .font(.subheadline.weight(.heavy))
@@ -403,17 +400,9 @@ func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?
     return favorites.first { $0.id == confirmation.favoriteID && openingURL(favorite: $0) != nil }
 }
 
-/// 「カートイン」の確認の 2 行目に出す文を `locale` の言語で返す。
-///
-/// Shopify の店の商品は、何を何個カートに入れて開くか (商品バリアントの名前を持つお気に入りでは、名前の後ろに足す)。
-/// Amazon の商品は、商品ページを開くことと、開いた時に商品がカートに入っていないこと (個数は出さない)。
+/// 「カートイン」の確認の 2 行目に出す、何を何個カートに入れて開くかの文を `locale` の言語で返す (商品バリアントの名前を持つお気に入りでは、名前の後ろに足す)。
 func cartInConfirmationText(favorite: Favorite, locale: Locale) -> String {
-    switch favorite.product {
-    case .shopify:
-        String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます", locale: locale))
-    case .amazon:
-        String(localized: LocalizedStringResource("\(favorite.name) の商品ページを開きます (カートには入りません)", locale: locale))
-    }
+    String(localized: LocalizedStringResource("\([favorite.name, favorite.variantName].compactMap { $0 }.joined(separator: " ")) を \(favorite.quantity) 個カートに入れて開きます", locale: locale))
 }
 
 /// 一覧の並べ替え (`onMove`) が渡す移動先を、`moveFavorite(id:destinationIndex:fileURL:)` の `destinationIndex` (移動した後の位置) に直して返す。

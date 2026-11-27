@@ -44,29 +44,10 @@ struct AppAnalyticsTests {
         #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "shopify"])])
     }
 
-    /// 一覧の確認の「開く」で Amazon の商品ページを開いた時は、入口が一覧・店が Amazon のイベントを 1 件だけ記録し、商品ページの URL を返す。
-    @Test func 一覧からAmazonの商品ページを開くと店の種類amazonで記録する() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let savedFavorite = favorite(product: .amazon(AmazonProduct(asin: "B00EXAMPLE")))
-        try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
-        var recordedEvents: [AnalyticsEvent] = []
-
-        #expect(
-            try openingURL(
-                favoriteID: savedFavorite.id,
-                entryPoint: .favoritesList,
-                now: Date(timeIntervalSince1970: 1_800_000_000),
-                fileURL: fileURL,
-                recordAnalyticsEvent: { recordedEvents.append($0) }
-            )?.absoluteString == "https://www.amazon.co.jp/dp/B00EXAMPLE"
-        )
-        #expect(recordedEvents == [AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": "favorites_list", "store": "amazon"])])
-    }
-
-    /// 開く URL を組み立てられないお気に入り (ASIN の形でない保存値の Amazon の商品) では、何も開かないので記録しない。
+    /// 開く URL を組み立てられないお気に入り (店のドメインがホスト名の形でない保存値) では、何も開かないので記録しない。
     @Test func 何も開かない時は記録しない() throws {
         let fileURL = temporaryFavoritesFileURL()
-        let savedFavorite = favorite(product: .amazon(AmazonProduct(asin: "b00example")))
+        let savedFavorite = favorite(product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example/evil", variantID: "70881412")))
         try saveFavorites(favorites: [savedFavorite], fileURL: fileURL)
         var recordedEvents: [AnalyticsEvent] = []
 
@@ -110,10 +91,6 @@ struct AppAnalyticsTests {
         #expect(
             purchaseScreenOpenEvent(entryPoint: entryPoint, product: .shopify(ShopifyProduct(shopDomain: "mori-coffee.example", variantID: "70881412")))
                 == AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": entryPointValue, "store": "shopify"])
-        )
-        #expect(
-            purchaseScreenOpenEvent(entryPoint: entryPoint, product: .amazon(AmazonProduct(asin: "B0EXAMPLE1")))
-                == AnalyticsEvent(name: "purchase_screen_open", parameters: ["entry_point": entryPointValue, "store": "amazon"])
         )
     }
 
