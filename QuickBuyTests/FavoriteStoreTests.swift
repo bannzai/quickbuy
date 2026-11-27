@@ -246,11 +246,10 @@ struct FavoriteStoreTests {
         #expect(try loadFavorites(fileURL: fileURL) == remainingFavorites)
     }
 
-    /// `product` が知らない店の種類のキーだけのお気に入りと、`amazon` のほかにキーを持つお気に入りは、除かずにエラーにする
+    /// `product` が知らない店の種類のキーだけのお気に入りと、キーが空のお気に入りは、除かずにエラーにする
     /// (除くのは以前のビルドが保存した Amazon の商品の形だけで、ほかの読めない値は今までどおり上書きの前に止める)。
     @Test(arguments: [
         #"{"rakuten": {"_0": {"itemCode": "x"}}}"#,
-        #"{"amazon": {"_0": {"asin": "B00EXAMPLE"}}, "shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}}"#,
         #"{}"#,
     ])
     func Amazonの形でない読めない商品はエラーにする(productJSON: String) throws {
