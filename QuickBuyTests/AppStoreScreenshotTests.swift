@@ -160,9 +160,9 @@ struct AppStoreScreenshotTests {
                 }
             }
         }
-        #expect(appStoreScreenshotSearchProducts(locale: english).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
+        #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "en")).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
         #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "ja")).map(\.title) == ["コーヒー豆", "深煎り 200g", "浅煎り 200g", "デカフェ 150g"])
-        #expect(appStoreScreenshotOptionName(locale: english) == "Size")
+        #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "en")) == "Size")
         #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "ja")) == "内容量")
     }
 
