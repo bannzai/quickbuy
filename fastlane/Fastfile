@@ -28,6 +28,8 @@ platform :ios do
       metadata_path: 'fastlane/metadata',
       screenshots_path: 'fastlane/screenshots',
       skip_binary_upload: true,
+      # 作業ディレクトリの .ipa から読んだ版で App Store Connect のバージョンを変えない (deliver の detect_values.rb の 73 行と runner.rb の 59 行)
+      skip_app_version_update: true,
       submit_for_review: false,
       # 審査が通っても自動で公開しない。公開に進むかは bannzai が決める (documents/DIRECTION.md「agent に任せること」の「公開に進むか」)
       automatic_release: false
