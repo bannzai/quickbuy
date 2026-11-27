@@ -260,6 +260,27 @@ struct FavoriteStoreTests {
         }
     }
 
+    /// `product` が `amazon` と `shopify` の両方のキーを持つ形は、捨てずに Shopify の店のお気に入りとして読む
+    /// (捨てるのはキーが `amazon` だけの形。アプリはこの形を保存しないが、Swift の自動生成の decode が知らない `amazon` のキーを無視することを確かめておく)。
+    @Test func Amazonとほかのキーを持つ商品は捨てずにShopifyとして読む() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try Data(
+            #"[{"id": "00000000-0000-0000-0000-000000000001", "name": "洗剤", "quantity": 1, "product": {"amazon": {"_0": {"asin": "B00EXAMPLE"}}, "shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}}}]"#.utf8
+        ).write(to: fileURL)
+        #expect(
+            try loadFavorites(fileURL: fileURL) == [
+                Favorite(
+                    id: firstID,
+                    name: "洗剤",
+                    imageURL: nil,
+                    quantity: 1,
+                    product: .shopify(ShopifyProduct(shopDomain: "example.myshopify.com", variantID: "70881412")),
+                    reminder: nil
+                ),
+            ]
+        )
+    }
+
     // MARK: - 保存の検査
 
     /// 個数が 0 以下のお気に入りが 1 つでもあれば保存せず、前に保存した並びが残る (個数 1 は通る境界)。

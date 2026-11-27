@@ -161,7 +161,7 @@ func favoriteIDsMissingReminderNotification(favorites: [Favorite], pendingNotifi
         .map(\.id)
 }
 
-/// 通知が許可されているのに予約の無いリマインドを予約する。アプリが前面に来た時に呼ぶ。
+/// 通知が許可されているのに予約の無いリマインドを予約し、保存されていないお気に入りのリマインドの予約を取り消す。アプリが前面に来た時に呼ぶ。
 ///
 /// 通知を拒否している間に保存したリマインドは予約されない (拒否された状態の予約は失敗する。
 /// https://developer.apple.com/documentation/usernotifications/unerror/notificationsnotallowed )。後から設定アプリで許可した時に届くようにする。
@@ -180,12 +180,13 @@ func restoreMissingReminderNotifications(fileURL: URL, center: any ReminderNotif
     )
 }
 
-/// 予約の無いリマインドについて、通知の予約へ加える変更を `applyChanges` に渡す。
+/// 予約の無いリマインドと、保存されていないお気に入りのリマインドの予約について、通知の予約へ加える変更を `applyChanges` に渡す。
 ///
+/// - 保存されていないお気に入りの識別子のリマインドの予約 (`reminderNotificationFavoriteIDsWithoutFavorite`) は取り消す
 /// - 日数がまだ過ぎていないリマインドは、`now` から数え直して保存し、予約する (予約は予約した時刻から日数ごとに届くため、一覧の「次の知らせは N 日後」と届く時刻を合わせる)
 /// - 日数が過ぎているリマインドは、数え直さずに予約する (「そろそろ買う頃」は、購入画面を開くかリマインドを設定し直すまで出し続けるため)
 ///
-/// `pendingNotificationIdentifiers` は、端末に残っている未配信の予約の識別子。予約の無いリマインドが無い時は `applyChanges` に空の変更が渡る。
+/// `pendingNotificationIdentifiers` は、端末に残っている未配信の予約の識別子。予約の無いリマインドも取り消す予約も無い時は `applyChanges` に空の変更が渡る。
 /// 通知の仕組みを呼ばずにテストできるよう、未配信の予約の識別子と、変更を反映する処理を引数で受け取る。
 func restoreMissingReminderNotifications(
     fileURL: URL,
@@ -193,7 +194,8 @@ func restoreMissingReminderNotifications(
     now: Date,
     applyChanges: ([ReminderNotificationChange]) -> Void
 ) throws {
-    let favoritesMissingNotification = try loadFavorites(fileURL: fileURL).filter { favorite in
+    let savedFavorites = try loadFavorites(fileURL: fileURL)
+    let favoritesMissingNotification = savedFavorites.filter { favorite in
         favoriteIDsMissingReminderNotification(favorites: [favorite], pendingNotificationIdentifiers: pendingNotificationIdentifiers) == [favorite.id]
     }
     try performSaving(fileURL: fileURL, applyChanges: applyChanges) {
@@ -207,7 +209,20 @@ func restoreMissingReminderNotifications(
         favoritesMissingNotification
             .filter { favorite in favorite.reminder.map { isReminderDue(reminder: $0, now: now) } == true }
             .map { ReminderNotificationChange.schedule(favorite: $0) }
+            + reminderNotificationFavoriteIDsWithoutFavorite(favorites: savedFavorites, pendingNotificationIdentifiers: pendingNotificationIdentifiers)
+            .map { ReminderNotificationChange.cancel(favoriteID: $0) }
     )
+}
+
+/// 未配信のリマインドの予約のうち、保存されていないお気に入りの識別子を、識別子の文字列の順に返す。
+///
+/// リマインドの予約の識別子はお気に入りの識別子の文字列 (`reminderNotificationRequest(favorite:locale:)`) なので、それとして読めない識別子 (「カートイン」の確認の通知等) は返さない。
+/// 保存の操作は前後のお気に入りの違いからしか予約を取り消さないため、読み込む時に捨てたお気に入り (以前のビルドが保存した Amazon の商品のお気に入り。`loadFavorites(fileURL:)`) の繰り返しの予約は、ここで見つけないと残り続ける (https://github.com/bannzai/quickbuy/issues/88 )。
+func reminderNotificationFavoriteIDsWithoutFavorite(favorites: [Favorite], pendingNotificationIdentifiers: Set<String>) -> [UUID] {
+    pendingNotificationIdentifiers
+        .sorted()
+        .compactMap { UUID(uuidString: $0) }
+        .filter { pendingFavoriteID in !favorites.contains { $0.id == pendingFavoriteID } }
 }
 
 /// リマインドの通知と「カートイン」の確認の通知を受け取る。通知がタップされた時に、通知が指すお気に入りの購入画面を開く。

@@ -711,6 +711,39 @@ struct ReminderTests {
         #expect(appliedChanges.isEmpty)
     }
 
+    /// 保存されていないお気に入りの識別子のリマインドの予約 (以前のビルドが保存し、読み込む時に捨てた Amazon の商品のお気に入りの予約) は取り消す。
+    /// 保存されているお気に入りの予約と、お気に入りの識別子として読めない予約 (「カートイン」の確認の通知) は取り消さない (https://github.com/bannzai/quickbuy/issues/88 )。
+    @Test func 保存されていないお気に入りのリマインドの予約は取り消す() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let droppedAmazonFavoriteID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        try Data(
+            """
+            [
+              {"id": "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1", "name": "洗剤", "quantity": 1,
+               "product": {"shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}},
+               "reminder": {"intervalDays": 30, "countedFrom": \(countedFrom.timeIntervalSinceReferenceDate)}},
+              {"id": "\(droppedAmazonFavoriteID.uuidString)", "name": "電池", "quantity": 1,
+               "product": {"amazon": {"_0": {"asin": "B00EXAMPLE"}}},
+               "reminder": {"intervalDays": 1, "countedFrom": \(countedFrom.timeIntervalSinceReferenceDate)}}
+            ]
+            """.utf8
+        ).write(to: fileURL)
+        var appliedChanges: [ReminderNotificationChange] = []
+
+        try restoreMissingReminderNotifications(
+            fileURL: fileURL,
+            pendingNotificationIdentifiers: [
+                "5A3B1EAA-AAAA-4AAA-8AAA-AAAAAAAAAAA1",
+                droppedAmazonFavoriteID.uuidString,
+                cartInConfirmationNotificationIdentifier(favoriteID: droppedAmazonFavoriteID),
+            ],
+            now: countedFrom.addingTimeInterval(3 * daySeconds),
+            applyChanges: { appliedChanges += $0 }
+        )
+
+        #expect(appliedChanges == [.cancel(favoriteID: droppedAmazonFavoriteID)])
+    }
+
     // MARK: - 通知の仕組みへの反映
 
     /// 予約を取り消す時は、まだ届いていない予約と、届いて通知センターに残っている通知の両方を、お気に入りの識別子で消す。予約はしない。
