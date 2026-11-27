@@ -7,7 +7,7 @@ struct Favorite: Codable, Identifiable, Equatable {
     /// 一覧とウィジェットに出す名前。利用者が編集できる。
     var name: String
     /// 商品バリアントの名前 (例: `200g / 豆のまま`)。一覧・ウィジェット・リマインドの通知で、同じ商品の商品バリアントごとのお気に入りを見分けるために出す。
-    /// 商品バリアントが 1 つだけの商品と、商品バリアントの名前を取っていない商品 (Amazon の商品) では nil。
+    /// 商品バリアントが 1 つだけの商品では nil。
     var variantName: String?
     /// 商品の画像の URL。取得できなかった時は nil。
     var imageURL: URL?
@@ -19,11 +19,11 @@ struct Favorite: Codable, Identifiable, Equatable {
     var reminder: Reminder?
 
     /// 購入画面を開くのに要る、店の種類ごとの商品の指し方。
+    ///
+    /// 店の種類が 1 つでも enum にしているのは、保存先のファイルの形 (`{"shopify":{"_0":{…}}}`。documents/DIRECTION.md「決めたこと」の 2026-11-17 のお気に入りの保存の行) を変えずに読み書きするため。
     enum Product: Codable, Equatable {
         /// Shopify の店の商品。
         case shopify(ShopifyProduct)
-        /// Amazon (amazon.co.jp) の商品。
-        case amazon(AmazonProduct)
     }
 }
 
@@ -33,12 +33,6 @@ struct ShopifyProduct: Codable, Equatable {
     var shopDomain: String
     /// 商品バリアントの ID。数字だけの文字列。
     var variantID: String
-}
-
-/// Amazon (amazon.co.jp) の商品。
-struct AmazonProduct: Codable, Equatable {
-    /// ASIN。
-    var asin: String
 }
 
 /// リマインド: 設定した日数ごとに、買う頃だと通知する設定。

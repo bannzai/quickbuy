@@ -34,11 +34,54 @@ func sharedFavoritesFileURL() -> URL? {
 ///
 /// ファイルがまだ無い時 (1 件も保存していない時) は空の配列を返す。
 /// ファイルがあるのに読めない・`[Favorite]` として解釈できない時は、空の配列にせずエラーを投げる (保存済みのお気に入りを、次の保存で黙って上書きしないため)。
+/// 例外は以前のビルドが保存した Amazon の商品のお気に入りで、エラーにせず除いて返す (`SavedFavorite`)。
 func loadFavorites(fileURL: URL) throws -> [Favorite] {
     guard FileManager.default.fileExists(atPath: fileURL.path) else {
         return []
     }
-    return try JSONDecoder().decode([Favorite].self, from: Data(contentsOf: fileURL))
+    return try JSONDecoder().decode([SavedFavorite].self, from: Data(contentsOf: fileURL)).compactMap(\.favorite)
+}
+
+/// 以前のビルドが Amazon の商品のお気に入りを保存した時の、`product` のキー (Swift の `Codable` の自動合成で case の名前 `amazon` がキーになっていた)。
+///
+/// 最初の公開では Amazon の対応を外した (https://github.com/bannzai/quickbuy/issues/88 )。この形のお気に入りが入りうるのは、公開の前に TestFlight で配った端末だけ。
+private let droppedAmazonProductKey = "amazon"
+
+/// 保存先のファイルの `[Favorite]` の 1 件。
+///
+/// `product` のキーが `droppedAmazonProductKey` だけのお気に入りは、読み込む時に捨てる (nil)。移行の画面は作らない (https://github.com/bannzai/quickbuy/issues/88 )。
+/// 捨てたお気に入りは、次に保存した時にファイルからも消える。それ以外の読めない値は、捨てずにエラーを投げる (`loadFavorites(fileURL:)` の契約のまま)。
+private struct SavedFavorite: Decodable {
+    /// 読めたお気に入り。捨てたお気に入りでは nil。
+    let favorite: Favorite?
+
+    /// 保存先のファイルの 1 件を読む。`product` のキーが `droppedAmazonProductKey` だけなら `favorite` を nil にし、それ以外は `Favorite` として読めない時にエラーを投げる。
+    // `product` のキーを見てから `Favorite` として読むかを決めるため、自動生成ではなく手で書いている。
+    init(from decoder: any Decoder) throws {
+        favorite = try decoder.container(keyedBy: SavedFavoriteCodingKey.self)
+            .nestedContainer(keyedBy: SavedFavoriteCodingKey.self, forKey: SavedFavoriteCodingKey(stringValue: "product"))
+            .allKeys.map(\.stringValue) == [droppedAmazonProductKey] ? nil : Favorite(from: decoder)
+    }
+}
+
+/// 保存先のファイルの JSON のキーを、名前を決めた enum を作らずに読むためのキー。
+private struct SavedFavoriteCodingKey: CodingKey {
+    /// キーの名前。
+    let stringValue: String
+    /// 配列の位置で指すキーは使わないため、いつも nil。
+    var intValue: Int? { nil }
+
+    /// 名前が `stringValue` のキーを作る。
+    // `CodingKey` が `init?(stringValue:)` を求めるため手で書いている (失敗しない形で満たす)。
+    init(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    /// 配列の位置で指すキーは作らず、いつも nil を返す。
+    // `CodingKey` が求めるため手で書いている。
+    init?(intValue _: Int) {
+        nil
+    }
 }
 
 /// お気に入りの並びを、保存先のファイルの中身と置き換える。配列の並びが一覧とウィジェットの並び順になる。
@@ -68,7 +111,7 @@ func addFavorite(favorite: Favorite, fileURL: URL) throws {
 
 /// お気に入りの並び `favorites` のうち、Shopify の店の商品 `shopifyProduct` と同じ店・同じ種類 (店のドメインと商品バリアントの ID が同じ) の最初の 1 件を返す。無ければ nil。
 ///
-/// 追加の画面が、選んでいる種類が保存済みかを見分けるのに使う。Amazon の商品のお気に入りは返さない。
+/// 追加の画面が、選んでいる種類が保存済みかを見分けるのに使う。
 func shopifyFavorite(favorites: [Favorite], shopifyProduct: ShopifyProduct) -> Favorite? {
     favorites.first { $0.product == .shopify(shopifyProduct) }
 }
@@ -90,7 +133,6 @@ func favoriteAdditionSavedFavorites(fileURL: URL) -> [Favorite] {
 /// 渡された並びの中に同じ識別子のお気に入りが複数ある時は、最初の 1 件だけを使う (保存する並びに同じ識別子を 2 つ置かず、個数の書き換えも最初の 1 件の個数で行う)。
 /// `updatesSavedQuantity` が true (追加の画面からの保存) の時、識別子は違うが、Shopify の店の同じ店・同じ種類 (`shopifyFavorite(favorites:shopifyProduct:)`) のお気に入りが並びにある時は、行を増やさず、その最初の 1 件の個数だけを渡された個数にする
 /// (名前・種類の名前・画像・リマインド・並びの位置は変えない。同じ商品の行を 2 つ作らないため。https://github.com/bannzai/quickbuy/issues/84 )。
-/// Amazon の商品は、同じ ASIN が保存済みでも足す (個数を持たず、書き換える値が無いため今までどおり)。
 /// `updatesSavedQuantity` が false の時は、同じ店・同じ種類が保存済みでも別の行として足す (`addFavorite(favorite:fileURL:)`)。
 /// 保存済みの並びと変わらない時は何も書かない。
 func addFavorites(favorites addedFavorites: [Favorite], updatesSavedQuantity: Bool, fileURL: URL) throws {
@@ -107,7 +149,6 @@ func addFavorites(favorites addedFavorites: [Favorite], updatesSavedQuantity: Bo
             return
         }
         if updatesSavedQuantity,
-           case .shopify = addedFavorite.product,
            let sameProductIndex = mergedFavorites.firstIndex(where: { $0.product == addedFavorite.product })
         {
             mergedFavorites[sameProductIndex].quantity = addedFavorite.quantity

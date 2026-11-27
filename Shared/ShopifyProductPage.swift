@@ -22,8 +22,8 @@ struct ShopifyProductPage: Equatable {
 /// 商品のハンドルは ASCII に限らない (https://shopify.dev/changelog/certain-properties-are-changing-to-support-a-full-utf-8-character-set ) ため、percent-encoding された文字列のまま受け取る。
 ///
 /// nil を返す入力: 印字できる ASCII 以外の文字 (空白・改行・タブ・percent-encoding していない日本語) を含む文字列、`https` 以外のスキーム、
-/// 認証情報 (`user@`)・ポートを含む URL、ホスト名の形でない店のドメイン (`isHostName(text:)`)、上の形でないパス (Amazon の商品ページ `/dp/{ASIN}` を含む)、
-/// 数字だけでない `variant`。どの店かは見ない (店のドメインは、確認の画面で利用者が確かめる。documents/adr/0003)。
+/// 認証情報 (`user@`)・ポートを含む URL、ホスト名の形でない店のドメイン (`isHostName(text:)`)、Amazon が持つホスト (`amazonOwnedHost(host:)`)、上の形でないパス、
+/// 数字だけでない `variant`。Amazon が持つホストのほかは、どの店かは見ない (店のドメインは、確認の画面で利用者が確かめる。documents/adr/0003)。
 func shopifyProductPage(text: String) -> ShopifyProductPage? {
     guard text.utf8.allSatisfy({ (0x21 ... 0x7E).contains($0) }),
           let urlComponents = URLComponents(string: text, encodingInvalidCharacters: false),
@@ -33,6 +33,7 @@ func shopifyProductPage(text: String) -> ShopifyProductPage? {
           urlComponents.port == nil,
           let shopDomain = urlComponents.host?.lowercased(),
           isHostName(text: shopDomain),
+          !amazonOwnedHost(host: shopDomain),
           let percentEncodedProductHandle = productHandle(percentEncodedPath: urlComponents.percentEncodedPath)
     else {
         return nil
@@ -47,6 +48,21 @@ func shopifyProductPage(text: String) -> ShopifyProductPage? {
         percentEncodedProductHandle: percentEncodedProductHandle,
         variantID: variantQueryItem?.value
     )
+}
+
+/// Amazon が持つホストのうち、Shopify の店のドメインとして受け取らないドメイン (`amazonOwnedHost(host:)` がそのドメインとサブドメインを Amazon のホストとみなす)。
+///
+/// `amazon.co.jp` は日本の Amazon、`amazon.com` は米国の Amazon のドメイン。`amzn.asia`・`amzn.to`・`a.co` は Amazon の共有の操作が作る短い URL のホスト
+/// (`amzn.asia` は 2026-11-19 に `https://amzn.asia/d/8TwVTO3` が www.amazon.co.jp の商品ページへ転送されたことを確かめた。`amzn.to`・`a.co` は https://github.com/bannzai/quickbuy/issues/35 で検索で見つかった値)。
+/// 最初の公開では Amazon の対応を外しており、Amazon が承認する前のアプリから Amazon のドメインを開かないため、Amazon の URL を Shopify の店の URL として登録させない
+/// (https://github.com/bannzai/quickbuy/issues/88 。`/products/…` の形の Amazon の URL を Shopify の店として通信しないことは https://github.com/bannzai/quickbuy/pull/50 のレビューの指摘)。
+private let amazonOwnedDomains = ["amazon.co.jp", "amazon.com", "amzn.asia", "amzn.to", "a.co"]
+
+/// ホストが Amazon が持つホスト (`amazonOwnedDomains` のドメインかそのサブドメイン) なら true を返す。`host` は小文字で渡す。
+///
+/// 名前に `amazon` を含むだけのほかのドメイン (`amazon-coffee.example` 等) は false。
+func amazonOwnedHost(host: String) -> Bool {
+    amazonOwnedDomains.contains { host == $0 || host.hasSuffix(".\($0)") }
 }
 
 /// URL のパスを `/` で区切った部分の並びを返す。先頭の `/` と、末尾に 1 つだけある `/` は部分に数えない。
@@ -266,10 +282,8 @@ func shopifyProductImageURL(text: String, shopDomain: String) -> URL? {
 
 /// お気に入りの登録が、確認の画面に進まずに終わった理由。
 enum FavoriteAdditionLoadError: Error, Equatable {
-    /// 渡された文字列が、Shopify の店の商品ページの URL の形でも、Amazon の URL でもない。
+    /// 渡された文字列が、Shopify の店の商品ページの URL の形でない (`shopifyProductPage(text:)` が nil。Amazon の URL を含む)。
     case notProductPageURL
-    /// 渡された文字列が Amazon の URL だが、受け取る形 (www.amazon.co.jp の商品ページの URL か、その短い URL) でない。
-    case notAmazonProductPageURL
     /// 通信できなかった、または店が一時的に応答を制限している (HTTP 429)。待てば取得できる可能性がある。
     case temporarilyUnavailable
     /// 商品の情報を取得できない (Shopify の店でない・商品が無い・指定の商品バリアントが無い)。

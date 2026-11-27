@@ -4,13 +4,10 @@ import Foundation
 ///
 /// 渡してよいのは、登録の画面で利用者が店のドメインを確かめて保存したお気に入りだけ (documents/adr/0003)。
 /// Shopify の店の商品は、その店のカートに商品を個数分足して購入画面 (店の `/cart`) を開く URL を `shopifyCartAddURL(shopDomain:variantID:quantity:)` で組み立て、同関数が組み立てない値 (ホスト名の形でない店のドメイン等) では nil を返す。
-/// Amazon の商品は、商品ページの URL を `amazonProductPageURL(asin:)` で組み立て、ASIN の形でない保存値では nil を返す (開いた時に商品はカートに入っていない。documents/DIRECTION.md「必要な機能」)。
 func openingURL(favorite: Favorite) -> URL? {
     switch favorite.product {
     case let .shopify(shopifyProduct):
         shopifyCartAddURL(shopDomain: shopifyProduct.shopDomain, variantID: shopifyProduct.variantID, quantity: favorite.quantity)
-    case let .amazon(amazonProduct):
-        amazonProductPageURL(asin: amazonProduct.asin)
     }
 }
 
@@ -26,26 +23,12 @@ func openingURL(favoriteID: UUID, now: Date, fileURL: URL) throws -> URL? {
     return favoriteOpeningURL
 }
 
-/// 一覧とウィジェットの行の、確認を出すボタンの文言を `locale` の言語で返す。Shopify の店の商品は「カートイン」、Amazon の商品は「Amazon で開く」。
-///
-/// Amazon の商品ページは開いた時に商品がカートに入っていないため、カートに入れると読める文言を使わない (https://github.com/bannzai/quickbuy/issues/35 で agent が決めた文言)。
-func cartInButtonTitle(favorite: Favorite, locale: Locale) -> String {
-    switch favorite.product {
-    case .shopify:
-        String(localized: LocalizedStringResource("カートイン", locale: locale))
-    case .amazon:
-        String(localized: LocalizedStringResource("Amazon で開く", locale: locale))
-    }
+/// 一覧とウィジェットの行の、確認を出すボタンの文言「カートイン」を `locale` の言語で返す。
+func cartInButtonTitle(locale: Locale) -> String {
+    String(localized: LocalizedStringResource("カートイン", locale: locale))
 }
 
-/// 一覧の確認と、ウィジェットの確認の通知の見出しを `locale` の言語で返す。Shopify の店の商品は「購入画面を開きますか？」、Amazon の商品は「Amazon の商品ページを開きますか？」。
-///
-/// 用語「購入画面」は Amazon の商品ページを含まない (documents/DIRECTION.md「用語」)。
-func cartInConfirmationTitle(favorite: Favorite, locale: Locale) -> String {
-    switch favorite.product {
-    case .shopify:
-        String(localized: LocalizedStringResource("購入画面を開きますか？", locale: locale))
-    case .amazon:
-        String(localized: LocalizedStringResource("Amazon の商品ページを開きますか？", locale: locale))
-    }
+/// 一覧の確認と、ウィジェットの確認の通知の見出し「購入画面を開きますか？」を `locale` の言語で返す。
+func cartInConfirmationTitle(locale: Locale) -> String {
+    String(localized: LocalizedStringResource("購入画面を開きますか？", locale: locale))
 }

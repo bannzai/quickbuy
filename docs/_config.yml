@@ -1,5 +1,5 @@
 # GitHub Pages (Jekyll) の設定。利用規約・プライバシーポリシー等の Markdown を HTML 化して
 # 拡張子なし URL (/Terms-ja) と .html の両方で配信するため .nojekyll は置かない
 title: Quick Buy
-description: Shopify と Amazon のいつもの商品を、探さずに買い直すアプリ
+description: Shopify の店のいつもの商品を、探さずに買い直すアプリ
 lang: ja

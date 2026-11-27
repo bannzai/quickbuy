@@ -4,7 +4,7 @@
 Accepted (2026-11-17)
 
 ## Context
-Quick Buy は、Shopify の店と Amazon の「いつもの商品」をお気に入りにし、ホーム画面のウィジェットから購入画面を開くアプリ (企画: https://github.com/bannzai/IdeaMemo/issues/398 )。企画の「最初に作る範囲」は次の順になっている。
+Quick Buy は、Shopify の店の「いつもの商品」をお気に入りにし、ホーム画面のウィジェットから購入画面を開くアプリ (企画: https://github.com/bannzai/IdeaMemo/issues/398 )。企画の「最初に作る範囲」は次の順になっている。
 
 1. Shopify の Catalog の API キーを発行し、日本の店の商品が検索に出るかを試す
 2. iOS で、お気に入り → ウィジェットのタップ → 購入画面、の流れを通す。最初は店の cart permalink と Amazon のカートに入れる URL を保存して開く形にする

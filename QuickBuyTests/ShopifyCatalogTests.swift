@@ -442,7 +442,7 @@ import Testing
 
     // MARK: - 検索からの追加の画面の個数とボタン
 
-    /// 検索からの追加の画面を開いた時の保存済みの並び: 利用者が名前を変えてリマインドを付けたこの店の「粉」が 4 個、別の店の商品 (この店の「豆」と同じ商品バリアントの ID) が 9 個、Amazon の商品。
+    /// 検索からの追加の画面を開いた時の保存済みの並び: 利用者が名前を変えてリマインドを付けたこの店の「粉」が 4 個、別の店の商品 (この店の「豆」と同じ商品バリアントの ID) が 9 個、別の店の「洗剤」。
     static let additionSavedFavorites = [
         Favorite(
             id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!, name: "名前を変えた粉", variantName: "粉", imageURL: nil, quantity: 4,
@@ -455,7 +455,7 @@ import Testing
         ),
         Favorite(
             id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A3")!, name: "洗剤", variantName: nil, imageURL: nil, quantity: 1,
-            product: .amazon(AmazonProduct(asin: "B000000111")), reminder: nil
+            product: .shopify(ShopifyProduct(shopDomain: "detergent-shop.example", variantID: "333")), reminder: nil
         ),
     ]
 

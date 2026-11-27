@@ -21,26 +21,6 @@
         }
       }
     },
-    "%@\nタップすると %@ の商品ページが開きます" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@\nTap to open the product page on %2$@"
-          }
-        }
-      }
-    },
-    "%@\nタップすると Amazon の商品ページが開きます" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@\nTap to open the Amazon product page"
-          }
-        }
-      }
-    },
     "%@\nタップすると購入画面が開きます" : {
       "localizations" : {
         "en" : {
@@ -67,16 +47,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@\nNext reminder: %2$@\nNotifications aren't allowed\nAllow notifications for Quick Buy in Settings to get reminders"
-          }
-        }
-      }
-    },
-    "%@ の商品ページを開きます (カートには入りません)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens the product page for %@ (not added to cart)"
           }
         }
       }
@@ -178,49 +148,6 @@
         }
       }
     },
-    "ASIN" : {
-      "shouldTranslate" : false
-    },
-    "Amazon で開く" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open in Amazon"
-          }
-        }
-      }
-    },
-    "Amazon の商品ページが開きます\n商品は Amazon の画面でカートに入れてください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens the Amazon product page\nAdd the item to your cart on Amazon"
-          }
-        }
-      }
-    },
-    "Amazon の商品ページを開いた日から数え直します" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The count restarts on the day you open the Amazon product page"
-          }
-        }
-      }
-    },
-    "Amazon の商品ページを開きますか？" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open the Amazon product page?"
-          }
-        }
-      }
-    },
     "Quick Buy" : {
       "shouldTranslate" : false
     },
@@ -244,12 +171,12 @@
         }
       }
     },
-    "Shopify の店か Amazon (www.amazon.co.jp) の商品ページの URL を貼り付けてください" : {
+    "Shopify の店の商品ページの URL を貼り付けてください" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paste a product page URL from a Shopify store or Amazon (www.amazon.co.jp)"
+            "value" : "Paste a product page URL from a Shopify store"
           }
         }
       }
@@ -267,12 +194,12 @@
         }
       }
     },
-    "「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います" : {
+    "「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap “Open” after “Add to Cart” to open the store's checkout\nAmazon items open the product page\nYou confirm payment in the store"
+            "value" : "Tap “Open” after “Add to Cart” to open the store's checkout\nYou confirm payment in the store"
           }
         }
       }
@@ -477,22 +404,12 @@
         }
       }
     },
-    "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください" : {
+    "この URL は登録できません\nShopify の店の商品ページの URL を入れてください" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This Amazon URL can't be added\nOn an Amazon product page in the app or website, tap Share and choose Quick Buy"
-          }
-        }
-      }
-    },
-    "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This URL can't be added\nEnter a product page URL from a Shopify store or Amazon"
+            "value" : "This URL can't be added\nEnter a product page URL from a Shopify store"
           }
         }
       }
@@ -697,16 +614,6 @@
         }
       }
     },
-    "・" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " / "
-          }
-        }
-      }
-    },
     "保存" : {
       "localizations" : {
         "en" : {
@@ -773,16 +680,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
-          }
-        }
-      }
-    },
-    "名前 (一覧で見分けられる名前)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name (to tell it apart in the list)"
           }
         }
       }

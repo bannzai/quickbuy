@@ -291,8 +291,8 @@ func shopifyVariantNumericID(variantGID: String) -> String? {
 }
 
 /// 商品バリアントを売っている店のドメイン (`seller.url` のホスト。小文字) を返す。`seller` が無い時、`https` でない時、ホスト名の形でない時は nil。
-/// Amazon が持つホスト (`amazonOwnedHost(host:)`) も nil にする。検索の結果は Shopify の店の商品だけで、Amazon のお気に入りは商品ページの URL からだけ足すため
-/// (検索の結果から Amazon のドメインのお気に入りを作らない。https://github.com/bannzai/quickbuy/pull/50 )。
+/// Amazon が持つホスト (`amazonOwnedHost(host:)`) も nil にする。検索の結果から Amazon のドメインのお気に入りを作らないため
+/// (https://github.com/bannzai/quickbuy/pull/50 。最初の公開では Amazon の対応を外した。https://github.com/bannzai/quickbuy/issues/88 )。
 func shopifyCatalogShopDomain(variant: ShopifyCatalogVariant) -> String? {
     guard let urlComponents = variant.seller.flatMap({ URLComponents(string: $0.url) }),
           urlComponents.scheme?.lowercased() == "https",

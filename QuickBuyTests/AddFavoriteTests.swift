@@ -168,7 +168,7 @@ struct AddFavoriteTests {
         #expect(favoriteAddition.quantitiesByVariantID == [:])
     }
 
-    /// Shopify の商品ページの URL の形でない入力 (Amazon の商品ページと同じパス・カートの URL・トップページ) は、通信せずに「URL の形でない」で終わる。
+    /// Shopify の商品ページの URL の形でない入力 (`/dp/{ASIN}` のパス・カートの URL・トップページ) は、通信せずに「URL の形でない」で終わる。
     @Test(arguments: ["/dp/B00EXAMPLE", "/cart/70881412:1", "/"])
     func 商品ページのURLでない入力は通信せずに断る(path: String) async {
         let shopDomain = uniqueShopDomain()
@@ -176,6 +176,24 @@ struct AddFavoriteTests {
             try await loadFavoriteAddition(text: "https://\(shopDomain)\(path)", urlSession: StubURLProtocol.urlSession())
         }
         #expect(StubURLProtocol.requestedURLTexts.withLock { $0.filter { $0.contains(shopDomain) } } == [])
+    }
+
+    /// Amazon の商品ページの URL と短い URL (`/products/…` の形の Amazon のホストを含む) は、Amazon にも通信せずに「URL の形でない」で終わる
+    /// (最初の公開では Amazon の対応を外した。https://github.com/bannzai/quickbuy/issues/88 )。
+    @Test(arguments: [
+        "https://www.amazon.co.jp/dp/B00EXAMPLE",
+        "https://www.amazon.co.jp/gp/product/B00EXAMPLE",
+        "https://www.amazon.co.jp/products/coffee-beans",
+        "https://amazon.com/products/coffee-beans",
+        "https://amzn.asia/d/8TwVTO3",
+        "https://amzn.to/3ExAmPl",
+        "https://a.co/d/ExAmPl1",
+    ])
+    func AmazonのURLは通信せずに断る(urlText: String) async {
+        await #expect(throws: FavoriteAdditionLoadError.notProductPageURL) {
+            try await loadFavoriteAddition(text: urlText, urlSession: StubURLProtocol.urlSession())
+        }
+        #expect(!StubURLProtocol.requestedURLTexts.withLock { $0.contains { URL(string: $0)?.host() == URL(string: urlText)?.host() } })
     }
 
     /// `http` の商品ページの URL は、通信せずに「URL の形でない」で終わる。
@@ -437,17 +455,6 @@ struct AddFavoriteTests {
         #expect(try loadFavorites(fileURL: fileURL) == [confirmedFavorites[0], otherShopFavorite, confirmedFavorites[1]])
     }
 
-    /// Amazon の商品は、同じ ASIN が保存済みでも、識別子が違えば今までどおり行を足す (書き換える個数を持たない)。
-    @Test func 同じASINのAmazonの商品の追加は行を足す() throws {
-        let fileURL = temporaryFavoritesFileURL()
-        let amazonFavorites = ["00000000-0000-0000-0000-00000000001D", "00000000-0000-0000-0000-00000000001E"].map {
-            Favorite(id: UUID(uuidString: $0)!, name: "洗剤", imageURL: nil, quantity: 1, product: .amazon(AmazonProduct(asin: "B000000111")), reminder: nil)
-        }
-        try saveFavorites(favorites: [amazonFavorites[0]], fileURL: fileURL)
-        try finishFavoriteAddition(choice: .add, favorites: [amazonFavorites[1]], fileURL: fileURL)
-        #expect(try loadFavorites(fileURL: fileURL) == amazonFavorites)
-    }
-
     /// 保存済みの並びから、同じ店・同じ種類の Shopify のお気に入りだけを返す。店か種類が違う時は nil。
     @Test func 同じ店同じ種類の保存済みのお気に入りを返す() {
         #expect(shopifyFavorite(
@@ -651,11 +658,7 @@ struct AddFavoriteTests {
 
     /// 登録できなかった理由ごとに、別の文言を出す (理由を取り違えて出さない)。
     @Test func 登録できなかった理由ごとに文言が違う() {
-        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL, locale: Locale(identifier: "ja")) == "この URL は登録できません\nShopify の店か Amazon の商品ページの URL を入れてください")
-        #expect(
-            favoriteAdditionLoadErrorMessage(error: .notAmazonProductPageURL, locale: Locale(identifier: "ja"))
-                == "この Amazon の URL は登録できません\nAmazon のアプリかサイトの商品ページで共有から Quick Buy を選んでください"
-        )
+        #expect(favoriteAdditionLoadErrorMessage(error: .notProductPageURL, locale: Locale(identifier: "ja")) == "この URL は登録できません\nShopify の店の商品ページの URL を入れてください")
         #expect(favoriteAdditionLoadErrorMessage(error: .temporarilyUnavailable, locale: Locale(identifier: "ja")).hasPrefix("商品の情報を取得できませんでした"))
         #expect(favoriteAdditionLoadErrorMessage(error: .notRegistrable, locale: Locale(identifier: "ja")) == "この商品は登録できません\n商品の情報を取得できない店か\n商品が見つかりません")
         #expect(

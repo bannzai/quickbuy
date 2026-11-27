@@ -9,5 +9,5 @@ func textLocale(preferredLocalizations: [String], fallback: Locale) -> Locale {
     preferredLocalizations.first.map(Locale.init(identifier:)) ?? fallback
 }
 
-/// 文言を返す関数 (`cartInButtonTitle(favorite:locale:)` 等) に渡す、画面・ウィジェット・通知の文言の言語。
+/// 文言を返す関数 (`cartInButtonTitle(locale:)` 等) に渡す、画面・ウィジェット・通知の文言の言語。
 let appTextLocale = textLocale(preferredLocalizations: Bundle.main.preferredLocalizations, fallback: .current)

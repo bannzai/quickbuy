@@ -70,8 +70,8 @@ func appStoreScreenshotSubheadline(screen: AppStoreScreenshotScreen, locale: Loc
     case (.widget, false): "A confirmation opens the store's checkout"
     case (.confirmation, true): "支払いの確定は毎回あなたが店の画面で"
     case (.confirmation, false): "You confirm payment in the store every time"
-    case (.search, true): "Shopify の店と Amazon の商品に対応"
-    case (.search, false): "Works with Shopify stores and Amazon"
+    case (.search, true): "Shopify の店の商品に対応"
+    case (.search, false): "Works with Shopify stores"
     case (.addFavorite, true): "追加しただけでは購入されません"
     case (.addFavorite, false): "Adding doesn't buy anything"
     case (.reminder, true): "お気に入りごとに日数を決められます"
@@ -350,14 +350,12 @@ let appStoreScreenshotGroupedBackgroundColor = Color(uiColor: UIColor.systemGrou
 
 /// 「カートイン」のボタン。アプリの一覧 (QuickBuy/ContentView.swift) とウィジェット (QuickBuyWidget/FavoritesWidget.swift) のボタンの見た目に合わせる。
 private struct AppStoreScreenshotCartInButton: View {
-    /// ボタンが指すお気に入り。
-    let favorite: Favorite
     /// 文言の言語。
     let locale: Locale
 
-    /// 「カートイン」(Amazon の商品は「Amazon で開く」)。
+    /// 「カートイン」。
     var body: some View {
-        Text(cartInButtonTitle(favorite: favorite, locale: locale))
+        Text(cartInButtonTitle(locale: locale))
             .font(.system(size: 13, weight: .heavy))
             .foregroundStyle(.white)
             .fixedSize()
@@ -419,7 +417,7 @@ private struct AppStoreScreenshotWidgetScreen: View {
                             .minimumScaleFactor(0.7)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    AppStoreScreenshotCartInButton(favorite: favorite, locale: locale)
+                    AppStoreScreenshotCartInButton(locale: locale)
                 }
             }
         }
@@ -463,7 +461,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
                 }
             }
             .padding(.horizontal, 16)
-            Text(localized(key: "「カートイン」の後に「開く」を押すと店の購入画面が開きます\nAmazon の商品は商品ページが開きます\n支払いの確定は店の画面で行います", locale: locale))
+            Text(localized(key: "「カートイン」の後に「開く」を押すと店の購入画面が開きます\n支払いの確定は店の画面で行います", locale: locale))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -504,7 +502,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 4)
-            AppStoreScreenshotCartInButton(favorite: favorite, locale: locale)
+            AppStoreScreenshotCartInButton(locale: locale)
         }
         .padding(12)
         .background(.white, in: RoundedRectangle(cornerRadius: 14))
@@ -514,7 +512,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
     private var confirmation: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(cartInConfirmationTitle(favorite: favorites[0], locale: locale)).font(.system(size: 15, weight: .heavy))
+                Text(cartInConfirmationTitle(locale: locale)).font(.system(size: 15, weight: .heavy))
                 Text(cartInConfirmationText(favorite: favorites[0], locale: locale))
                     .font(.system(size: 12))
                     .foregroundStyle(cartInConfirmationSecondaryTextColor)
