@@ -257,8 +257,7 @@ struct AppStoreScreenshotTests {
     private func recognizedText(
         screen: AppStoreScreenshotScreen,
         language: AppStoreScreenshotLanguage,
-        // 範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
-        regionOfInterest: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        regionOfInterest: CGRect = wholeImageRegion
     ) throws -> String {
         try recognizedText(
             screen: screen,
@@ -273,8 +272,7 @@ struct AppStoreScreenshotTests {
         screen: AppStoreScreenshotScreen,
         locale: Locale,
         recognitionLanguages: [String],
-        // 範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
-        regionOfInterest: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        regionOfInterest: CGRect = wholeImageRegion
     ) throws -> String {
         let request = VNRecognizeTextRequest()
         request.regionOfInterest = regionOfInterest
@@ -312,3 +310,7 @@ struct AppStoreScreenshotTests {
         containsKana(text: text) || text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
     }
 }
+
+/// 画像の全体を表す、文字を読む範囲。範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
+/// 引数の既定の値から参照するため、型の外に置く。
+private let wholeImageRegion = CGRect(x: 0, y: 0, width: 1, height: 1)
