@@ -57,6 +57,8 @@ jobs:
           done
           exit $status
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        # 画像の文字を読むテストが落ちた時も、落ちた画像を見て直せるように描いた画像を残す。
+        if: ${{ !cancelled() }}
         with:
           name: store-screenshots
           path: ${{ runner.temp }}/screenshots
