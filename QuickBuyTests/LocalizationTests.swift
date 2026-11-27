@@ -169,6 +169,11 @@ struct LocalizationTests {
         #expect(widgetNotificationRequiredText(locale: Locale(identifier: identifier)) == notificationRequiredText)
     }
 
+    /// ドイツ語のウィジェットの行の説明は、英語と同じく個数を「×N」で出す (「2 Stück」では大サイズのウィジェットで見本の説明が「2 Stü…」と切れたため。PR #93)。
+    @Test func ドイツ語の行の説明は英語と同じ個数の書き方() {
+        #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: Locale(identifier: "de")) == "200g · ×2")
+    }
+
     /// 数で語の形が変わる 4 つの言語では、数を差し込む 4 つの文言が 1 と 2 で単数と複数の形に分かれる。
     @Test(arguments: [
         ("es", ["Cada día", "Cada 2 días"], ["Próximo recordatorio en 1 día", "Próximo recordatorio en 2 días"], ["Añadir 1 variante a favoritos", "Añadir 2 variantes a favoritos"], ["Hay mucho tráfico\nEspera 1 segundo y vuelve a intentarlo", "Hay mucho tráfico\nEspera unos 2 segundos y vuelve a intentarlo"]),
@@ -178,11 +183,10 @@ struct LocalizationTests {
     ])
     func 数で語の形が変わる言語は単数と複数で文言が変わる(identifier: String, intervalTexts: [String], reminderTexts: [String], additionTitles: [String], rateLimitedMessages: [String]) {
         let locale = Locale(identifier: identifier)
-        let reminder = Reminder(intervalDays: 7, countedFrom: countedFrom)
         for (index, count) in [1, 2].enumerated() {
             #expect(String(localized: LocalizedStringResource("\(count) 日ごと", locale: locale)) == intervalTexts[index])
             // 7 日ごとのリマインドで、残りが count 日になる日時。
-            #expect(reminderStatusText(reminder: reminder, now: countedFrom.addingTimeInterval(Double(7 - count) * 86400), locale: locale) == reminderTexts[index])
+            #expect(reminderStatusText(reminder: Reminder(intervalDays: 7, countedFrom: countedFrom), now: countedFrom.addingTimeInterval(Double(7 - count) * reminderDaySeconds), locale: locale) == reminderTexts[index])
             #expect(favoriteAdditionButtonTitle(hasVariantChoices: true, selectedVariantCount: count, locale: locale) == additionTitles[index])
             #expect(shopifyCatalogErrorMessage(error: .rateLimited(retryAfterSeconds: count), locale: locale) == rateLimitedMessages[index])
         }

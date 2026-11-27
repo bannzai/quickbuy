@@ -337,7 +337,7 @@ func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct]
             ("hoshi-roast.example", 1350),
             ("hoshi-roast.example", 1200),
         ] as [(shopDomain: String, priceAmount: Int)]
-    ).map { title, sampleShop in
+    ).map { title, sampleOffer in
         ShopifyCatalogProduct(
             id: "gid://shopify/p/\(title)",
             title: title,
@@ -347,11 +347,11 @@ func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct]
             selected: nil,
             variants: [
                 ShopifyCatalogVariant(
-                    id: "gid://shopify/ProductVariant/\(sampleShop.priceAmount)",
+                    id: "gid://shopify/ProductVariant/\(sampleOffer.priceAmount)",
                     title: title,
-                    price: ShopifyCatalogMoney(amount: sampleShop.priceAmount, currency: "JPY"),
+                    price: ShopifyCatalogMoney(amount: sampleOffer.priceAmount, currency: "JPY"),
                     availability: nil,
-                    seller: ShopifyCatalogVariant.Seller(url: "https://\(sampleShop.shopDomain)")
+                    seller: ShopifyCatalogVariant.Seller(url: "https://\(sampleOffer.shopDomain)")
                 ),
             ]
         )
