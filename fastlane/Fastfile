@@ -18,6 +18,7 @@ platform :ios do
       is_key_content_base64: true
     )
     # sync_screenshots はベータの機能で、この環境変数が無いと deliver が使わせない
+    # (fastlane 2.242.0 の deliver/lib/deliver/sync_screenshots.rb の 46〜47 行が user_error! で止める)
     ENV['FASTLANE_ENABLE_BETA_DELIVER_SYNC_SCREENSHOTS'] = 'true'
     upload_to_app_store(
       # force: deliver の HTML プレビューの確認 (対話) を出さない
