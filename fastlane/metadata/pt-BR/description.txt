@@ -1,0 +1,31 @@
+O Quick Buy guarda como favoritos os produtos que você compra sempre em lojas Shopify, para você recomprá-los pelo app ou por um widget na Tela de Início. Toda vez que você toca em "Adicionar ao carrinho", é pedida uma confirmação antes de abrir qualquer coisa. Ao confirmar, a página de pagamento da loja abre com o produto já no carrinho. Você sempre confirma o pagamento por conta própria na loja.
+
+COMO FUNCIONA
+1. Pesquise e salve favoritos
+Pesquise produtos de lojas Shopify na aba Início do app, escolha a variante e a quantidade e salve como favoritos. Adicione o que você compra com frequência, como café em grãos, detergente ou ração para pets. Você também pode colar a URL da página de um produto ou enviá-la pelo menu Compartilhar.
+
+2. Toque em "Adicionar ao carrinho" e confirme
+Toque em "Adicionar ao carrinho" nos seus favoritos para ver "Abrir a página de pagamento?". Seus favoritos também aparecem em um widget na Tela de Início. Ao tocar em "Adicionar ao carrinho" no widget, a mesma confirmação chega como notificação, por isso o widget precisa da permissão de notificações.
+
+3. A página de pagamento abre
+Depois de confirmar, a página de pagamento da loja abre com o produto no carrinho. Confira e confirme o pagamento você mesmo.
+
+4. Receba um lembrete na hora de comprar
+Defina quantos dias esperar para cada favorito e você receberá uma notificação quando esses dias passarem. Toque nela para abrir a página de pagamento. A contagem recomeça quando você abre a página de pagamento.
+
+FEITO PARA QUEM
+- Não quer assinatura e prefere recomprar quando realmente precisa
+- Quer decidir cada compra. O Quick Buy nunca compra nada sozinho
+- Quer evitar procurar na loja e adicionar o produto ao carrinho toda vez
+
+TRANQUILIDADE
+- O app nunca conclui uma compra. Ele só abre a página de pagamento
+- Ele nunca pede o login da loja
+- Os favoritos ficam salvos só no seu aparelho, sem precisar de conta
+- As notificações nunca compram nada e nenhuma notificação promocional é enviada
+
+LOJAS COMPATÍVEIS
+- Lojas Shopify que deixam públicas as informações dos produtos
+A pesquisa encontra produtos de lojas Shopify no Japão que entregam dentro do Japão. Produtos vendidos só por assinatura abrem a página inicial da loja em vez da página de pagamento.
+
+O Quick Buy é gratuito. Em caso de dúvidas, fale conosco por e-mail em Configurações no app.

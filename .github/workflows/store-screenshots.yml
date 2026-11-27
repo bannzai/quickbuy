@@ -41,10 +41,10 @@ jobs:
             -only-testing:QuickBuyTests/AppStoreScreenshotTests \
             CODE_SIGNING_ALLOWED=NO
       - name: 大きさと透明の有無を確かめる
-        # App Store Connect の iPhone 6.9 インチの大きさ (1320 x 2868) で、透明を持たないこと。両方の言語に 5 枚ずつあること。
+        # App Store Connect の iPhone 6.9 インチの大きさ (1320 x 2868) で、透明を持たないこと。9 つの言語 (QuickBuyTests/AppStoreScreenshots.swift の appStoreScreenshotLanguages のディレクトリの名前) に 5 枚ずつあること。
         run: |
           status=0
-          for language in ja en-US; do
+          for language in ja en-US es-ES fr-FR de-DE pt-BR ko zh-Hans zh-Hant; do
             count=$(find "${{ runner.temp }}/screenshots/$language" -name '*.png' | wc -l | tr -d ' ')
             echo "$language: $count 枚"
             [ "$count" = 5 ] || status=1

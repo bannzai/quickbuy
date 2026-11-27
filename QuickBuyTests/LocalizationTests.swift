@@ -135,6 +135,28 @@ struct LocalizationTests {
         #expect(textLocale(preferredLocalizations: [], fallback: Locale(identifier: "fr")).identifier == "fr")
     }
 
+    /// アプリの bundle が、文字列カタログの 9 つの言語 (`QuickBuy.xcodeproj` の `knownRegions`) の訳を持ち、足した 7 つの言語で「カートイン」がその言語の訳で引ける。
+    ///
+    /// 期待値は `translate-app.config.json` の用語集の訳。どれかの言語が bundle に入らないと、その言語の端末で日本語か英語の文言が出る。
+    @Test func 九つの言語の訳が引ける() {
+        for localization in ["ja", "en", "es", "fr", "de", "pt-BR", "ko", "zh-Hans", "zh-Hant"] {
+            #expect(Bundle.main.localizations.contains(localization), "\(localization) \(Bundle.main.localizations)")
+        }
+        for (identifier, cartInTitle) in [
+            ("es", "Añadir al carrito"), ("fr", "Ajouter au panier"), ("de", "In den Warenkorb"), ("pt-BR", "Adicionar ao carrinho"),
+            ("ko", "장바구니 담기"), ("zh-Hans", "加入购物车"), ("zh-Hant", "加入購物車"),
+        ] {
+            #expect(String(localized: LocalizedStringResource("カートイン", locale: Locale(identifier: identifier))) == cartInTitle, "\(identifier)")
+        }
+    }
+
+    /// 数で語の形が変わる言語 (ドイツ語) では、1 日と 2 日以上で「日ごと」の言い方が変わる。
+    @Test func 日ごとの言い方は数で変わる() {
+        let german = Locale(identifier: "de")
+        #expect(String(localized: LocalizedStringResource("\(Int(1)) 日ごと", locale: german)) == "Jeden Tag")
+        #expect(String(localized: LocalizedStringResource("\(Int(7)) 日ごと", locale: german)) == "Alle 7 Tage")
+    }
+
     /// ホームの案内の見出しが、日本語と英語で引ける。「1 タップ」と言わず、ストアのサブタイトルと同じ言い方にする (issue #64)。
     @Test func ホームの案内の見出しは探さずに買い直す() {
         #expect(String(localized: LocalizedStringResource("いつもの商品を探さずに買い直す", locale: Locale(identifier: "ja"))) == "いつもの商品を探さずに買い直す")

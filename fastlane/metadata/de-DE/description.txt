@@ -1,0 +1,31 @@
+Quick Buy speichert die Produkte, die du in Shopify-Shops immer wieder kaufst, als Favoriten, damit du sie in der App oder über ein Widget auf dem Home-Bildschirm nachkaufen kannst. Jedes Mal, wenn du auf „In den Warenkorb" tippst, wirst du um eine Bestätigung gebeten, bevor sich etwas öffnet. Nach der Bestätigung öffnet sich die Kasse des Shops mit dem Produkt bereits im Warenkorb. Die Zahlung bestätigst du immer selbst im Shop.
+
+SO FUNKTIONIERT ES
+1. Suchen und als Favorit speichern
+Suche im Tab „Startseite" der App nach Produkten aus Shopify-Shops, wähle Variante und Menge und speichere sie als Favoriten. Füge hinzu, was du regelmäßig kaufst, etwa Kaffeebohnen, Waschmittel oder Tierfutter. Du kannst auch die URL einer Produktseite einfügen oder sie über das Teilen-Menü senden.
+
+2. Auf „In den Warenkorb" tippen und bestätigen
+Tippe in deinen Favoriten auf „In den Warenkorb", dann erscheint „Kasse öffnen?". Deine Favoriten erscheinen auch in einem Widget auf dem Home-Bildschirm. Tippst du im Widget auf „In den Warenkorb", kommt dieselbe Bestätigung als Mitteilung. Für das Widget müssen Mitteilungen erlaubt sein.
+
+3. Die Kasse öffnet sich
+Nach der Bestätigung öffnet sich die Kasse des Shops mit dem Produkt im Warenkorb. Prüfe alles und bestätige die Zahlung selbst.
+
+4. Erinnerung, wenn es Zeit zum Nachkaufen ist
+Lege für jeden Favoriten fest, nach wie vielen Tagen du erinnert werden möchtest, und du bekommst eine Mitteilung, wenn diese Tage vergangen sind. Tippe darauf, um die Kasse zu öffnen. Die Zählung beginnt neu, wenn du die Kasse öffnest.
+
+FÜR ALLE, DIE
+- Kein Abo möchten und lieber nachkaufen, wenn sie etwas wirklich brauchen
+- Jeden Kauf selbst entscheiden möchten. Quick Buy kauft nie etwas von selbst
+- Sich das Suchen im Shop und das Hinzufügen zum Warenkorb jedes Mal sparen möchten
+
+SICHERHEIT
+- Die App schließt nie einen Kauf ab. Sie öffnet nur die Kasse
+- Sie fragt nie nach deinen Shop-Anmeldedaten
+- Favoriten werden nur auf deinem Gerät gespeichert, ein Konto ist nicht nötig
+- Mitteilungen kaufen nie etwas, und es werden keine Werbemitteilungen gesendet
+
+UNTERSTÜTZTE SHOPS
+- Shopify-Shops, die ihre Produktinformationen öffentlich machen
+Die Suche findet Produkte aus Shopify-Shops in Japan, die innerhalb Japans liefern. Produkte, die nur im Abo verkauft werden, öffnen statt der Kasse die Startseite des Shops.
+
+Quick Buy ist kostenlos. Bei Fragen schreib uns per E-Mail über die Einstellungen in der App.
