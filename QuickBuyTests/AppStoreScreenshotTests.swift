@@ -50,7 +50,7 @@ struct AppStoreScreenshotTests {
 
     /// 全部の言語の全部の画面が 1320 x 2868 px の透明の無い PNG になる。書き出し先があれば書き出す。
     @Test func スクリーンショットはAppStoreが受け付ける大きさの透明の無いPNGになる() throws {
-        // 書き出し先は 10 枚とも同じなので、ループの外で 1 回だけ環境変数を読む (式に畳むと 1 枚ごとに読み直す)。
+        // 書き出し先はどの画像でも同じなので、ループの外で 1 回だけ環境変数を読む (式に畳むと 1 枚ごとに読み直す)。
         let outputDirectoryURL = ProcessInfo.processInfo.environment["QUICKBUY_SCREENSHOT_DIR"].map { URL(filePath: $0) }
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
