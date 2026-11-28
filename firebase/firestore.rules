@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Quick Buy の Firestore のセキュリティルール。アプリが Firestore に書くのはお問い合わせだけ (ADR 0004)。
+// ここに match の無いパスは、読み取りも書き込みも拒否される。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 設定の画面のお問い合わせのフォーム (QuickBuy/ContactFormView.swift の sendContactInquiry) が 1 件ずつ足す。
+    // 作成だけを許し、読み取り・更新・削除は誰にも許さない (allow を書かないため拒否される)。運営者は Slack の通知と Firebase のコンソールで読む。
+    // userID は Slack の通知に送った人の ID として出るため、送った人本人の uid に限る。
+    // キー・型・上限は QuickBuy/ContactInquiry.swift の ContactInquiry と同じにする (QuickBuyTests/ContactInquiryTests.swift がこのファイルの文字列で確かめる)。
+    match /contactInquiries/{contactInquiryID} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['inquiryType', 'content', 'emailAddress', 'userID', 'appVersion', 'test', 'createdDateTime'])
+        && request.resource.data.keys().hasAll(['inquiryType', 'content', 'emailAddress', 'userID', 'test', 'createdDateTime'])
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.inquiryType in ['bug', 'feedback', 'other']
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 10000
+        && request.resource.data.emailAddress is string
+        && request.resource.data.emailAddress.size() > 0
+        && request.resource.data.emailAddress.size() <= 254
+        && (!('appVersion' in request.resource.data) || request.resource.data.appVersion is string)
+        && request.resource.data.test is bool
+        && request.resource.data.createdDateTime == request.time;
+    }
+  }
+}

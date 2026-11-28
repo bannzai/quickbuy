@@ -1,0 +1,5 @@
+{
+  "projects": {
+    "prod": "quickbuy-app-prod"
+  }
+}

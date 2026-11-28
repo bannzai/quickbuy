@@ -33,3 +33,9 @@ vendor/bundle/
 # fastlane が lane の実行ごとに書き出す結果と lane の一覧 (Fastfile から作り直せる)
 fastlane/report.xml
 fastlane/README.md
+
+# Firebase の Functions とセキュリティルールのテストの依存 (npm ci で作り直せる)、Functions のビルドの成果物 (npm run build で作り直せる)、エミュレータのログ
+node_modules/
+firebase/functions/lib/
+firebase-debug.log
+firestore-debug.log

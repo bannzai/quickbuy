@@ -1,0 +1,66 @@
+name: Firebase のテスト
+
+# firebase/ の Functions とセキュリティルールのテストを回す。どちらも本番の Firebase のプロジェクトにはつながず、
+# Functions は関数の中身の単体のテスト、ルールは Firestore のエミュレータ (プロジェクト ID が demo- で始まる、実在しないプロジェクト) で確かめる。
+
+on:
+  pull_request:
+    paths:
+      - "firebase/**"
+      - ".github/workflows/firebase-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "firebase/**"
+      - ".github/workflows/firebase-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    # npm ci と tsc とテストは数十秒で終わる見込みのため、止まった時に長く待たない値にした
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Functions の実行環境 (package.json の engines) と同じ版
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+      - run: npm ci
+      - name: ビルドと単体のテスト
+        run: npm test
+
+  rules:
+    runs-on: ubuntu-latest
+    # firebase-tools の npm ci とエミュレータの取得・起動に数分かかる見込みのため
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: firebase/rules-test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/rules-test/package-lock.json
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          # Firestore のエミュレータは Java 21 以上を求める (firebase-tools 14 から)
+          java-version: 21
+      - run: npm ci
+      - name: セキュリティルールのテスト
+        run: npm test
