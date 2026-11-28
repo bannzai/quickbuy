@@ -17,6 +17,10 @@ struct Favorite: Codable, Identifiable, Equatable {
     var product: Product
     /// リマインド。設定していなければ nil。
     var reminder: Reminder?
+    /// 最後にカートインした日時。購入画面を開いた時 (`openingURL(favoriteID:now:fileURL:)`) に、その時刻へ更新する。1 度もカートインしていなければ nil。
+    ///
+    /// 支払いを終えたかはアプリから分からないため、購入した日時ではない (documents/adr/0003)。このプロパティが無かったビルドで保存したお気に入りは nil として読む。
+    var lastCartInAt: Date?
 
     /// 購入画面を開くのに要る、店の種類ごとの商品の指し方。
     ///

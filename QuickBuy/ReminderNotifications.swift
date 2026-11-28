@@ -108,7 +108,7 @@ func performSaving(fileURL: URL, applyChanges: ([ReminderNotificationChange]) ->
 }
 
 /// 通知 (リマインドの通知と「カートイン」の確認の通知) への操作を受けて、開く URL (`openingURL(favorite:)`。購入画面) を返す。
-/// 開く時は、通知が指すお気に入りのリマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、開いた記録を `recordAnalyticsEvent` に渡す。
+/// 開く時は、通知が指すお気に入りの最後にカートインした日時を `now` にし、リマインドを `now` から数え直して保存し、通知の予約へ加える変更を `applyChanges` に、開いた記録を `recordAnalyticsEvent` に渡す。
 ///
 /// `notificationIdentifier` は通知の識別子。「カートイン」の確認の通知の識別子 (`cartInConfirmationNotificationIdentifier(favoriteID:)`) なら入口を確認の通知、それ以外ならリマインドの通知として記録する。
 /// 次の時は何も保存も記録もせずに nil を返す (呼び出し側は何も開かない): 操作が通知のタップ (`UNNotificationDefaultActionIdentifier`) でない、

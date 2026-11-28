@@ -26,8 +26,15 @@ struct EditFavoriteView: View {
                 Section {
                     HStack(spacing: 12) {
                         FavoriteThumbnail(imageURL: favorite.imageURL)
-                        Text(shopDomainText(favorite: favorite))
-                            .font(.headline)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(shopDomainText(favorite: favorite))
+                                .font(.headline)
+                            if let lastCartInAt = favorite.lastCartInAt {
+                                Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
                 Section {

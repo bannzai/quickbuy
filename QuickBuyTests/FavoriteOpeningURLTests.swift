@@ -36,6 +36,57 @@ struct FavoriteOpeningURLTests {
         #expect(openingURL(favorite: favorite(quantity: quantity, product: .shopify(ShopifyProduct(shopDomain: shopDomain, variantID: variantID)))) == nil)
     }
 
+    // MARK: - 最後にカートインした日の文言
+
+    /// 東京の time zone のグレゴリオ暦。日付の区切りを runner の time zone (UTC) によらず決めるため。
+    private var tokyoCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        return calendar
+    }
+
+    /// 最後にカートインした日時 2026-11-20 03:00:00 UTC (東京の 11 月 20 日)。
+    private let lastCartInAt = Date(timeIntervalSince1970: 1_795_143_600)
+    /// 文言を出す日時 2026-11-28 00:00:00 UTC (`lastCartInAt` と同じ年)。
+    private let now = Date(timeIntervalSince1970: 1_795_824_000)
+    /// 前の年に最後にカートインした日時 2025-11-20 03:00:00 UTC (東京の 2025 年 11 月 20 日)。
+    private let lastYearCartInAt = Date(timeIntervalSince1970: 1_763_607_600)
+
+    /// 同じ年は月と日だけ、違う年は年も、言語と地域の書き方で出す。前置きは「前回のカートイン」の訳。
+    @Test(arguments: [
+        ("ja", "JP", "前回のカートイン 11月20日", "前回のカートイン 2025年11月20日"),
+        ("en", "US", "Last added to cart Nov 20", "Last added to cart Nov 20, 2025"),
+        ("en", "GB", "Last added to cart 20 Nov", "Last added to cart 20 Nov 2025"),
+    ])
+    func 最後にカートインした日は同じ年なら年を出さない(languageCode: String, regionCode: String, sameYearText: String, otherYearText: String) {
+        let locale = Locale(identifier: languageCode)
+        #expect(lastCartInText(lastCartInAt: lastCartInAt, now: now, calendar: tokyoCalendar, locale: locale, region: Locale.Region(regionCode)) == sameYearText)
+        #expect(lastCartInText(lastCartInAt: lastYearCartInAt, now: now, calendar: tokyoCalendar, locale: locale, region: Locale.Region(regionCode)) == otherYearText)
+    }
+
+    /// 日付の区切りは渡した calendar の time zone で数える (UTC では 11 月 19 日の 2026-11-19 20:00:00 UTC は、東京では 11 月 20 日)。
+    @Test func 日付は渡したcalendarのtimezoneで数える() {
+        #expect(
+            lastCartInText(lastCartInAt: Date(timeIntervalSince1970: 1_795_118_400), now: now, calendar: tokyoCalendar, locale: Locale(identifier: "ja"), region: Locale.Region("JP"))
+                == "前回のカートイン 11月20日"
+        )
+    }
+
+    /// 9 つの言語のどれでも、文言は日本語の前置きのまま出ず、同じ年は年の数字を含まず、違う年は年の数字を含む。
+    /// 買ったかはアプリから分からないため、購入に当たる語 (各言語の「購入」「買う」の語) を含まない。
+    @Test(arguments: ["ja", "en", "es", "fr", "de", "pt-BR", "ko", "zh-Hans", "zh-Hant"])
+    func 九つの言語で年の有無と購入に当たる語が無いこと(localeIdentifier: String) {
+        let locale = Locale(identifier: localeIdentifier)
+        let sameYearText = lastCartInText(lastCartInAt: lastCartInAt, now: now, calendar: tokyoCalendar, locale: locale, region: nil)
+        let otherYearText = lastCartInText(lastCartInAt: lastYearCartInAt, now: now, calendar: tokyoCalendar, locale: locale, region: nil)
+        #expect(!sameYearText.contains("2026"), "\(sameYearText)")
+        #expect(otherYearText.contains("2025"), "\(otherYearText)")
+        #expect(localeIdentifier == "ja" || !sameYearText.contains("前回のカートイン"), "\(sameYearText)")
+        for purchaseWord in ["購入", "買", "purchase", "buy", "bought", "compra", "achat", "acheté", "kauf", "gekauft", "구매", "구입", "购买", "購買"] {
+            #expect(!sameYearText.lowercased().contains(purchaseWord), "\(localeIdentifier): \(sameYearText)")
+        }
+    }
+
     /// 確認を出すボタンと確認の見出しの文言は、購入画面を開くと読める。
     @Test func ボタンと確認の文言() {
         #expect(cartInButtonTitle(locale: Locale(identifier: "ja")) == "カートイン")

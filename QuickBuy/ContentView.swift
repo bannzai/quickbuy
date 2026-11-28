@@ -314,6 +314,11 @@ struct FavoritesListView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        if let lastCartInAt = favorite.lastCartInAt {
+                            Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Spacer(minLength: 0)
                 }

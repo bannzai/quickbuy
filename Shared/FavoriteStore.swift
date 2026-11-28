@@ -209,6 +209,20 @@ func recountFavoriteReminder(id: UUID, now: Date, fileURL: URL) throws {
     try saveFavorites(favorites: favorites, fileURL: fileURL)
 }
 
+/// 指定した識別子のお気に入りを、`now` にカートインしたこととして保存する (購入画面を開いた時に呼ぶ)。並びとほかの値は変えない。
+///
+/// 最後にカートインした日時を `now` にし、リマインドを設定しているお気に入りでは、日数を数え始めた日時も `now` にする (開いた時刻から数え直す)。書き込みは 1 回。
+/// その識別子のお気に入りが無い時は `FavoriteStoreError.favoriteNotFound` を投げる。
+func recordFavoriteCartIn(id: UUID, now: Date, fileURL: URL) throws {
+    var favorites = try loadFavorites(fileURL: fileURL)
+    guard let favoriteIndex = favorites.firstIndex(where: { $0.id == id }) else {
+        throw FavoriteStoreError.favoriteNotFound
+    }
+    favorites[favoriteIndex].lastCartInAt = now
+    favorites[favoriteIndex].reminder?.countedFrom = now
+    try saveFavorites(favorites: favorites, fileURL: fileURL)
+}
+
 /// 指定した識別子のお気に入りを、並びの `destinationIndex` 番目 (0 始まり。移動した後の位置) へ移して保存する。
 ///
 /// 移動した後の位置で指定するため、同じ呼び出しを繰り返しても並びは変わらない。

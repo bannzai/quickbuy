@@ -143,7 +143,8 @@ struct CartInConfirmationNotificationTests {
 
     // MARK: - 通知のタップ
 
-    /// 確認の通知のタップでは、そのお気に入りの店のドメイン・商品バリアントの ID・個数から組み立てた購入画面の URL を返し、そのお気に入りのリマインドだけをタップした時刻から数え直す。
+    /// 確認の通知のタップでは、そのお気に入りの店のドメイン・商品バリアントの ID・個数から組み立てた購入画面の URL を返し、
+    /// そのお気に入りだけを、最後にカートインした日時をタップした時刻にして、リマインドをタップした時刻から数え直す。
     @Test func 通知のタップで保存済みのお気に入りから購入画面のURLを組み立てて数え直す() throws {
         let fileURL = temporaryFavoritesFileURL()
         let coffeeFavorite = shopifyFavorite(idSuffix: "1", variantName: "200g / 豆のまま", shopDomain: "mori-coffee.example", variantID: "70881412", quantity: 2)
@@ -151,6 +152,7 @@ struct CartInConfirmationNotificationTests {
         try saveFavorites(favorites: [coffeeFavorite, soapFavorite], fileURL: fileURL)
         var recountedSoapFavorite = soapFavorite
         recountedSoapFavorite.reminder = Reminder(intervalDays: 30, countedFrom: tappedAt)
+        recountedSoapFavorite.lastCartInAt = tappedAt
         var appliedChanges: [[ReminderNotificationChange]] = []
         var recordedEvents: [AnalyticsEvent] = []
 
