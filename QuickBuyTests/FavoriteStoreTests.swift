@@ -122,7 +122,7 @@ struct FavoriteStoreTests {
     }
 
     /// 書き出したファイルも、上の「保存済みのJSONの形を読める」と同じ形になる (キーの名前と入れ子、日時の秒数)。
-    /// 商品バリアントの名前・画像・リマインドが無いお気に入りは、そのキーを書かない。
+    /// 商品バリアントの名前・画像・リマインド・最後にカートインした日時が無いお気に入りは、そのキーを書かない。
     @Test func 保存するJSONの形() throws {
         let fileURL = temporaryFavoritesFileURL()
         try saveFavorites(
@@ -134,7 +134,9 @@ struct FavoriteStoreTests {
                     imageURL: URL(string: "https://cdn.example.com/detergent.png"),
                     quantity: 2,
                     product: .shopify(ShopifyProduct(shopDomain: "example.myshopify.com", variantID: "70881412")),
-                    reminder: Reminder(intervalDays: 30, countedFrom: Date(timeIntervalSince1970: 978_393_600))
+                    reminder: Reminder(intervalDays: 30, countedFrom: Date(timeIntervalSince1970: 978_393_600)),
+                    // 2001-01-03 00:00:00 UTC。
+                    lastCartInAt: Date(timeIntervalSince1970: 978_480_000)
                 ),
                 Favorite(
                     id: secondID,
@@ -158,6 +160,7 @@ struct FavoriteStoreTests {
                     "quantity": 2,
                     "product": ["shopify": ["_0": ["shopDomain": "example.myshopify.com", "variantID": "70881412"]]],
                     "reminder": ["intervalDays": 30, "countedFrom": 86400],
+                    "lastCartInAt": 172_800,
                 ] as NSDictionary,
                 [
                     "id": "00000000-0000-0000-0000-000000000002",
@@ -167,6 +170,47 @@ struct FavoriteStoreTests {
                 ] as NSDictionary,
             ] as NSArray
         )
+    }
+
+    /// 最後にカートインした日時 (`lastCartInAt`) を足す前のビルドが保存した形のファイル (`lastCartInAt` のキーが無い) を読める。
+    /// 読んだお気に入りは最後にカートインした日時を持たない (一覧と編集の画面に日を出さない)。
+    @Test func 最後にカートインした日時の無い以前の形のファイルを読める() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try Data(
+            """
+            [
+              {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "name": "洗剤",
+                "quantity": 2,
+                "product": {"shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}},
+                "reminder": {"intervalDays": 30, "countedFrom": 86400}
+              }
+            ]
+            """.utf8
+        ).write(to: fileURL)
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [nil])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤"])
+    }
+
+    /// 最後にカートインした日時は、`lastCartInAt` のキーの、2001-01-01 00:00:00 UTC からの秒数として読む。
+    @Test func 最後にカートインした日時のキーを読める() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        try Data(
+            """
+            [
+              {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "name": "洗剤",
+                "quantity": 2,
+                "product": {"shopify": {"_0": {"shopDomain": "example.myshopify.com", "variantID": "70881412"}}},
+                "lastCartInAt": 172800
+              }
+            ]
+            """.utf8
+        ).write(to: fileURL)
+        // 2001-01-03 00:00:00 UTC。
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [Date(timeIntervalSince1970: 978_480_000)])
     }
 
     // MARK: - 読み出し
@@ -434,6 +478,20 @@ struct FavoriteStoreTests {
             )
         }
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤", "電池", "水"])
+    }
+
+    /// 保存されていない識別子のカートインの記録はエラーになり、保存済みのお気に入りは変わらない。
+    @Test func 無いお気に入りのカートインの記録はエラーにする() throws {
+        let fileURL = try fileURLWithThreeFavorites()
+        #expect(throws: FavoriteStoreError.favoriteNotFound) {
+            try recordFavoriteCartIn(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
+                now: Date(timeIntervalSince1970: 1_795_824_000),
+                fileURL: fileURL
+            )
+        }
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤", "電池", "水"])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [nil, nil, nil])
     }
 
     // MARK: - 並べ替え

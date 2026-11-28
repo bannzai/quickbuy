@@ -99,7 +99,7 @@ func recordWidgetPlacement(recordAnalyticsEvent: @escaping (AnalyticsEvent) -> V
 
 /// 指定した識別子の保存済みのお気に入りを開く時に呼び、開く URL (購入画面) を返す。開く時は `entryPoint` を入口にした開いた記録を `recordAnalyticsEvent` に渡す。
 ///
-/// 保存とリマインドの数え直しは `openingURL(favoriteID:now:fileURL:)` と同じ。nil を返す時 (何も開かない時) は記録しない。
+/// 最後にカートインした日時とリマインドの数え直しの保存は `openingURL(favoriteID:now:fileURL:)` と同じ。nil を返す時 (何も開かない時) は記録しない。
 func openingURL(
     favoriteID: UUID,
     entryPoint: PurchaseScreenEntryPoint,

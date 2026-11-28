@@ -171,7 +171,7 @@ struct FavoritesListTests {
     }
 
     /// 確認の「開く」で、確認が指すお気に入りの店のドメイン・商品バリアントの ID・保存済みの個数 (確認を出した後に変えた個数を含む) から組み立てた URL が返り、
-    /// そのお気に入りのリマインドだけが開いた時刻から数え直される。
+    /// そのお気に入りのリマインドだけが開いた時刻から数え直され、そのお気に入りだけが最後にカートインした日時を持つ。
     @Test func 開くは確認を出した後に変えた個数で確認が指すお気に入りのURLを返す() throws {
         let fileURL = temporaryFavoritesFileURL()
         // 2026-11-17 00:00:00 UTC。
@@ -218,6 +218,8 @@ struct FavoritesListTests {
             Reminder(intervalDays: 30, countedFrom: countedFrom),
             Reminder(intervalDays: 7, countedFrom: openedAt),
         ])
+        // 「開く」を押したお気に入りだけが、最後にカートインした日時を持つ。確認を出していない行は変えない。
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [nil, openedAt])
     }
 
     // MARK: - 店のドメインの表示

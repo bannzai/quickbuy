@@ -252,7 +252,8 @@ struct ReminderTests {
         let notifiedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
         try saveFavorites(favorites: [notifiedFavorite], fileURL: fileURL)
         let tappedAt = countedFrom.addingTimeInterval(31 * daySeconds)
-        let recountedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: tappedAt))
+        var recountedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: tappedAt))
+        recountedFavorite.lastCartInAt = tappedAt
         var appliedChanges: [[ReminderNotificationChange]] = []
         var recordedEvents: [AnalyticsEvent] = []
 
@@ -500,7 +501,7 @@ struct ReminderTests {
 
     // MARK: - 購入画面を開く時の数え直し
 
-    /// 購入画面を開いたお気に入りだけを開いた時刻から数え直し、ほかのお気に入りのリマインドは変えない。
+    /// 購入画面を開いたお気に入りだけを開いた時刻から数え直し、最後にカートインした日時を開いた時刻にする。ほかのお気に入りは変えない。
     @Test func 購入画面を開くと数え始めた日時がその時刻に書き換わりURLを返す() throws {
         let fileURL = temporaryFavoritesFileURL()
         let openedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: countedFrom))
@@ -512,15 +513,12 @@ struct ReminderTests {
             try openingURL(favoriteID: openedFavorite.id, now: openedAt, fileURL: fileURL)?.absoluteString
                 == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
-        #expect(
-            try loadFavorites(fileURL: fileURL) == [
-                favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: openedAt)),
-                otherFavorite,
-            ]
-        )
+        var recountedFavorite = favorite(idSuffix: "1", reminder: Reminder(intervalDays: 30, countedFrom: openedAt))
+        recountedFavorite.lastCartInAt = openedAt
+        #expect(try loadFavorites(fileURL: fileURL) == [recountedFavorite, otherFavorite])
     }
 
-    /// リマインドを設定していないお気に入りは、購入画面を開いても保存の内容が変わらない。
+    /// リマインドを設定していないお気に入りは、購入画面を開いてもリマインドは付かず、最後にカートインした日時だけが開いた時刻になる。
     @Test func リマインドの無いお気に入りの購入画面を開いてもリマインドは付かない() throws {
         let fileURL = temporaryFavoritesFileURL()
         let openedFavorite = favorite(idSuffix: "1", reminder: nil)
@@ -530,7 +528,34 @@ struct ReminderTests {
             try openingURL(favoriteID: openedFavorite.id, now: countedFrom, fileURL: fileURL)?.absoluteString
                 == "https://mori-coffee.example/cart/add?id=70881412&quantity=2"
         )
-        #expect(try loadFavorites(fileURL: fileURL) == [openedFavorite])
+        var cartInFavorite = openedFavorite
+        cartInFavorite.lastCartInAt = countedFrom
+        #expect(try loadFavorites(fileURL: fileURL) == [cartInFavorite])
+    }
+
+    /// 前にカートインしたお気に入りの購入画面をもう一度開くと、最後にカートインした日時が後の時刻に置き換わる (履歴は持たない)。
+    @Test func もう一度開くと最後にカートインした日時が後の時刻になる() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        let openedFavorite = favorite(idSuffix: "1", reminder: nil)
+        try saveFavorites(favorites: [openedFavorite], fileURL: fileURL)
+        let reopenedAt = countedFrom.addingTimeInterval(5 * daySeconds)
+
+        _ = try openingURL(favoriteID: openedFavorite.id, now: countedFrom, fileURL: fileURL)
+        _ = try openingURL(favoriteID: openedFavorite.id, now: reopenedAt, fileURL: fileURL)
+
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [reopenedAt])
+    }
+
+    /// 開く URL を組み立てられないお気に入りは、前にカートインした日時を持っていても、その日時を変えない。
+    @Test func 開けないお気に入りは前にカートインした日時を変えない() throws {
+        let fileURL = temporaryFavoritesFileURL()
+        var unopenableFavorite = favorite(idSuffix: "1", reminder: nil)
+        unopenableFavorite.product = .shopify(ShopifyProduct(shopDomain: "mori-coffee.example/evil", variantID: "70881412"))
+        unopenableFavorite.lastCartInAt = countedFrom
+        try saveFavorites(favorites: [unopenableFavorite], fileURL: fileURL)
+
+        #expect(try openingURL(favoriteID: unopenableFavorite.id, now: countedFrom.addingTimeInterval(5 * daySeconds), fileURL: fileURL) == nil)
+        #expect(try loadFavorites(fileURL: fileURL) == [unopenableFavorite])
     }
 
     /// 削除済みのお気に入りを指す識別子では、先頭のお気に入りなど別のお気に入りの購入画面を開かない。

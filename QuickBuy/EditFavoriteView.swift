@@ -26,8 +26,11 @@ struct EditFavoriteView: View {
                 Section {
                     HStack(spacing: 12) {
                         FavoriteThumbnail(imageURL: favorite.imageURL)
-                        Text(shopDomainText(favorite: favorite))
-                            .font(.headline)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(shopDomainText(favorite: favorite))
+                                .font(.headline)
+                            lastCartInLabel(favorite: favorite)
+                        }
                     }
                 }
                 Section {

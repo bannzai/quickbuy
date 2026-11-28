@@ -314,6 +314,7 @@ struct FavoritesListView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        lastCartInLabel(favorite: favorite)
                     }
                     Spacer(minLength: 0)
                 }
@@ -387,6 +388,17 @@ let cartInConfirmationBackgroundColor = Color(red: 0x11 / 255, green: 0x13 / 255
 
 /// 「カートイン」の確認の 2 行目の文字の色。画面の見本 (documents/design/mock-2026-11-18/project/Favorites.dc.html) の色 `#D5D9E0`。
 let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 255, blue: 0xE0 / 255)
+
+/// お気に入りの一覧の行と編集の画面に出す、最後にカートインした日の行。1 度もカートインしていないお気に入りでは何も出さない。
+/// 日付は今の時刻・端末の暦と地域・画面の文言の言語で出す (`lastCartInText(lastCartInAt:now:calendar:locale:region:)`)。
+@ViewBuilder
+func lastCartInLabel(favorite: Favorite) -> some View {
+    if let lastCartInAt = favorite.lastCartInAt {
+        Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+}
 
 /// 「カートイン」の確認が指すお気に入りを、表示している並び (保存先から読んだもの) から返す。
 ///
