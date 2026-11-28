@@ -80,7 +80,9 @@ struct AppStoreScreenshotTests {
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
                 for text in [appStoreScreenshotHeadline(screen: screen, locale: language.locale), appStoreScreenshotSubheadline(screen: screen, locale: language.locale)] {
-                    #expect(!["ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入", "one tap", "one-tap", "automatically", "auto-buy"].contains { text.localizedCaseInsensitiveContains($0) }, "\(text)")
+                    #expect(!oneTapOrAutomaticPurchaseWords.contains { text.localizedCaseInsensitiveContains($0) }, "\(language.directoryName) \(text)")
+                    // 見出しと補足に実在の店のドメインを書かない (画像の文字の認識で見る確認は日本語と英語の画像だけのため、9 言語の文言そのものに当てる)。
+                    #expect(text.lowercased().firstMatch(of: #/[a-z0-9-]+\.[a-z]{2,}/#) == nil, "\(language.directoryName) \(text)")
                     #expect(!["。", "、", "，", "！", ".", ",", "!"].contains { text.hasSuffix($0) }, "\(text)")
                     #expect(!text.contains("、"), "\(text)")
                 }
@@ -314,3 +316,17 @@ struct AppStoreScreenshotTests {
 /// 画像の全体を表す、文字を読む範囲。範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
 /// 引数の既定の値から参照するため、型の外に置く。
 private let wholeImageRegion = CGRect(x: 0, y: 0, width: 1, height: 1)
+
+/// 見出しと補足に書かない、ワンタップや自動の購入を表す言い方。確認に答えてから購入画面が開くことと、支払いは本人が店の画面で行うことと食い違うため。
+///
+/// 9 言語それぞれの「ワンタップ」「1 回のタップで」「自動で (買う)」「自動購入」に当たる語。大文字と小文字は区別しない比べ方で当てる。
+private let oneTapOrAutomaticPurchaseWords = [
+    "ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入",
+    "one tap", "one-tap", "automatically", "auto-buy",
+    "un solo toque", "un toque", "automáticamente", "compra automática",
+    "un seul geste", "une seule touche", "automatiquement", "achat automatique",
+    "ein Tippen", "einem Tippen", "automatisch",
+    "um toque", "automaticamente",
+    "원탭", "한 번의 탭", "자동 구매", "자동으로 구매",
+    "一键", "一鍵", "自动购买", "自動購買", "自动下单", "自動下單",
+]

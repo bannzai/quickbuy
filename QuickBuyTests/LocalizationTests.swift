@@ -143,11 +143,11 @@ struct LocalizationTests {
         for localization in ["ja", "en", "es", "fr", "de", "pt-BR", "ko", "zh-Hans", "zh-Hant"] {
             #expect(Bundle.main.localizations.contains(localization), "\(localization) \(Bundle.main.localizations)")
         }
-        for (identifier, cartInTitle) in [
+        for (localeIdentifier, cartInTitle) in [
             ("es", "Al carrito"), ("fr", "Au panier"), ("de", "In den Korb"), ("pt-BR", "Ao carrinho"),
             ("ko", "장바구니 담기"), ("zh-Hans", "加入购物车"), ("zh-Hant", "加入購物車"),
         ] {
-            #expect(String(localized: LocalizedStringResource("カートイン", locale: Locale(identifier: identifier))) == cartInTitle, "\(identifier)")
+            #expect(String(localized: LocalizedStringResource("カートイン", locale: Locale(identifier: localeIdentifier))) == cartInTitle, "\(localeIdentifier)")
         }
     }
 
@@ -163,22 +163,16 @@ struct LocalizationTests {
         ("zh-Hans", "Kaffee 200g × 2\n轻点后打开 mori-coffee.example 的结账页面", "将 Kaffee 200g × 2 件加入购物车并打开结账页面", "加入购物车需要通知权限"),
         ("zh-Hant", "Kaffee 200g × 2\n點一下即可開啟 mori-coffee.example 的結帳頁面", "將 Kaffee 200g × 2 件加入購物車並開啟結帳頁面", "加入購物車需要通知權限"),
     ])
-    func 差し込む値はその言語の語順で出る(identifier: String, notificationBody: String, confirmationText: String, notificationRequiredText: String) throws {
+    func 差し込む値はその言語の語順で出る(localeIdentifier: String, notificationBody: String, confirmationText: String, notificationRequiredText: String) throws {
         let favorite = shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2)
-        #expect(try #require(cartInConfirmationNotificationContent(favorite: favorite, locale: Locale(identifier: identifier))).body == notificationBody)
-        #expect(cartInConfirmationText(favorite: favorite, locale: Locale(identifier: identifier)) == confirmationText)
-        #expect(widgetNotificationRequiredText(locale: Locale(identifier: identifier)) == notificationRequiredText)
-    }
-
-    /// ドイツ語のウィジェットの行の説明は、英語・スペイン語・フランス語・ポルトガル語と同じく個数を「×N」で出す (「2 Stück」では大サイズのウィジェットで見本の説明が「2 Stü…」と切れたため。PR #93)。
-    /// 行の説明は文字列カタログの「%lld 個」を使い、同じ訳を追加の画面の個数の欄も使う。
-    @Test func ドイツ語の行の説明は英語と同じ個数の書き方() {
-        #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: Locale(identifier: "de")) == "200g · ×2")
+        #expect(try #require(cartInConfirmationNotificationContent(favorite: favorite, locale: Locale(identifier: localeIdentifier))).body == notificationBody)
+        #expect(cartInConfirmationText(favorite: favorite, locale: Locale(identifier: localeIdentifier)) == confirmationText)
+        #expect(widgetNotificationRequiredText(locale: Locale(identifier: localeIdentifier)) == notificationRequiredText)
     }
 
     /// 足した 7 つの言語で、ウィジェットの行の説明・アプリの一覧の個数・リマインドの次の日付の文が、区切りの記号と差し込む値の順を取り違えずに出る。
     ///
-    /// 区切り「 ・ 」は 7 言語とも「 · 」(fb5d542 で足した訳)。リマインドの 2 つの文は `%@` を 2 つ持ち、順が入れ替わると数え直しの文と日付が入れ替わる。
+    /// 区切り「 ・ 」は 7 言語とも「 · 」(fb5d542 で足した訳)。ドイツ語の個数は「%lld Stück」では大サイズのウィジェットで見本の説明が「2 Stü…」と切れたため、英語・スペイン語・フランス語・ポルトガル語と同じ「×N」にした (PR #93)。リマインドの 2 つの文は `%@` を 2 つ持ち、順が入れ替わると数え直しの文と日付が入れ替わる。
     @Test(arguments: [
         ("es", "200g · ×2", " · ×2", "Reinicio\nTu próximo recordatorio es 26 nov", "Reinicio\nLa próxima notificación es el 26 nov\nLas notificaciones no están permitidas\nActiva las notificaciones de Quick Buy en Ajustes para recibirlas"),
         ("fr", "200g · ×2", " · ×2", "Reinicio\nVotre prochain rappel est prévu le 26 nov", "Reinicio\nLa prochaine notification est prévue pour 26 nov\nLes notifications ne sont pas autorisées\nAutorisez les notifications de Quick Buy dans Réglages pour les recevoir"),
@@ -188,8 +182,8 @@ struct LocalizationTests {
         ("zh-Hans", "200g · 2 件", " · 2 件", "Reinicio\n下次提醒时间是 26 nov", "Reinicio\n下次通知时间是 26 nov\n通知未获允许\n在“设置”中允许 Quick Buy 发送通知后即可收到"),
         ("zh-Hant", "200g · 2 個", " · 2 個", "Reinicio\n下次提醒時間是 26 nov", "Reinicio\n下次通知時間是 26 nov\n通知未獲允許\n在「設定」中允許 Quick Buy 傳送通知後即可收到"),
     ])
-    func 区切りと二つの値を差し込む文はその言語で出る(identifier: String, widgetRowCaption: String, listQuantityText: String, reminderDateText: String, reminderDateWithoutPermissionText: String) {
-        let locale = Locale(identifier: identifier)
+    func 区切りと二つの値を差し込む文はその言語で出る(localeIdentifier: String, widgetRowCaption: String, listQuantityText: String, reminderDateText: String, reminderDateWithoutPermissionText: String) {
+        let locale = Locale(identifier: localeIdentifier)
         #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: locale) == widgetRowCaption)
         #expect(String(localized: LocalizedStringResource(" ・ \(2) 個", locale: locale)) == listQuantityText)
         #expect(String(localized: LocalizedStringResource("\("Reinicio")\n次の知らせは \("26 nov") です", locale: locale)) == reminderDateText)
@@ -203,8 +197,8 @@ struct LocalizationTests {
         ("de", ["Jeden Tag", "Alle 2 Tage"], ["Nächste Erinnerung in 1 Tag", "Nächste Erinnerung in 2 Tagen"], ["1 Variante zu Favoriten hinzufügen", "2 Varianten zu Favoriten hinzufügen"], ["Der Dienst ist gerade stark ausgelastet\nWarte etwa 1 Sekunde und versuche es erneut", "Der Dienst ist gerade stark ausgelastet\nWarte etwa 2 Sekunden und versuche es erneut"]),
         ("pt-BR", ["Todo dia", "A cada 2 dias"], ["Próximo lembrete em 1 dia", "Próximo lembrete em 2 dias"], ["Adicionar 1 variante aos favoritos", "Adicionar 2 variantes aos favoritos"], ["O serviço está sobrecarregado\nEspere cerca de 1 segundo e tente novamente", "O serviço está sobrecarregado\nEspere cerca de 2 segundos e tente novamente"]),
     ])
-    func 数で語の形が変わる言語は単数と複数で文言が変わる(identifier: String, intervalTexts: [String], reminderTexts: [String], additionTitles: [String], rateLimitedMessages: [String]) {
-        let locale = Locale(identifier: identifier)
+    func 数で語の形が変わる言語は単数と複数で文言が変わる(localeIdentifier: String, intervalTexts: [String], reminderTexts: [String], additionTitles: [String], rateLimitedMessages: [String]) {
+        let locale = Locale(identifier: localeIdentifier)
         for (index, count) in [1, 2].enumerated() {
             #expect(String(localized: LocalizedStringResource("\(count) 日ごと", locale: locale)) == intervalTexts[index])
             // 7 日ごとのリマインドで、残りが count 日になる日時。
