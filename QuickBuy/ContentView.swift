@@ -314,11 +314,7 @@ struct FavoritesListView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        if let lastCartInAt = favorite.lastCartInAt {
-                            Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        lastCartInLabel(favorite: favorite)
                     }
                     Spacer(minLength: 0)
                 }
@@ -398,6 +394,17 @@ let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 
 /// `confirmation` は最後に「カートイン」を押した行のお気に入りの識別子と押した時刻 (確認を出していない時は nil)。`now` は表示する時刻。
 /// 押した時刻から `cartInConfirmationSeconds` 秒たった時、その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等)、
 /// 開く URL を組み立てられない時は nil を返す (確認を出さない)。
+/// お気に入りの一覧の行と編集の画面に出す、最後にカートインした日の行。1 度もカートインしていないお気に入りでは何も出さない。
+/// 日付は今の時刻・端末の暦と地域・画面の文言の言語で出す (`lastCartInText(lastCartInAt:now:calendar:locale:region:)`)。
+@ViewBuilder
+func lastCartInLabel(favorite: Favorite) -> some View {
+    if let lastCartInAt = favorite.lastCartInAt {
+        Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+}
+
 func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?, favorites: [Favorite], now: Date) -> Favorite? {
     guard let confirmation, now.timeIntervalSince(confirmation.shownAt) < cartInConfirmationSeconds else {
         return nil

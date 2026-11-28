@@ -29,11 +29,7 @@ struct EditFavoriteView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(shopDomainText(favorite: favorite))
                                 .font(.headline)
-                            if let lastCartInAt = favorite.lastCartInAt {
-                                Text(lastCartInText(lastCartInAt: lastCartInAt, now: .now, calendar: .current, locale: appTextLocale, region: Locale.current.region))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            lastCartInLabel(favorite: favorite)
                         }
                     }
                 }

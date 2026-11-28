@@ -72,6 +72,30 @@ struct FavoriteOpeningURLTests {
         )
     }
 
+    /// 年の境目は渡した calendar の time zone で数える。now は東京の 2026-01-01 12:00 (2026-01-01 03:00:00 UTC)。
+    /// 東京の 2025-12-31 23:59:59 (2025-12-31 14:59:59 UTC) は前の年なので年を出し、
+    /// 東京の 2026-01-01 00:00:00 (UTC では 2025-12-31 15:00:00) は同じ年なので年を出さない。
+    @Test func 年の境目は渡したcalendarのtimezoneで数える() {
+        let newYearNow = Date(timeIntervalSince1970: 1_767_236_400)
+        #expect(
+            lastCartInText(lastCartInAt: Date(timeIntervalSince1970: 1_767_193_199), now: newYearNow, calendar: tokyoCalendar, locale: Locale(identifier: "ja"), region: Locale.Region("JP"))
+                == "前回のカートイン 2025年12月31日"
+        )
+        #expect(
+            lastCartInText(lastCartInAt: Date(timeIntervalSince1970: 1_767_193_200), now: newYearNow, calendar: tokyoCalendar, locale: Locale(identifier: "ja"), region: Locale.Region("JP"))
+                == "前回のカートイン 1月1日"
+        )
+    }
+
+    /// 地域を渡さない時は、言語に付いた地域の書き方で出す (en-GB は日・月の順、en-US は月・日の順)。
+    @Test(arguments: [
+        ("en-GB", "Last added to cart 20 Nov"),
+        ("en-US", "Last added to cart Nov 20"),
+    ])
+    func 地域を渡さない時は言語に付いた地域の書き方で出す(localeIdentifier: String, expectedText: String) {
+        #expect(lastCartInText(lastCartInAt: lastCartInAt, now: now, calendar: tokyoCalendar, locale: Locale(identifier: localeIdentifier), region: nil) == expectedText)
+    }
+
     /// 9 つの言語のどれでも、文言は日本語の前置きのまま出ず、同じ年は年の数字を含まず、違う年は年の数字を含む。
     /// 買ったかはアプリから分からないため、購入に当たる語 (各言語の「購入」「買う」の語) を含まない。
     @Test(arguments: ["ja", "en", "es", "fr", "de", "pt-BR", "ko", "zh-Hans", "zh-Hant"])

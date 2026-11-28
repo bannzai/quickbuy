@@ -480,6 +480,20 @@ struct FavoriteStoreTests {
         #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤", "電池", "水"])
     }
 
+    /// 保存されていない識別子のカートインの記録はエラーになり、保存済みのお気に入りは変わらない。
+    @Test func 無いお気に入りのカートインの記録はエラーにする() throws {
+        let fileURL = try fileURLWithThreeFavorites()
+        #expect(throws: FavoriteStoreError.favoriteNotFound) {
+            try recordFavoriteCartIn(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
+                now: Date(timeIntervalSince1970: 1_795_824_000),
+                fileURL: fileURL
+            )
+        }
+        #expect(try loadFavorites(fileURL: fileURL).map(\.name) == ["洗剤", "電池", "水"])
+        #expect(try loadFavorites(fileURL: fileURL).map(\.lastCartInAt) == [nil, nil, nil])
+    }
+
     // MARK: - 並べ替え
 
     /// 「洗剤・電池・水」から 1 件を移した後の並び。先頭から末尾、末尾から先頭、隣どうし、同じ位置 (変わらない) を確かめる。
