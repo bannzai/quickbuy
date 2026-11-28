@@ -24,12 +24,13 @@ on:
       language_preset:
         # ウィジェット・ホーム画面のようにアプリの起動引数 (-AppleLanguages) が届かない画面を英語以外で確かめるため、
         # Simulator の端末の言語をセッションの起動前に決める (セッション中に設定アプリで変えると WDA に接続できなくなった。bannzai/simtunnel PROJECT.md「端末の言語を caller から渡す」)。
-        # 選択肢はアプリが対応する 9 言語 (QuickBuy.xcodeproj の knownRegions)。none は既定の英語のまま
+        # 選択肢は、ウィジェットの表示を simtunnel で確かめた言語 (PR #93)。none は既定の英語のまま。
+        # ほかの言語は、その言語で確かめる時に選択肢と下の device_locale の分岐を足し、その言語で起動して確かめる
         description: "Simulator の端末の言語"
         type: choice
         required: false
         default: none
-        options: [none, ja, de, es, fr, pt-BR, ko, zh-Hans, zh-Hant]
+        options: [none, ja, de, ko]
 
 jobs:
   # Simulator 用 .app をビルドして artifact に上げる。
@@ -90,7 +91,7 @@ jobs:
       bundle_id: com.bannzai.QuickBuy
       device_language: ${{ inputs.language_preset != 'none' && inputs.language_preset || '' }}
       # 地域は言語ごとに 1 つに決める (simtunnel は言語と地域を両方渡すか両方空にすることを求める)
-      device_locale: ${{ inputs.language_preset == 'ja' && 'ja_JP' || inputs.language_preset == 'de' && 'de_DE' || inputs.language_preset == 'es' && 'es_ES' || inputs.language_preset == 'fr' && 'fr_FR' || inputs.language_preset == 'pt-BR' && 'pt_BR' || inputs.language_preset == 'ko' && 'ko_KR' || inputs.language_preset == 'zh-Hans' && 'zh_CN' || inputs.language_preset == 'zh-Hant' && 'zh_TW' || '' }}
+      device_locale: ${{ inputs.language_preset == 'ja' && 'ja_JP' || inputs.language_preset == 'de' && 'de_DE' || inputs.language_preset == 'ko' && 'ko_KR' || '' }}
     secrets:
       TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
       TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
