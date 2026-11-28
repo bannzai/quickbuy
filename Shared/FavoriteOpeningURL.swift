@@ -28,9 +28,12 @@ func openingURL(favoriteID: UUID, now: Date, fileURL: URL) throws -> URL? {
 /// 日付は、`locale` の言語と `region` の地域の書き方で月と日を出し、`lastCartInAt` が `now` と違う年の時は年も出す。年と日付の区切りは `calendar` (とその time zone) で数える。
 /// 買ったかはアプリから分からないため、文言に購入に当たる語を使わない (documents/adr/0003)。
 func lastCartInText(lastCartInAt: Date, now: Date, calendar: Calendar, locale: Locale, region: Locale.Region?) -> String {
-    var dateLocaleComponents = Locale.Components(locale: locale)
-    dateLocaleComponents.region = region
-    let dateFormatStyle = Date.FormatStyle(locale: Locale(components: dateLocaleComponents), calendar: calendar, timeZone: calendar.timeZone).month().day()
+    // 地域を渡さない時は、言語に付いた地域 (pt-BR の BR 等) の書き方にする。
+    let dateFormatStyle = Date.FormatStyle(
+        locale: Locale(languageCode: locale.language.languageCode, script: locale.language.script, languageRegion: region ?? locale.language.region),
+        calendar: calendar,
+        timeZone: calendar.timeZone
+    ).month().day()
     return String(localized: LocalizedStringResource(
         "前回のカートイン \(lastCartInAt.formatted(calendar.isDate(lastCartInAt, equalTo: now, toGranularity: .year) ? dateFormatStyle : dateFormatStyle.year()))",
         locale: locale
