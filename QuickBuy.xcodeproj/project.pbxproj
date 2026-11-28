@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BD0000000000000000000001 /* ContactInquiry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000001 /* ContactInquiry.swift */; };
+		BD0000000000000000000002 /* ContactFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000002 /* ContactFormView.swift */; };
+		BD0000000000000000000003 /* ContactInquiryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000003 /* ContactInquiryTests.swift */; };
+		E20000000000000000000001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = F20000000000000000000001 /* FirebaseFirestore */; };
+		E20000000000000000000002 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = F20000000000000000000002 /* FirebaseAuth */; };
 		1E510AF7F06AF7D287B04471 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E40B1782B9401D57C38BBA /* Assets.xcassets */; };
 		615220FED162B9C99257C96B /* QuickBuyWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CC0DA1ED3CBC2A94384E919E /* QuickBuyWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6176567ED72EA8A01DD20E9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB475B718CDC27643AF3FAA8 /* ContentView.swift */; };
@@ -119,6 +124,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AD0000000000000000000001 /* ContactInquiry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactInquiry.swift; sourceTree = "<group>"; };
+		AD0000000000000000000002 /* ContactFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactFormView.swift; sourceTree = "<group>"; };
+		AD0000000000000000000003 /* ContactInquiryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactInquiryTests.swift; sourceTree = "<group>"; };
 		1BF07603093DE31EB60A2AA5 /* QuickBuyWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickBuyWidgetBundle.swift; sourceTree = "<group>"; };
 		1ED3753C994B4E8ECC98A2C0 /* QuickBuyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickBuyApp.swift; sourceTree = "<group>"; };
 		6F4A3459386583CFC7694173 /* QuickBuyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuickBuyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -186,6 +194,8 @@
 			files = (
 				E10000000000000000000004 /* FirebaseAnalyticsCore in Frameworks */,
 				E10000000000000000000005 /* FirebaseCrashlytics in Frameworks */,
+				E20000000000000000000001 /* FirebaseFirestore in Frameworks */,
+				E20000000000000000000002 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -206,6 +216,8 @@
 				A40000000000000000000002 /* ReminderNotifications.swift */,
 				A20000000000000000000004 /* EditFavoriteView.swift */,
 				A30000000000000000000001 /* SettingsView.swift */,
+				AD0000000000000000000001 /* ContactInquiry.swift */,
+				AD0000000000000000000002 /* ContactFormView.swift */,
 				A34000000000000000000001 /* ShopifyCatalog.swift */,
 				A34000000000000000000002 /* HomeView.swift */,
 				A34000000000000000000003 /* CatalogAddFavoriteView.swift */,
@@ -282,6 +294,7 @@
 				A40000000000000000000003 /* ReminderTests.swift */,
 				A2000000000000000000000B /* ShopifyProductPageTests.swift */,
 				A30000000000000000000002 /* SettingsTests.swift */,
+				AD0000000000000000000003 /* ContactInquiryTests.swift */,
 				AC0000000000000000000001 /* AppStoreScreenshots.swift */,
 				AC0000000000000000000002 /* AppStoreScreenshotTests.swift */,
 				A34000000000000000000004 /* ShopifyCatalogTests.swift */,
@@ -363,6 +376,8 @@
 			packageProductDependencies = (
 				F10000000000000000000004 /* FirebaseAnalyticsCore */,
 				F10000000000000000000005 /* FirebaseCrashlytics */,
+				F20000000000000000000001 /* FirebaseFirestore */,
+				F20000000000000000000002 /* FirebaseAuth */,
 			);
 			productName = QuickBuy;
 			productReference = 85E185745E6906802A51F0F5 /* QuickBuy.app */;
@@ -547,6 +562,7 @@
 				B60000000000000000000002 /* NotificationPermissionExplanationTests.swift in Sources */,
 				B40000000000000000000003 /* ReminderTests.swift in Sources */,
 				B30000000000000000000002 /* SettingsTests.swift in Sources */,
+				BD0000000000000000000003 /* ContactInquiryTests.swift in Sources */,
 				BC0000000000000000000001 /* AppStoreScreenshots.swift in Sources */,
 				BC0000000000000000000002 /* AppStoreScreenshotTests.swift in Sources */,
 				B34000000000000000000004 /* ShopifyCatalogTests.swift in Sources */,
@@ -578,6 +594,8 @@
 				B50000000000000000000001 /* FavoritesWidgetContent.swift in Sources */,
 				B50000000000000000000003 /* QuickBuyAccentColor.swift in Sources */,
 				B30000000000000000000001 /* SettingsView.swift in Sources */,
+				BD0000000000000000000001 /* ContactInquiry.swift in Sources */,
+				BD0000000000000000000002 /* ContactFormView.swift in Sources */,
 				B34000000000000000000001 /* ShopifyCatalog.swift in Sources */,
 				B34000000000000000000002 /* HomeView.swift in Sources */,
 				B34000000000000000000003 /* CatalogAddFavoriteView.swift in Sources */,
@@ -973,6 +991,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCrashlytics;
+		};
+		F20000000000000000000001 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		F20000000000000000000002 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F10000000000000000000003 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

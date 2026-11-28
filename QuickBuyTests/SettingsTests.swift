@@ -2,25 +2,22 @@ import Foundation
 import Testing
 @testable import QuickBuy
 
-/// 設定画面が開くリンク先 (問い合わせのメール・利用規約・プライバシーポリシー) と、バージョンの表示を確かめる。
+/// 設定画面が開くリンク先 (利用規約・プライバシーポリシー) と、問い合わせの連絡先と、バージョンの表示を確かめる。
 struct SettingsTests {
     /// リポジトリのルートからの相対パスで指したファイルの URL を返す。
     private func repositoryFileURL(relativePath: String) -> URL {
         URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appending(path: relativePath)
     }
 
-    // MARK: - 問い合わせのメール
+    // MARK: - 問い合わせの連絡先
 
-    /// 宛先は `documents/PROJECT.md` に書いた連絡先で、件名が入った `mailto:` になる。
-    @Test func 問い合わせのメールは連絡先を宛先にして件名を入れる() throws {
+    /// フォームに出す返信の送り元は、`documents/PROJECT.md` に書いた連絡先と同じ。
+    @Test func 問い合わせの連絡先はPROJECTに書いた連絡先() throws {
         #expect(
             try String(contentsOf: repositoryFileURL(relativePath: "documents/PROJECT.md"), encoding: .utf8)
-                .contains("連絡先のメールアドレスは bannzai.app@gmail.com\n")
+                .contains("連絡先のメールアドレスは \(contactMailAddress)\n")
         )
-        let components = try #require(contactMailURL(locale: Locale(identifier: "ja")).flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) })
-        #expect(components.scheme == "mailto")
-        #expect(components.path == "bannzai.app@gmail.com")
-        #expect(components.queryItems == [URLQueryItem(name: "subject", value: "Quick Buy へのお問い合わせ")])
+        #expect(contactMailAddress == "bannzai.app@gmail.com")
     }
 
     // MARK: - 利用規約・プライバシーポリシー

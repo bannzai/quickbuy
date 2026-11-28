@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 問い合わせを受けるメールアドレス (`documents/PROJECT.md`「守ること」の連絡先)。
+/// 問い合わせに返信するメールアドレス (`documents/PROJECT.md`「守ること」の連絡先)。お問い合わせのフォームが、返信の送り元と、送れなかった時の連絡先として出す。
 let contactMailAddress = "bannzai.app@gmail.com"
 
 /// `docs/` を配信する GitHub Pages の URL (`docs/index.html` の canonical と同じ)。
@@ -17,15 +17,6 @@ let termsURL = publicPagesURL.appending(path: "Terms-ja")
 /// プライバシーポリシーのページ (`docs/PrivacyPolicy-ja.md`) の URL。
 let privacyPolicyURL = publicPagesURL.appending(path: "PrivacyPolicy-ja")
 
-/// 問い合わせのメールの作成を開く URL (宛先と、`locale` の言語の件名を入れた `mailto:`) を返す。組み立てられない時は nil。
-func contactMailURL(locale: Locale) -> URL? {
-    var components = URLComponents()
-    components.scheme = "mailto"
-    components.path = contactMailAddress
-    components.queryItems = [URLQueryItem(name: "subject", value: String(localized: LocalizedStringResource("Quick Buy へのお問い合わせ", locale: locale)))]
-    return components.url
-}
-
 /// アプリの Info.plist の中身から、設定画面に出すバージョンの文字列 (例: `1.0.0 (1)`) を返す。
 ///
 /// バージョン (`CFBundleShortVersionString`) かビルド番号 (`CFBundleVersion`) を読めない時は nil。
@@ -38,17 +29,13 @@ func appVersionText(infoDictionary: [String: Any]?) -> String? {
     return "\(shortVersion) (\(buildNumber))"
 }
 
-/// 設定画面。問い合わせのメールの作成・利用規約・プライバシーポリシーを開く入口と、Firebase に送る記録の説明と、アプリのバージョンを表示する。
+/// 設定画面。お問い合わせのフォーム・利用規約・プライバシーポリシーを開く入口と、Firebase に送る記録の説明と、アプリのバージョンを表示する。
 struct SettingsView: View {
     /// お気に入りの保存先のファイルの URL。開発者メニュー (DEBUG ビルドだけ) に渡す。
     let favoritesFileURL: URL
     /// この画面を閉じる処理。
     let onFinish: () -> Void
 
-    /// メールの作成と公開ページを開く処理 (既定のメールアプリ・ブラウザで開く)。
-    @Environment(\.openURL) private var openURL
-    /// メールの作成を開けなかったことを知らせる表示を出している間は true。
-    @State private var isMailUnavailable = false
     #if DEBUG
         /// 開発者メニューを出している間は true。
         @State private var isDeveloperMenuPresented = false
@@ -59,16 +46,8 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    if let mailURL = contactMailURL(locale: appTextLocale) {
-                        Button {
-                            openURL(mailURL) { isAccepted in
-                                if !isAccepted {
-                                    isMailUnavailable = true
-                                }
-                            }
-                        } label: {
-                            LabeledContent("お問い合わせ", value: contactMailAddress)
-                        }
+                    NavigationLink("お問い合わせ") {
+                        ContactFormView()
                     }
                     Link("利用規約", destination: termsURL)
                     Link("プライバシーポリシー", destination: privacyPolicyURL)
@@ -95,9 +74,6 @@ struct SettingsView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる", action: onFinish)
                 }
-            }
-            .alert("メールを開けませんでした", isPresented: $isMailUnavailable) {} message: {
-                Text("\(contactMailAddress) へメールでご連絡ください")
             }
         }
         .tint(quickBuyAccentColor)

@@ -249,11 +249,26 @@ struct LocalizationTests {
         #expect(String(localized: LocalizedStringResource("在庫あり", locale: englishLocale)) == "In stock")
     }
 
-    /// 問い合わせのメールの件名は英語になる。
-    @Test func 問い合わせの件名は英語() throws {
+    /// お問い合わせのフォームの種別の名前は英語になる。
+    @Test func 問い合わせの種別の名前は英語() {
         #expect(
-            try #require(contactMailURL(locale: englishLocale).flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }).queryItems
-                == [URLQueryItem(name: "subject", value: "Quick Buy Inquiry")]
+            ContactInquiryType.allCases.map { inquiryType in
+                var title = inquiryType.title
+                title.locale = englishLocale
+                return String(localized: title)
+            } == ["Bugs and issues", "Feedback & suggestions", "Other"]
+        )
+    }
+
+    /// お問い合わせのフォームの、返信の送り元の説明と送れなかった時の説明は、連絡先のメールアドレスを入れた英語の文になる。
+    @Test func 問い合わせのフォームの説明は英語() {
+        #expect(
+            String(localized: LocalizedStringResource("返信は \(contactMailAddress) から届きます\nメールアドレスは返信にだけ使います", locale: englishLocale))
+                == "Replies will come from bannzai.app@gmail.com\nWe only use your email address to reply"
+        )
+        #expect(
+            String(localized: LocalizedStringResource("\(contactMailAddress) へメールでご連絡ください", locale: englishLocale))
+                == "Please email us at bannzai.app@gmail.com"
         )
     }
 }
