@@ -176,6 +176,26 @@ struct LocalizationTests {
         #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: Locale(identifier: "de")) == "200g · ×2")
     }
 
+    /// 足した 7 つの言語で、ウィジェットの行の説明・アプリの一覧の個数・リマインドの次の日付の文が、区切りの記号と差し込む値の順を取り違えずに出る。
+    ///
+    /// 区切り「 ・ 」は 7 言語とも「 · 」(fb5d542 で足した訳)。リマインドの 2 つの文は `%@` を 2 つ持ち、順が入れ替わると数え直しの文と日付が入れ替わる。
+    @Test(arguments: [
+        ("es", "200g · ×2", " · ×2", "Reinicio\nTu próximo recordatorio es 26 nov", "Reinicio\nLa próxima notificación es el 26 nov\nLas notificaciones no están permitidas\nActiva las notificaciones de Quick Buy en Ajustes para recibirlas"),
+        ("fr", "200g · ×2", " · ×2", "Reinicio\nVotre prochain rappel est prévu le 26 nov", "Reinicio\nLa prochaine notification est prévue pour 26 nov\nLes notifications ne sont pas autorisées\nAutorisez les notifications de Quick Buy dans Réglages pour les recevoir"),
+        ("de", "200g · ×2", " · ×2", "Reinicio\nDeine nächste Erinnerung ist am 26 nov", "Reinicio\nNächste Erinnerung: 26 nov\nMitteilungen sind nicht erlaubt\nErlaube Mitteilungen von Quick Buy in den Einstellungen, um sie zu erhalten"),
+        ("pt-BR", "200g · ×2", " · ×2", "Reinicio\nSeu próximo lembrete é em 26 nov", "Reinicio\nA próxima notificação será em 26 nov\nAs notificações não estão permitidas\nAtive as notificações do Quick Buy nos Ajustes para recebê-las"),
+        ("ko", "200g · 2개", " · 2개", "Reinicio\n다음 알림은 26 nov입니다", "Reinicio\n다음 알림은 26 nov입니다\n알림이 허용되지 않았습니다\n설정 앱에서 Quick Buy 알림을 허용하면 받을 수 있습니다"),
+        ("zh-Hans", "200g · 2 件", " · 2 件", "Reinicio\n下次提醒时间是 26 nov", "Reinicio\n下次通知时间是 26 nov\n通知未获允许\n在“设置”中允许 Quick Buy 发送通知后即可收到"),
+        ("zh-Hant", "200g · 2 個", " · 2 個", "Reinicio\n下次提醒時間是 26 nov", "Reinicio\n下次通知時間是 26 nov\n通知未獲允許\n在「設定」中允許 Quick Buy 傳送通知後即可收到"),
+    ])
+    func 区切りと二つの値を差し込む文はその言語で出る(identifier: String, widgetRowCaption: String, listQuantityText: String, reminderDateText: String, reminderDateWithoutPermissionText: String) {
+        let locale = Locale(identifier: identifier)
+        #expect(favoriteWidgetRowCaption(favorite: shopifyFavorite(name: "Kaffee", variantName: "200g", quantity: 2), locale: locale) == widgetRowCaption)
+        #expect(String(localized: LocalizedStringResource(" ・ \(2) 個", locale: locale)) == listQuantityText)
+        #expect(String(localized: LocalizedStringResource("\("Reinicio")\n次の知らせは \("26 nov") です", locale: locale)) == reminderDateText)
+        #expect(String(localized: LocalizedStringResource("\("Reinicio")\n次の知らせは \("26 nov") です\n通知が許可されていません\n設定アプリで Quick Buy の通知を許可すると届きます", locale: locale)) == reminderDateWithoutPermissionText)
+    }
+
     /// 数で語の形が変わる 4 つの言語では、数を差し込む 4 つの文言が 1 と 2 で単数と複数の形に分かれる。
     @Test(arguments: [
         ("es", ["Cada día", "Cada 2 días"], ["Próximo recordatorio en 1 día", "Próximo recordatorio en 2 días"], ["Añadir 1 variante a favoritos", "Añadir 2 variantes a favoritos"], ["Hay mucho tráfico\nEspera 1 segundo y vuelve a intentarlo", "Hay mucho tráfico\nEspera unos 2 segundos y vuelve a intentarlo"]),

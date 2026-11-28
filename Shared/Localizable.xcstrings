@@ -94,7 +94,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " · %lld 个"
+            "value" : " · %lld 件"
           }
         },
         "zh-Hant" : {
