@@ -389,11 +389,6 @@ let cartInConfirmationBackgroundColor = Color(red: 0x11 / 255, green: 0x13 / 255
 /// 「カートイン」の確認の 2 行目の文字の色。画面の見本 (documents/design/mock-2026-11-18/project/Favorites.dc.html) の色 `#D5D9E0`。
 let cartInConfirmationSecondaryTextColor = Color(red: 0xD5 / 255, green: 0xD9 / 255, blue: 0xE0 / 255)
 
-/// 「カートイン」の確認が指すお気に入りを、表示している並び (保存先から読んだもの) から返す。
-///
-/// `confirmation` は最後に「カートイン」を押した行のお気に入りの識別子と押した時刻 (確認を出していない時は nil)。`now` は表示する時刻。
-/// 押した時刻から `cartInConfirmationSeconds` 秒たった時、その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等)、
-/// 開く URL を組み立てられない時は nil を返す (確認を出さない)。
 /// お気に入りの一覧の行と編集の画面に出す、最後にカートインした日の行。1 度もカートインしていないお気に入りでは何も出さない。
 /// 日付は今の時刻・端末の暦と地域・画面の文言の言語で出す (`lastCartInText(lastCartInAt:now:calendar:locale:region:)`)。
 @ViewBuilder
@@ -405,6 +400,11 @@ func lastCartInLabel(favorite: Favorite) -> some View {
     }
 }
 
+/// 「カートイン」の確認が指すお気に入りを、表示している並び (保存先から読んだもの) から返す。
+///
+/// `confirmation` は最後に「カートイン」を押した行のお気に入りの識別子と押した時刻 (確認を出していない時は nil)。`now` は表示する時刻。
+/// 押した時刻から `cartInConfirmationSeconds` 秒たった時、その識別子のお気に入りが並びに無い時 (確認を出した後に削除された等)、
+/// 開く URL を組み立てられない時は nil を返す (確認を出さない)。
 func cartInConfirmationFavorite(confirmation: (favoriteID: UUID, shownAt: Date)?, favorites: [Favorite], now: Date) -> Favorite? {
     guard let confirmation, now.timeIntervalSince(confirmation.shownAt) < cartInConfirmationSeconds else {
         return nil
