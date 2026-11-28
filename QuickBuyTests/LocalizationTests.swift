@@ -2,9 +2,10 @@ import Foundation
 import Testing
 @testable import QuickBuy
 
-/// 端末の言語が英語の時の、通知・ウィジェット・画面の文言を返す関数の文言を確かめる (issue #54)。
+/// 端末の言語が日本語のほかの時の、通知・ウィジェット・画面の文言を返す関数の文言を確かめる (英語は issue #54、ほかの 7 言語は issue #90)。
 ///
-/// 期待値は文字列カタログ (`Shared/Localizable.xcstrings`) の英語の訳。日本語の文言は、各関数のテストが `Locale(identifier: "ja")` を渡して確かめる。
+/// 英語は文言ごとの訳、ほかの 7 言語は訳が引けること・差し込む値の語順・単数と複数の形を確かめる。
+/// 期待値は文字列カタログ (`Shared/Localizable.xcstrings`) の訳で、「カートイン」は `translate-app.config.json` の用語集の訳。日本語の文言は、各関数のテストが `Locale(identifier: "ja")` を渡して確かめる。
 struct LocalizationTests {
     /// 英語の locale。
     private let englishLocale = Locale(identifier: "en")
@@ -156,7 +157,7 @@ struct LocalizationTests {
     @Test(arguments: [
         ("es", "Kaffee 200g × 2\nToca para abrir la página de pago de mori-coffee.example", "Abre la página de pago con Kaffee 200g ×2 en el carrito", "Al carrito necesita permiso para enviarte notificaciones"),
         ("fr", "Kaffee 200g × 2\nTouchez pour ouvrir la page de paiement de mori-coffee.example", "Ouvre la page de paiement avec Kaffee 200g ×2 dans le panier", "Au panier a besoin de votre autorisation pour vous envoyer des notifications"),
-        ("de", "Kaffee 200g · 2 Stück\nTippe, um die Kasse von mori-coffee.example zu öffnen", "Öffnet die Kasse mit Kaffee 200g ×2 im Warenkorb", "In den Korb braucht deine Erlaubnis für Mitteilungen"),
+        ("de", "Kaffee 200g × 2\nTippe, um die Kasse von mori-coffee.example zu öffnen", "Öffnet die Kasse mit Kaffee 200g ×2 im Warenkorb", "In den Korb braucht deine Erlaubnis für Mitteilungen"),
         ("pt-BR", "Kaffee 200g × 2\nToque para abrir a página de pagamento de mori-coffee.example", "Abre a página de pagamento com Kaffee 200g ×2 no carrinho", "Ao carrinho precisa da sua permissão para enviar notificações"),
         ("ko", "Kaffee 200g 2개\n탭하면 mori-coffee.example의 결제 화면이 열립니다", "Kaffee 200g 2개를 장바구니에 담고 결제 화면을 엽니다", "장바구니 담기에 알림 권한이 필요합니다"),
         ("zh-Hans", "Kaffee 200g × 2\n轻点后打开 mori-coffee.example 的结账页面", "将 Kaffee 200g × 2 件加入购物车并打开结账页面", "加入购物车需要通知权限"),
