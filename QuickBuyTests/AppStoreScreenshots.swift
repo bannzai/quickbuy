@@ -26,12 +26,249 @@ let appStoreScreenshotSize = CGSize(width: 440, height: 956)
 /// スクリーンショットを描く倍率。`appStoreScreenshotSize` と掛けて 1320 x 2868 px にするための値。
 let appStoreScreenshotScale: CGFloat = 3
 
-/// スクリーンショットを作る言語と、fastlane の `screenshots/` の下のディレクトリの名前の組。
+/// App Store のスクリーンショットを作る 1 つの言語と、その言語の画像に出す文字列のうち文字列カタログに無いもの。
 ///
-/// ディレクトリの名前は fastlane deliver の言語の名前 (https://docs.fastlane.tools/actions/deliver/ の「Available Language Codes」の `ja`・`en-US`)。
-let appStoreScreenshotLanguages: [(directoryName: String, locale: Locale)] = [
-    ("ja", Locale(identifier: "ja")),
-    ("en-US", Locale(identifier: "en")),
+/// 見出し・補足はストアの画像だけの文言で、見本の名前・種類の選び方の名前は店が決める値のため、どちらも文字列カタログに入れず、言語ごとにここに並べる。
+struct AppStoreScreenshotLanguage {
+    /// fastlane の `screenshots/` の下のディレクトリの名前。fastlane deliver の言語の名前 (https://docs.fastlane.tools/actions/deliver/ の「Available Language Codes」) で、`fastlane/metadata/` のディレクトリの名前と同じ。
+    let directoryName: String
+    /// 文言の言語。文字列カタログの言語 (`QuickBuy.xcodeproj` の `knownRegions`) のどれか。
+    let locale: Locale
+    /// テストが画像の文字を Vision で読む時に渡す言語 (`VNRecognizeTextRequest.recognitionLanguages` の値)。
+    let textRecognitionLanguage: String
+    /// 画面ごとの、1 枚の上に大きく出す見出し。
+    let headlines: [AppStoreScreenshotScreen: String]
+    /// 画面ごとの、見出しの下に出す補足。
+    let subheadlines: [AppStoreScreenshotScreen: String]
+    /// `sampleFavorites()` の並びの位置ごとの、お気に入りの名前と、商品バリアントの名前のうちこの言語に替える部分。nil は `sampleFavorites()` の値 (日本語) をそのまま出す。
+    ///
+    /// 日本語の名前から引く表にせず並びの位置で対応させるのは、日本語の名前を `sampleFavorites()` とこの表の 2 か所に書かないため。
+    /// 商品バリアントの名前は Shopify が種類の値を「 / 」でつないで作るため、`variantNameParts` は「 / 」で分けた部分の位置 (0 から) ごとに訳を持つ。
+    /// 位置の無い部分 (「200g」「1kg」) は言語によらない表記なので、`sampleFavorites()` の値をそのまま出す。
+    /// 並びが `sampleFavorites()` と食い違った時は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見つける。
+    let favoriteTexts: [(name: String, variantNameParts: [Int: String])]?
+    /// 検索の画面 (`.search`) の 2 件目から 4 件目の商品の名前。1 件目は見本のお気に入りの先頭と同じ名前にする。
+    let searchProductTitles: [String]
+    /// 追加の画面 (`.addFavorite`) の「種類を選ぶ」に出す、種類の選び方の名前の見本。
+    let optionName: String
+    /// 一覧の画面の `EditButton` の文言 (iOS が言語ごとに出す文言で、文字列カタログに無い)。
+    let editButtonTitle: String
+}
+
+/// スクリーンショットを作る言語。並びは `.github/workflows/store-screenshots.yml` が枚数を確かめる言語の一覧と同じ。
+///
+/// 見出しと補足は、紹介ページ (docs/index.html) と documents/PROJECT.md「体験の流れ」に合わせた日本語を基準に訳す。
+/// 確認に答えてから購入画面が開くこと、支払いは本人が店の画面で行うことと食い違う言い方 (「ワンタップ」「自動で買う」) をしない。
+/// 短い文言のため句読点を使わず改行で区切る (~/.claude/rules/coding-rules-general-user-facing-short-copy-punctuation.md)。
+/// 見本の商品の名前と種類の値は、その言語の店が付けそうな名前として agent が決めた。
+let appStoreScreenshotLanguages: [AppStoreScreenshotLanguage] = [
+    AppStoreScreenshotLanguage(
+        directoryName: "ja",
+        locale: Locale(identifier: "ja"),
+        textRecognitionLanguage: "ja-JP",
+        headlines: [
+            .widget: "いつもの商品を\nホーム画面から買い直す",
+            .confirmation: "確認に答えると\n購入画面が開く",
+            .search: "買い直す物を\n店の商品から探す",
+            .addFavorite: "種類と個数を選んで\nお気に入りに",
+            .reminder: "買う頃になったら\n通知で知らせる",
+        ],
+        subheadlines: [
+            .widget: "確認の通知から店の購入画面へ",
+            .confirmation: "支払いの確定は毎回あなたが店の画面で",
+            .search: "Shopify の店の商品に対応",
+            .addFavorite: "追加しただけでは購入されません",
+            .reminder: "お気に入りごとに日数を決められます",
+        ],
+        favoriteTexts: nil,
+        searchProductTitles: ["深煎り 200g", "浅煎り 200g", "デカフェ 150g"],
+        optionName: "内容量",
+        editButtonTitle: "編集"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "en-US",
+        locale: Locale(identifier: "en"),
+        textRecognitionLanguage: "en-US",
+        headlines: [
+            .widget: "Rebuy your usual items\nfrom the Home Screen",
+            .confirmation: "Confirm and\nyour checkout opens",
+            .search: "Find the things\nyou buy again",
+            .addFavorite: "Pick the variant\nand quantity",
+            .reminder: "Get a reminder\nwhen it's time to rebuy",
+        ],
+        subheadlines: [
+            .widget: "A confirmation opens the store's checkout",
+            .confirmation: "You confirm payment in the store every time",
+            .search: "Works with Shopify stores",
+            .addFavorite: "Adding doesn't buy anything",
+            .reminder: "Set the number of days for each favorite",
+        ],
+        favoriteTexts: [("Coffee beans", [1: "Whole bean"]), ("Laundry soap", [:]), ("Protein", [:])],
+        searchProductTitles: ["Dark Roast 200g", "Light Roast 200g", "Decaf 150g"],
+        optionName: "Size",
+        editButtonTitle: "Edit"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "es-ES",
+        locale: Locale(identifier: "es"),
+        textRecognitionLanguage: "es-ES",
+        headlines: [
+            .widget: "Recompra lo de siempre\ndesde el inicio",
+            .confirmation: "Al confirmar se abre\nel pago de la tienda",
+            .search: "Busca lo que\nvuelves a comprar",
+            .addFavorite: "Elige la variante\ncon su cantidad",
+            .reminder: "Te avisa cuando toca\nvolver a comprar",
+        ],
+        subheadlines: [
+            .widget: "De la notificación al pago de la tienda",
+            .confirmation: "Siempre confirmas tú el pago en la tienda",
+            .search: "Compatible con tiendas Shopify",
+            .addFavorite: "Añadir no realiza ninguna compra",
+            .reminder: "Elige los días de cada favorito",
+        ],
+        favoriteTexts: [("Café en grano", [1: "Grano entero"]), ("Jabón para ropa", [:]), ("Proteína", [:])],
+        searchProductTitles: ["Tueste oscuro 200g", "Tueste claro 200g", "Descafeinado 150g"],
+        optionName: "Contenido",
+        editButtonTitle: "Editar"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "fr-FR",
+        locale: Locale(identifier: "fr"),
+        textRecognitionLanguage: "fr-FR",
+        headlines: [
+            .widget: "Rachetez l'habituel\ndepuis l'écran d'accueil",
+            .confirmation: "Confirmez et\nle paiement s'ouvre",
+            .search: "Trouvez ce que\nvous rachetez",
+            .addFavorite: "Choisissez la variante\net la quantité",
+            .reminder: "Un rappel quand il est\ntemps de racheter",
+        ],
+        subheadlines: [
+            .widget: "De la notification au paiement de la boutique",
+            .confirmation: "Vous validez toujours le paiement en boutique",
+            .search: "Compatible avec les boutiques Shopify",
+            .addFavorite: "Ajouter ne déclenche aucun achat",
+            .reminder: "Choisissez le nombre de jours par favori",
+        ],
+        favoriteTexts: [("Café en grains", [1: "Grains entiers"]), ("Savon à lessive", [:]), ("Protéines", [:])],
+        searchProductTitles: ["Café corsé 200g", "Café doux 200g", "Décaféiné 150g"],
+        optionName: "Contenance",
+        editButtonTitle: "Modifier"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "de-DE",
+        locale: Locale(identifier: "de"),
+        textRecognitionLanguage: "de-DE",
+        headlines: [
+            .widget: "Nachkaufen direkt\nvom Home-Bildschirm",
+            .confirmation: "Bestätigen und\ndie Kasse öffnet sich",
+            .search: "Produkte zum\nNachkaufen finden",
+            .addFavorite: "Variante und\nMenge wählen",
+            .reminder: "Rechtzeitig an den\nNachkauf erinnert",
+        ],
+        subheadlines: [
+            .widget: "Von der Mitteilung zur Kasse des Shops",
+            .confirmation: "Die Zahlung bestätigst du immer im Shop",
+            .search: "Für Produkte aus Shopify-Shops",
+            .addFavorite: "Hinzufügen kauft noch nichts",
+            .reminder: "Tage für jeden Favoriten festlegen",
+        ],
+        favoriteTexts: [("Kaffee", [1: "Ganze Bohnen"]), ("Waschseife", [:]), ("Protein", [:])],
+        searchProductTitles: ["Dunkle Röstung 200g", "Helle Röstung 200g", "Entkoffeiniert 150g"],
+        optionName: "Inhalt",
+        editButtonTitle: "Bearbeiten"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "pt-BR",
+        locale: Locale(identifier: "pt-BR"),
+        textRecognitionLanguage: "pt-BR",
+        headlines: [
+            .widget: "Recompre o de sempre\nna Tela de Início",
+            .confirmation: "Confirme e o pagamento\nda loja se abre",
+            .search: "Encontre o que\nvocê compra de novo",
+            .addFavorite: "Escolha a variante\ne a quantidade",
+            .reminder: "Um aviso na hora\nde comprar de novo",
+        ],
+        subheadlines: [
+            .widget: "Da notificação ao pagamento da loja",
+            .confirmation: "Você sempre confirma o pagamento na loja",
+            .search: "Funciona com lojas Shopify",
+            .addFavorite: "Adicionar não faz nenhuma compra",
+            .reminder: "Defina os dias de cada favorito",
+        ],
+        favoriteTexts: [("Café", [1: "Grãos inteiros"]), ("Sabão em pó", [:]), ("Proteína", [:])],
+        searchProductTitles: ["Torra escura 200g", "Torra clara 200g", "Descafeinado 150g"],
+        optionName: "Conteúdo",
+        editButtonTitle: "Editar"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "ko",
+        locale: Locale(identifier: "ko"),
+        textRecognitionLanguage: "ko-KR",
+        headlines: [
+            .widget: "늘 사던 상품을\n홈 화면에서 다시 구매",
+            .confirmation: "확인하면\n결제 화면이 열림",
+            .search: "다시 살 상품을\n스토어에서 찾기",
+            .addFavorite: "옵션과 수량을 골라\n즐겨찾기에",
+            .reminder: "살 때가 되면\n알림으로 안내",
+        ],
+        subheadlines: [
+            .widget: "확인 알림에서 스토어 결제 화면으로",
+            .confirmation: "결제 확정은 매번 스토어 화면에서 직접",
+            .search: "Shopify 스토어 상품 지원",
+            .addFavorite: "추가만으로는 구매되지 않습니다",
+            .reminder: "즐겨찾기마다 일수를 정할 수 있습니다",
+        ],
+        favoriteTexts: [("원두", [1: "홀빈"]), ("세탁 비누", [:]), ("프로틴", [:])],
+        searchProductTitles: ["다크 로스트 200g", "라이트 로스트 200g", "디카페인 150g"],
+        optionName: "용량",
+        editButtonTitle: "편집"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "zh-Hans",
+        locale: Locale(identifier: "zh-Hans"),
+        textRecognitionLanguage: "zh-Hans",
+        headlines: [
+            .widget: "常买的商品\n在主屏幕上再次购买",
+            .confirmation: "确认之后\n打开结账页面",
+            .search: "在店铺商品中\n查找要回购的商品",
+            .addFavorite: "选好款式和数量\n加入收藏",
+            .reminder: "该买的时候\n用通知提醒你",
+        ],
+        subheadlines: [
+            .widget: "从确认通知进入店铺的结账页面",
+            .confirmation: "每次都由你在店铺页面确认付款",
+            .search: "支持 Shopify 店铺的商品",
+            .addFavorite: "仅添加不会购买",
+            .reminder: "可为每个收藏设置天数",
+        ],
+        favoriteTexts: [("咖啡豆", [1: "整豆"]), ("洗衣皂", [:]), ("蛋白粉", [:])],
+        searchProductTitles: ["深烘 200g", "浅烘 200g", "低因 150g"],
+        optionName: "净含量",
+        editButtonTitle: "编辑"
+    ),
+    AppStoreScreenshotLanguage(
+        directoryName: "zh-Hant",
+        locale: Locale(identifier: "zh-Hant"),
+        textRecognitionLanguage: "zh-Hant",
+        headlines: [
+            .widget: "常買的商品\n在主畫面上再次購買",
+            .confirmation: "確認之後\n開啟結帳頁面",
+            .search: "在商店商品中\n尋找要回購的商品",
+            .addFavorite: "選好款式和數量\n加入收藏",
+            .reminder: "該買的時候\n用通知提醒你",
+        ],
+        subheadlines: [
+            .widget: "從確認通知前往商店的結帳頁面",
+            .confirmation: "每次都由你在商店頁面確認付款",
+            .search: "支援 Shopify 商店的商品",
+            .addFavorite: "僅加入不會購買",
+            .reminder: "可為每個收藏設定天數",
+        ],
+        favoriteTexts: [("咖啡豆", [1: "原豆"]), ("洗衣皂", [:]), ("蛋白粉", [:])],
+        searchProductTitles: ["深焙 200g", "淺焙 200g", "低因 150g"],
+        optionName: "容量",
+        editButtonTitle: "編輯"
+    ),
 ]
 
 /// 1 枚のファイル名を返す。deliver は名前の順に並べるため、先頭に並びの番号を付ける。
@@ -39,59 +276,31 @@ func appStoreScreenshotFileName(screen: AppStoreScreenshotScreen) -> String {
     String(format: "%02d_%@.png", AppStoreScreenshotScreen.allCases.firstIndex(of: screen)! + 1, "\(screen)")
 }
 
-/// `locale` が日本語か。スクリーンショットの見出しと、文字列カタログに無い文字列 (見本の商品の名前・iOS が出す「編集」) を選ぶのに使う。
-private func isJapanese(locale: Locale) -> Bool {
-    locale.language.languageCode == .japanese
+/// `locale` のスクリーンショットの言語を返す。`appStoreScreenshotLanguages` に無い locale を渡すのは呼び出しの誤りのため、止める。
+private func appStoreScreenshotLanguage(locale: Locale) -> AppStoreScreenshotLanguage {
+    appStoreScreenshotLanguages.first { $0.locale == locale }!
 }
 
 /// 1 枚の上に大きく出す見出しを `locale` の言語で返す。
-///
-/// 紹介ページ (docs/index.html) と documents/PROJECT.md「体験の流れ」に合わせる。確認に答えてから購入画面が開くこと、支払いは本人が店の画面で行うことと食い違う言い方 (「ワンタップ」「自動で買う」) をしない。
-/// 短い文言のため句読点を使わず改行で区切る (~/.claude/rules/coding-rules-general-user-facing-short-copy-punctuation.md)。
 func appStoreScreenshotHeadline(screen: AppStoreScreenshotScreen, locale: Locale) -> String {
-    switch (screen, isJapanese(locale: locale)) {
-    case (.widget, true): "いつもの商品を\nホーム画面から買い直す"
-    case (.widget, false): "Rebuy your usual items\nfrom the Home Screen"
-    case (.confirmation, true): "確認に答えると\n購入画面が開く"
-    case (.confirmation, false): "Confirm and\nyour checkout opens"
-    case (.search, true): "買い直す物を\n店の商品から探す"
-    case (.search, false): "Find the things\nyou buy again"
-    case (.addFavorite, true): "種類と個数を選んで\nお気に入りに"
-    case (.addFavorite, false): "Pick the variant\nand quantity"
-    case (.reminder, true): "買う頃になったら\n通知で知らせる"
-    case (.reminder, false): "Get a reminder\nwhen it's time to rebuy"
-    }
+    appStoreScreenshotLanguage(locale: locale).headlines[screen]!
 }
 
-/// 見出しの下に出す補足を `locale` の言語で返す。句読点の扱いは `appStoreScreenshotHeadline(screen:locale:)` と同じ。
+/// 見出しの下に出す補足を `locale` の言語で返す。
 func appStoreScreenshotSubheadline(screen: AppStoreScreenshotScreen, locale: Locale) -> String {
-    switch (screen, isJapanese(locale: locale)) {
-    case (.widget, true): "確認の通知から店の購入画面へ"
-    case (.widget, false): "A confirmation opens the store's checkout"
-    case (.confirmation, true): "支払いの確定は毎回あなたが店の画面で"
-    case (.confirmation, false): "You confirm payment in the store every time"
-    case (.search, true): "Shopify の店の商品に対応"
-    case (.search, false): "Works with Shopify stores"
-    case (.addFavorite, true): "追加しただけでは購入されません"
-    case (.addFavorite, false): "Adding doesn't buy anything"
-    case (.reminder, true): "お気に入りごとに日数を決められます"
-    case (.reminder, false): "Set the number of days for each favorite"
-    }
+    appStoreScreenshotLanguage(locale: locale).subheadlines[screen]!
 }
 
-/// スクリーンショットに写す見本のお気に入りを返す。開発者メニューの見本 (`sampleFavorites()`) に、`now` から見て状態の違うリマインドを付けたもの。
-///
-/// 英語のスクリーンショットでは、名前と商品バリアントの名前を `appStoreScreenshotFavoriteEnglishTexts` の値にする (見本の名前は日本語だけのため)。
+/// スクリーンショットに写す見本のお気に入りを返す。開発者メニューの見本 (`sampleFavorites()`) の名前と商品バリアントの名前を `locale` の言語にし、`now` から見て状態の違うリマインドを付けたもの。
 func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
     sampleFavorites().enumerated().map { favoriteIndex, favorite in
         var screenshotFavorite = favorite
-        if !isJapanese(locale: locale) {
-            screenshotFavorite.name = appStoreScreenshotFavoriteEnglishTexts[favoriteIndex].name
+        if let favoriteText = appStoreScreenshotLanguage(locale: locale).favoriteTexts?[favoriteIndex] {
+            screenshotFavorite.name = favoriteText.name
             screenshotFavorite.variantName = favorite.variantName.map { japaneseVariantName in
-                appStoreScreenshotEnglishVariantName(
-                    japaneseVariantName: japaneseVariantName,
-                    englishParts: appStoreScreenshotFavoriteEnglishTexts[favoriteIndex].variantNameParts
-                )
+                japaneseVariantName.components(separatedBy: " / ").enumerated().map { partIndex, japanesePart in
+                    favoriteText.variantNameParts[partIndex] ?? japanesePart
+                }.joined(separator: " / ")
             }
         }
         screenshotFavorite.reminder = ([
@@ -105,53 +314,30 @@ func appStoreScreenshotFavorites(locale: Locale, now: Date) -> [Favorite] {
     }
 }
 
-/// 日本語の商品バリアントの名前 `japaneseVariantName` を「 / 」で分け、`englishParts` に位置 (0 から) がある部分だけを英語に替えた名前を返す。位置の無い部分はそのまま残す。
-private func appStoreScreenshotEnglishVariantName(japaneseVariantName: String, englishParts: [Int: String]) -> String {
-    japaneseVariantName.components(separatedBy: " / ").enumerated().map { partIndex, japanesePart in
-        englishParts[partIndex] ?? japanesePart
-    }.joined(separator: " / ")
-}
-
-/// `sampleFavorites()` の並びの位置ごとに、英語のスクリーンショットに出す名前と、商品バリアントの名前のうち英語に替える部分。
-///
-/// 店が決める値なので文字列カタログには入れず、スクリーンショットだけで使う。
-/// 日本語の名前から引く表にせず並びの位置で対応させるのは、日本語の名前を `sampleFavorites()` とこの表の 2 か所に書かないため。
-/// 商品バリアントの名前は Shopify が種類の値を「 / 」でつないで作るため、`variantNameParts` は「 / 」で分けた部分の位置 (0 から) ごとに英語を持つ。
-/// 位置の無い部分 (「200g」「1kg」) は言語によらない表記なので、`sampleFavorites()` の値をそのまま出す。
-/// 並びが `sampleFavorites()` と食い違った時は、テスト「見出しと見本の名前は言語ごとに切り替わる」が見つける。
-private let appStoreScreenshotFavoriteEnglishTexts: [(name: String, variantNameParts: [Int: String])] = [
-    ("Coffee beans", [1: "Whole bean"]),
-    ("Laundry soap", [:]),
-    ("Protein", [:]),
-]
-
-/// 店が決める見本の文字列のうち、スクリーンショットだけに出すもの (検索の商品の名前・種類の選び方の名前) を `locale` の言語で返す。日本語なら `japanese`、ほかの言語は `english`。
-///
-/// 店が決める値なので文字列カタログには入れない。日本語と英語を呼び出しの 1 か所に並べて書かせ、対応を別の表に持たない。
-private func appStoreScreenshotShopText(japanese: String, english: String, locale: Locale) -> String {
-    isJapanese(locale: locale) ? japanese : english
-}
-
 /// 追加の画面 (`.addFavorite`) の「種類を選ぶ」に出す、種類の選び方の名前の見本を `locale` の言語で返す。店が決める値で、選べる値は見本のお気に入りの商品バリアントの名前の先頭の部分 (「200g」)。
 func appStoreScreenshotOptionName(locale: Locale) -> String {
-    appStoreScreenshotShopText(japanese: "内容量", english: "Size", locale: locale)
+    appStoreScreenshotLanguage(locale: locale).optionName
+}
+
+/// 一覧の画面の `EditButton` の文言を `locale` の言語で返す。
+func appStoreScreenshotEditButtonTitle(locale: Locale) -> String {
+    appStoreScreenshotLanguage(locale: locale).editButtonTitle
 }
 
 /// 検索の画面 (`.search`) に並べる見本の商品を、Global Catalog の検索の結果の形で `locale` の言語にして返す。
 ///
-/// 先頭は見本のお気に入りの先頭 (`sampleFavorites()[0]`) と同じ名前と店の商品で、追加の画面 (`.addFavorite`) はこの商品の価格を出す (検索の結果から追加の画面を開く流れに合わせる)。
+/// 先頭は見本のお気に入りの先頭と同じ名前と店の商品で、追加の画面 (`.addFavorite`) はこの商品の価格を出す (検索の結果から追加の画面を開く流れに合わせる)。
 /// 店のドメインは実在しない `.example` (RFC 2606 の予約済みのドメイン)。価格は、200g 前後のコーヒー豆として不自然でない値として agent が決めた見本の値。
 func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct] {
-    ([
-        (
-            appStoreScreenshotShopText(japanese: sampleFavorites()[0].name, english: appStoreScreenshotFavoriteEnglishTexts[0].name, locale: locale),
-            shopDomainText(favorite: sampleFavorites()[0]),
-            1480
-        ),
-        (appStoreScreenshotShopText(japanese: "深煎り 200g", english: "Dark Roast 200g", locale: locale), shopDomainText(favorite: sampleFavorites()[0]), 1280),
-        (appStoreScreenshotShopText(japanese: "浅煎り 200g", english: "Light Roast 200g", locale: locale), "hoshi-roast.example", 1350),
-        (appStoreScreenshotShopText(japanese: "デカフェ 150g", english: "Decaf 150g", locale: locale), "hoshi-roast.example", 1200),
-    ] as [(title: String, shopDomain: String, priceAmount: Int)]).map { title, shopDomain, priceAmount in
+    zip(
+        [appStoreScreenshotFavorites(locale: locale, now: .now)[0].name] + appStoreScreenshotLanguage(locale: locale).searchProductTitles,
+        [
+            (shopDomainText(favorite: sampleFavorites()[0]), 1480),
+            (shopDomainText(favorite: sampleFavorites()[0]), 1280),
+            ("hoshi-roast.example", 1350),
+            ("hoshi-roast.example", 1200),
+        ] as [(shopDomain: String, priceAmount: Int)]
+    ).map { title, sampleOffer in
         ShopifyCatalogProduct(
             id: "gid://shopify/p/\(title)",
             title: title,
@@ -161,11 +347,11 @@ func appStoreScreenshotSearchProducts(locale: Locale) -> [ShopifyCatalogProduct]
             selected: nil,
             variants: [
                 ShopifyCatalogVariant(
-                    id: "gid://shopify/ProductVariant/\(priceAmount)",
+                    id: "gid://shopify/ProductVariant/\(sampleOffer.priceAmount)",
                     title: title,
-                    price: ShopifyCatalogMoney(amount: priceAmount, currency: "JPY"),
+                    price: ShopifyCatalogMoney(amount: sampleOffer.priceAmount, currency: "JPY"),
                     availability: nil,
-                    seller: ShopifyCatalogVariant.Seller(url: "https://\(shopDomain)")
+                    seller: ShopifyCatalogVariant.Seller(url: "https://\(sampleOffer.shopDomain)")
                 ),
             ]
         )
@@ -442,8 +628,7 @@ private struct AppStoreScreenshotFavoritesScreen: View {
             AppStoreScreenshotStatusBar(color: .black)
             HStack(spacing: 18) {
                 Image(systemName: "gearshape")
-                // `EditButton` の文言 (iOS が言語ごとに出す「編集」/「Edit」)。
-                Text(verbatim: isJapanese(locale: locale) ? "編集" : "Edit")
+                Text(verbatim: appStoreScreenshotEditButtonTitle(locale: locale))
                 Spacer()
                 Image(systemName: "plus")
             }

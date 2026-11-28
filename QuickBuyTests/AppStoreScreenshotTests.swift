@@ -50,7 +50,7 @@ struct AppStoreScreenshotTests {
 
     /// 全部の言語の全部の画面が 1320 x 2868 px の透明の無い PNG になる。書き出し先があれば書き出す。
     @Test func スクリーンショットはAppStoreが受け付ける大きさの透明の無いPNGになる() throws {
-        // 書き出し先は 10 枚とも同じなので、ループの外で 1 回だけ環境変数を読む (式に畳むと 1 枚ごとに読み直す)。
+        // 書き出し先はどの画像でも同じなので、ループの外で 1 回だけ環境変数を読む (式に畳むと 1 枚ごとに読み直す)。
         let outputDirectoryURL = ProcessInfo.processInfo.environment["QUICKBUY_SCREENSHOT_DIR"].map { URL(filePath: $0) }
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
@@ -80,8 +80,10 @@ struct AppStoreScreenshotTests {
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
                 for text in [appStoreScreenshotHeadline(screen: screen, locale: language.locale), appStoreScreenshotSubheadline(screen: screen, locale: language.locale)] {
-                    #expect(!["ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入", "one tap", "one-tap", "automatically", "auto-buy"].contains { text.localizedCaseInsensitiveContains($0) }, "\(text)")
-                    #expect(!["。", "、", ".", ",", "!"].contains { text.hasSuffix($0) }, "\(text)")
+                    #expect(!oneTapOrAutomaticPurchaseWords.contains { text.localizedCaseInsensitiveContains($0) }, "\(language.directoryName) \(text)")
+                    // 見出しと補足に実在の店のドメインを書かない (画像の文字の認識で見る確認は日本語と英語の画像だけのため、9 言語の文言そのものに当てる)。
+                    #expect(text.lowercased().firstMatch(of: #/[a-z0-9-]+\.[a-z]{2,}/#) == nil, "\(language.directoryName) \(text)")
+                    #expect(!["。", "、", "，", "！", ".", ",", "!"].contains { text.hasSuffix($0) }, "\(text)")
                     #expect(!text.contains("、"), "\(text)")
                 }
             }
@@ -96,6 +98,19 @@ struct AppStoreScreenshotTests {
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.name) == ["Coffee beans", "Laundry soap", "Protein"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "en"), now: now).map(\.variantName) == ["200g / Whole bean", nil, "1kg"])
         #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map(\.variantName) == ["200g / 豆のまま", nil, "1kg"])
+        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "de"), now: now).map(\.name) == ["Kaffee", "Waschseife", "Protein"])
+        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "de"), now: now).map(\.variantName) == ["200g / Ganze Bohnen", nil, "1kg"])
+        #expect(appStoreScreenshotFavorites(locale: Locale(identifier: "ko"), now: now).map(\.name) == ["원두", "세탁 비누", "프로틴"])
+        // 日本語のほかの言語は、どの言語も見出しと見本のお気に入りの名前が日本語と違う (訳を入れ忘れた言語が日本語の画像にならない)。
+        for language in appStoreScreenshotLanguages where language.directoryName != "ja" {
+            #expect(appStoreScreenshotHeadline(screen: .widget, locale: language.locale) != appStoreScreenshotHeadline(screen: .widget, locale: Locale(identifier: "ja")), "\(language.directoryName)")
+            #expect(appStoreScreenshotFavorites(locale: language.locale, now: now).map(\.name) != appStoreScreenshotFavorites(locale: Locale(identifier: "ja"), now: now).map(\.name), "\(language.directoryName)")
+        }
+    }
+
+    /// スクリーンショットの言語は、App Store Connect の言語の 9 つで、fastlane/metadata のディレクトリと同じ名前になる。
+    @Test func スクリーンショットの言語は9つ() {
+        #expect(appStoreScreenshotLanguages.map(\.directoryName) == ["ja", "en-US", "es-ES", "fr-FR", "de-DE", "pt-BR", "ko", "zh-Hans", "zh-Hant"])
     }
 
     /// 見本のリマインドは、一覧で残りの日数・知らせなし・買う頃の 3 つの状態を 1 件ずつ出す。
@@ -122,56 +137,83 @@ struct AppStoreScreenshotTests {
     }
 
     /// 画像に写った店のドメインの形の文字列は、どれも `.example` で終わる (画面のコードに直に書いた店のドメインも見つける)。
+    ///
+    /// 見本の店のドメインと画面のコードに直に書いたドメインはどの言語の画像にも同じに写るため、日本語と英語の画像で見つけられる。ほかの言語の画像は見ない。
+    /// スペイン語の画像では、一覧の行が幅に収まらず縮めた「mori-…xample」を、run 45957458585 の文字の認識が「mori-.xample」と読み、実在しないドメインの形になって落ちた。
     @Test func 画像に写る店のドメインはexampleだけ() throws {
         for language in appStoreScreenshotLanguages {
-            for screen in AppStoreScreenshotScreen.allCases {
-                for domainText in try recognizedText(screen: screen, locale: language.locale).lowercased().matches(of: #/[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/#).map(\.output.0) {
-                    #expect(domainText.hasSuffix(".example"), "\(language.directoryName) \(screen) \(domainText)")
+            if ["ja", "en-US"].contains(language.directoryName) {
+                for screen in AppStoreScreenshotScreen.allCases {
+                    for domainText in try recognizedText(screen: screen, language: language).lowercased().matches(of: #/[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/#).map(\.output.0) {
+                        #expect(domainText.hasSuffix(".example"), "\(language.directoryName) \(screen) \(domainText)")
+                    }
                 }
             }
             // 店のドメインを読めていること (読めない認識では上の確認が何も見ない)。
-            #expect(try recognizedText(screen: .search, locale: language.locale).lowercased().contains("mori-coffee.example"), "\(language.directoryName)")
+            #expect(try recognizedText(screen: .search, language: language).lowercased().contains("mori-coffee.example"), "\(language.directoryName)")
         }
     }
 
-    /// 英語の見本の文字列 (お気に入りの名前・商品バリアントの名前・検索の商品の名前・種類の選び方の名前) に日本語が残らない。
-    @Test func 英語の見本の文字列に日本語が残らない() {
-        let english = Locale(identifier: "en")
-        for text in appStoreScreenshotFavorites(locale: english, now: now).flatMap({ [$0.name, $0.variantName ?? ""] })
-            + appStoreScreenshotSearchProducts(locale: english).map(\.title)
-            + [appStoreScreenshotOptionName(locale: english)]
-        {
-            #expect(!containsJapanese(text: text), "\(text)")
+    /// 日本語のほかの言語の見本の文字列 (お気に入りの名前・商品バリアントの名前・検索の商品の名前・種類の選び方の名前・編集のボタン・全部の画面の見出しと補足) に仮名が残らず、中国語のほかは漢字も残らない。
+    @Test func 日本語のほかの言語の見本の文字列に日本語が残らない() {
+        for language in appStoreScreenshotLanguages where language.directoryName != "ja" {
+            for text in appStoreScreenshotFavorites(locale: language.locale, now: now).flatMap({ [$0.name, $0.variantName ?? ""] })
+                + appStoreScreenshotSearchProducts(locale: language.locale).map(\.title)
+                + [appStoreScreenshotOptionName(locale: language.locale), appStoreScreenshotEditButtonTitle(locale: language.locale)]
+                + AppStoreScreenshotScreen.allCases.flatMap { [appStoreScreenshotHeadline(screen: $0, locale: language.locale), appStoreScreenshotSubheadline(screen: $0, locale: language.locale)] }
+            {
+                #expect(!containsKana(text: text), "\(language.directoryName) \(text)")
+                if language.locale.language.languageCode != .chinese {
+                    #expect(!containsJapanese(text: text), "\(language.directoryName) \(text)")
+                }
+            }
         }
-        #expect(appStoreScreenshotSearchProducts(locale: english).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
+        #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "en")).map(\.title) == ["Coffee beans", "Dark Roast 200g", "Light Roast 200g", "Decaf 150g"])
         #expect(appStoreScreenshotSearchProducts(locale: Locale(identifier: "ja")).map(\.title) == ["コーヒー豆", "深煎り 200g", "浅煎り 200g", "デカフェ 150g"])
-        #expect(appStoreScreenshotOptionName(locale: english) == "Size")
+        #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "en")) == "Size")
         #expect(appStoreScreenshotOptionName(locale: Locale(identifier: "ja")) == "内容量")
     }
 
     /// 英語のスクリーンショットの画像には日本語の文字が写らず、日本語のスクリーンショットの画像には写る (画面のコードに直に書いた文言も見る)。
+    ///
+    /// 画面のコードに直に書いた文言はどの言語の画像にも同じに写るため、英語の 1 つの言語で見つけられる。英語のほかの言語の画像は見ない。
+    /// スペイン語の画像では、run 45960213834 で日本語の文字の認識が一覧の行から「リール」を読み、日本語の文言が無いのに落ちた (同じ画像を macOS の Vision で読むと出なかった)。
+    /// 言語ごとに違う文言に日本語が残っていないことは、文字列カタログの検査 (translate-app-xcstrings skill の `check` の「原文の言語の文字の残り」) と、テスト「日本語のほかの言語の見本の文字列に日本語が残らない」で確かめる。
     @Test func 英語の画像に日本語の文字が写らない() throws {
+        let japaneseRecognitionLanguages = ["ja-JP", "en-US"]
         for screen in AppStoreScreenshotScreen.allCases {
-            let japaneseLines = try recognizedText(screen: screen, locale: Locale(identifier: "en")).split(separator: "\n").filter { containsRecognizedJapanese(text: String($0)) }
+            let japaneseLines = try recognizedText(screen: screen, locale: Locale(identifier: "en"), recognitionLanguages: japaneseRecognitionLanguages)
+                .split(separator: "\n")
+                .filter { containsRecognizedJapanese(text: String($0)) }
             #expect(japaneseLines.isEmpty, "\(screen) \(japaneseLines)")
+        }
+        for screen in AppStoreScreenshotScreen.allCases {
             // 日本語を読めていること (読めない認識では上の確認が何も見ない)。
-            #expect(try containsRecognizedJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "ja"))), "\(screen)")
+            #expect(try containsRecognizedJapanese(text: recognizedText(screen: screen, locale: Locale(identifier: "ja"), recognitionLanguages: japaneseRecognitionLanguages)), "\(screen)")
         }
     }
 
     /// 一覧の画面の「編集」は iOS の `EditButton` の文言で文字列カタログに無いため、言語ごとの文言が画像に写ることを確かめる (2 文字の「編集」は、テスト「英語の画像に日本語の文字が写らない」では見つからない)。
-    @Test func 編集のボタンは言語ごとの文言で画像に写る() throws {
-        let english = try recognizedText(screen: .confirmation, locale: Locale(identifier: "en"))
-        #expect(comparableText(text: english).contains("edit"), "\(english)")
-        #expect(!english.contains("編集"), "\(english)")
-        let japanese = try recognizedText(screen: .confirmation, locale: Locale(identifier: "ja"))
-        #expect(japanese.contains("編集"), "\(japanese)")
+    ///
+    /// 期待値は、iOS がその言語で `EditButton` に出す文言。2026-11-27 に simtunnel の iPhone 17 (iOS 26.5) でアプリを `-AppleLanguages` で 9 言語それぞれで起動し、お気に入りの一覧の `EditButton` のラベルを WDA で読んだ値 (PR #93)。
+    @Test(arguments: [
+        ("ja", "編集"), ("en-US", "Edit"), ("es-ES", "Editar"), ("fr-FR", "Modifier"), ("de-DE", "Bearbeiten"),
+        ("pt-BR", "Editar"), ("ko", "편집"), ("zh-Hans", "编辑"), ("zh-Hant", "編輯"),
+    ])
+    func 編集のボタンは言語ごとの文言で画像に写る(directoryName: String, editButtonTitle: String) throws {
+        let language = try #require(appStoreScreenshotLanguages.first { $0.directoryName == directoryName })
+        #expect(appStoreScreenshotEditButtonTitle(locale: language.locale) == editButtonTitle)
+        let text = try recognizedText(screen: .confirmation, language: language)
+        #expect(comparableText(text: text).contains(comparableText(text: editButtonTitle)), "\(directoryName) \(text)")
+        if directoryName != "ja" {
+            #expect(!text.contains("編集"), "\(directoryName) \(text)")
+        }
     }
 
     /// 追加の画面には、見本のお気に入りの種類の値 (「200g」) が種類の選び方・商品バリアントの名前の 2 か所に、検索の先頭の商品の価格 (「¥1,480」) が 1 か所に写る。
     @Test func 追加の画面に種類の値と価格が写る() throws {
         for language in appStoreScreenshotLanguages {
-            let text = try comparableText(text: recognizedText(screen: .addFavorite, locale: language.locale))
+            let text = try comparableText(text: recognizedText(screen: .addFavorite, language: language))
             #expect(text.components(separatedBy: "200g").count - 1 == 2, "\(language.directoryName) \(text)")
             #expect(text.components(separatedBy: "1480").count - 1 == 1, "\(language.directoryName) \(text)")
         }
@@ -198,10 +240,8 @@ struct AppStoreScreenshotTests {
         for language in appStoreScreenshotLanguages {
             for screen in AppStoreScreenshotScreen.allCases {
                 for line in (appStoreScreenshotHeadline(screen: screen, locale: language.locale) + "\n" + appStoreScreenshotSubheadline(screen: screen, locale: language.locale)).split(separator: "\n") {
-                    #expect(
-                        try comparableText(text: recognizedText(screen: screen, locale: language.locale, regionOfInterest: headingRegion)).contains(comparableText(text: String(line))),
-                        "\(language.directoryName) \(screen) \(line)"
-                    )
+                    let headingText = try recognizedText(screen: screen, language: language, regionOfInterest: headingRegion)
+                    #expect(comparableText(text: headingText).contains(comparableText(text: String(line))), "\(language.directoryName) \(screen) \(line) / 読めた文字: \(headingText)")
                 }
             }
         }
@@ -213,26 +253,42 @@ struct AppStoreScreenshotTests {
     /// 端末の中の文言を読まないために区切る (日本語の追加の画面は、補足と同じ「追加しただけでは購入されません」がフォームの下にも写る)。
     private let headingRegion = CGRect(x: 0, y: 0.8, width: 1, height: 0.2)
 
-    /// 1 枚を描いて、`regionOfInterest` の範囲に写っている文字を Vision の文字の認識 (日本語と英語) で読み、行を改行でつないで返す。描けない時は投げる。
+    /// `language` の言語の 1 枚を描いて、`regionOfInterest` の範囲に写っている文字を Vision の文字の認識 (その言語と英語) で読み、行を改行でつないで返す。描けない時は投げる。
+    ///
+    /// 英語を足すのは、どの言語の画像にも英語の文字 (店のドメイン・「Quick Buy」) が写るため。
+    private func recognizedText(
+        screen: AppStoreScreenshotScreen,
+        language: AppStoreScreenshotLanguage,
+        regionOfInterest: CGRect = wholeImageRegion
+    ) throws -> String {
+        try recognizedText(
+            screen: screen,
+            locale: language.locale,
+            recognitionLanguages: language.textRecognitionLanguage == "en-US" ? ["en-US"] : [language.textRecognitionLanguage, "en-US"],
+            regionOfInterest: regionOfInterest
+        )
+    }
+
+    /// `locale` の言語の 1 枚を描いて、`regionOfInterest` の範囲に写っている文字を Vision の文字の認識 (`recognitionLanguages` の言語) で読み、行を改行でつないで返す。描けない時は投げる。
     private func recognizedText(
         screen: AppStoreScreenshotScreen,
         locale: Locale,
-        // 範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
-        regionOfInterest: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        recognitionLanguages: [String],
+        regionOfInterest: CGRect = wholeImageRegion
     ) throws -> String {
         let request = VNRecognizeTextRequest()
         request.regionOfInterest = regionOfInterest
         request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["ja-JP", "en-US"]
+        request.recognitionLanguages = recognitionLanguages
         // 辞書で直すと、店のドメインや見本の名前が別の語に替わるため切る。
         request.usesLanguageCorrection = false
         try VNImageRequestHandler(data: #require(screenshotPNG(screen: screen, locale: locale))).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
     }
 
-    /// 文字の認識の結果と元の文言を比べるために、文字と数字だけを残して小文字にした文字列を返す (空白・改行・引用符の形の違いで食い違わないようにする)。
+    /// 文字の認識の結果と元の文言を比べるために、文字と数字だけを残し、小文字にしてアクセント記号を外した文字列を返す (空白・改行・引用符の形の違いと、「é」を「e」と読むような認識の違いで食い違わないようにする)。
     private func comparableText(text: String) -> String {
-        String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        String(text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
     }
 
     /// 文字の認識の結果 `text` に、日本語の文字 (ひらがな・カタカナ・長音・漢字) が 3 文字以上続く所があるか。
@@ -246,8 +302,31 @@ struct AppStoreScreenshotTests {
         text.contains(#/[\u{3041}-\u{3096}\u{30A1}-\u{30FA}\u{30FC}\u{4E00}-\u{9FFF}]{3,}/#)
     }
 
+    /// `text` に仮名 (ひらがな・カタカナ) があるか。
+    private func containsKana(text: String) -> Bool {
+        text.unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) }
+    }
+
     /// `text` に日本語の文字 (ひらがな・カタカナ・漢字) があるか。
     private func containsJapanese(text: String) -> Bool {
-        text.unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) || (0x4E00...0x9FFF).contains($0.value) }
+        containsKana(text: text) || text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
     }
 }
+
+/// 画像の全体を表す、文字を読む範囲。範囲を渡さない呼び出しは画像の全体を読む (Vision の `regionOfInterest` の既定の値と同じ)。
+/// 引数の既定の値から参照するため、型の外に置く。
+private let wholeImageRegion = CGRect(x: 0, y: 0, width: 1, height: 1)
+
+/// 見出しと補足に書かない、ワンタップや自動の購入を表す言い方。確認に答えてから購入画面が開くことと、支払いは本人が店の画面で行うことと食い違うため。
+///
+/// 9 言語それぞれの「ワンタップ」「1 回のタップで」「自動で (買う)」「自動購入」に当たる語。大文字と小文字は区別しない比べ方で当てる。
+private let oneTapOrAutomaticPurchaseWords = [
+    "ワンタップ", "1 タップ", "１タップ", "自動で買", "自動購入",
+    "one tap", "one-tap", "automatically", "auto-buy",
+    "un solo toque", "un toque", "automáticamente", "compra automática",
+    "un seul geste", "une seule touche", "automatiquement", "achat automatique",
+    "ein Tippen", "einem Tippen", "automatisch",
+    "um toque", "automaticamente",
+    "원탭", "한 번의 탭", "자동 구매", "자동으로 구매",
+    "一键", "一鍵", "自动购买", "自動購買", "自动下单", "自動下單",
+]

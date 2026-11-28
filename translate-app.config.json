@@ -1,0 +1,66 @@
+{
+  "format": "xcstrings",
+  "path": "Shared/Localizable.xcstrings",
+  "source_language": "ja",
+  "target_languages": [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "pt-BR",
+    "ko",
+    "zh-Hans",
+    "zh-Hant"
+  ],
+  "engine": "codex",
+  "model": "gpt-6-sol",
+  "context": "Quick Buy は、Shopify の店で繰り返し買う商品 (コーヒー豆・洗剤・ペットフード等) をお気に入りにしておき、アプリの一覧やホーム画面のウィジェットから買い直すための iPhone アプリ。「カートイン」を押すと毎回確認が出て、確認に答えると商品がカートに入った店の購入画面 (checkout) が開く。支払いの確定は毎回利用者が店の画面で行い、アプリは購入を完了させない。お気に入りごとに何日ごとに知らせるか (リマインド) を決められる。文体は短く平易に。ボタン・見出しのような短い文言は末尾に句点・ピリオドを付けない。アプリ名「Quick Buy」と「Shopify」は訳さない。改行 (\\n) の位置と数は原文に合わせる。",
+  "source_dirs": [
+    "QuickBuy",
+    "QuickBuyWidget",
+    "QuickBuyShare",
+    "Shared"
+  ],
+  "glossary": {
+    "カートイン": {
+      "es": "Al carrito",
+      "fr": "Au panier",
+      "de": "In den Korb",
+      "pt-BR": "Ao carrinho",
+      "ko": "장바구니 담기",
+      "zh-Hans": "加入购物车",
+      "zh-Hant": "加入購物車"
+    },
+    "購入画面": {
+      "en": "checkout",
+      "es": "página de pago",
+      "fr": "page de paiement",
+      "de": "Kasse",
+      "pt-BR": "página de pagamento",
+      "ko": "결제 화면",
+      "zh-Hans": "结账页面",
+      "zh-Hant": "結帳頁面"
+    },
+    "店": {
+      "es": "tienda",
+      "fr": "boutique",
+      "de": "Shop",
+      "pt-BR": "loja",
+      "ko": "스토어",
+      "zh-Hans": "店铺",
+      "zh-Hant": "商店"
+    },
+    "通知": {
+      "de": "Mitteilung"
+    }
+  },
+  "style": {
+    "es": "tú で統一する",
+    "fr": "vous で統一する",
+    "de": "du で統一する",
+    "pt-BR": "você で統一する",
+    "ko": "합니다体 (ボタン・見出しは名詞止め) で統一する",
+    "zh-Hans": "简体中文。您ではなく你を使う",
+    "zh-Hant": "台湾で使う繁體中文の語彙。您ではなく你を使う"
+  }
+}

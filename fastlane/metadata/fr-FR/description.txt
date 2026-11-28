@@ -1,0 +1,31 @@
+Quick Buy enregistre en favoris les produits que vous achetez régulièrement dans des boutiques Shopify, pour les racheter depuis l'app ou depuis un widget de l'écran d'accueil. Chaque fois que vous touchez « Au panier », une confirmation vous est demandée avant toute ouverture. Après confirmation, la page de paiement de la boutique s'ouvre avec le produit déjà dans le panier. Vous validez toujours le paiement vous-même dans la boutique.
+
+FONCTIONNEMENT
+1. Recherchez et enregistrez vos favoris
+Recherchez des produits de boutiques Shopify dans l'onglet Accueil de l'app, choisissez la variante et la quantité, puis enregistrez-les en favoris. Ajoutez ce que vous achetez souvent, comme du café en grains, de la lessive ou de la nourriture pour animaux. Vous pouvez aussi coller l'URL d'une page produit ou l'envoyer depuis le menu Partager.
+
+2. Touchez « Au panier » et confirmez
+Touchez « Au panier » dans vos favoris pour voir « Ouvrir la page de paiement ? ». Vos favoris apparaissent aussi dans un widget de l'écran d'accueil. Toucher « Au panier » sur le widget envoie la même confirmation sous forme de notification : le widget nécessite donc l'autorisation des notifications.
+
+3. La page de paiement s'ouvre
+Après confirmation, la page de paiement de la boutique s'ouvre avec le produit dans le panier. Vérifiez-la et validez le paiement vous-même.
+
+4. Un rappel quand il est temps de racheter
+Choisissez un nombre de jours pour chaque favori et recevez une notification une fois ces jours écoulés. Touchez-la pour ouvrir la page de paiement. Le décompte repart quand vous ouvrez la page de paiement.
+
+POUR CELLES ET CEUX QUI
+- Ne veulent pas d'abonnement et préfèrent racheter quand ils en ont vraiment besoin
+- Veulent décider de chaque achat. Quick Buy n'achète jamais rien tout seul
+- Veulent éviter de chercher dans la boutique et d'ajouter le produit au panier à chaque fois
+
+EN TOUTE SÉRÉNITÉ
+- L'app ne finalise jamais un achat. Elle ouvre seulement la page de paiement
+- Elle ne demande jamais vos identifiants de boutique
+- Les favoris sont enregistrés uniquement sur votre appareil, sans compte
+- Les notifications n'achètent jamais rien et aucune notification promotionnelle n'est envoyée
+
+BOUTIQUES COMPATIBLES
+- Boutiques Shopify qui rendent publiques les informations de leurs produits
+La recherche trouve des produits de boutiques Shopify au Japon qui livrent au Japon. Les produits vendus uniquement par abonnement ouvrent la page d'accueil de la boutique au lieu de la page de paiement.
+
+Quick Buy est gratuit. Pour toute question, contactez-nous par e-mail depuis Réglages dans l'app.

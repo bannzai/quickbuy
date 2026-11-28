@@ -25,7 +25,9 @@ permissions:
 jobs:
   screenshots:
     runs-on: macos-26
-    timeout-minutes: 20
+    # 9 言語の画像を描いて文字を読むと、通った run 45997154131 は 14 分 57 秒、46002667405 は 18 分 20 秒かかり、run 46059466916 は 20 分を超えて止められた。
+    # 長い方の 18 分 20 秒に、runner の混み具合の揺れを見込んで 2 倍ほどの 35 分にした (ci-test.yml の test と同じ上限)。
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Firebase の設定ファイルを secret から書き出す
@@ -41,10 +43,10 @@ jobs:
             -only-testing:QuickBuyTests/AppStoreScreenshotTests \
             CODE_SIGNING_ALLOWED=NO
       - name: 大きさと透明の有無を確かめる
-        # App Store Connect の iPhone 6.9 インチの大きさ (1320 x 2868) で、透明を持たないこと。両方の言語に 5 枚ずつあること。
+        # App Store Connect の iPhone 6.9 インチの大きさ (1320 x 2868) で、透明を持たないこと。9 つの言語 (QuickBuyTests/AppStoreScreenshots.swift の appStoreScreenshotLanguages のディレクトリの名前) に 5 枚ずつあること。
         run: |
           status=0
-          for language in ja en-US; do
+          for language in ja en-US es-ES fr-FR de-DE pt-BR ko zh-Hans zh-Hant; do
             count=$(find "${{ runner.temp }}/screenshots/$language" -name '*.png' | wc -l | tr -d ' ')
             echo "$language: $count 枚"
             [ "$count" = 5 ] || status=1
@@ -57,6 +59,8 @@ jobs:
           done
           exit $status
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        # 画像の文字を読むテストが落ちた時も、落ちた画像を見て直せるように描いた画像を残す。
+        if: ${{ !cancelled() }}
         with:
           name: store-screenshots
           path: ${{ runner.temp }}/screenshots

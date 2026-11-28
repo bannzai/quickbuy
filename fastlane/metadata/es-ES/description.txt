@@ -1,0 +1,31 @@
+Quick Buy guarda como favoritos los productos que compras una y otra vez en tiendas Shopify, para que puedas volver a comprarlos desde la app o desde un widget de la pantalla de inicio. Cada vez que tocas "Al carrito", se te pide confirmación antes de abrir nada. Al confirmar, se abre la página de pago de la tienda con el producto ya en el carrito. El pago siempre lo confirmas tú en la tienda.
+
+CÓMO FUNCIONA
+1. Busca y guarda favoritos
+Busca productos de tiendas Shopify en la pestaña Inicio de la app, elige la variante y la cantidad, y guárdalos como favoritos. Añade lo que compras con frecuencia, como café en grano, detergente o comida para mascotas. También puedes pegar la URL de la página de un producto o enviarla desde el menú Compartir.
+
+2. Toca "Al carrito" y confirma
+Toca "Al carrito" en tus favoritos y verás "¿Abrir la página de pago?". Tus favoritos también aparecen en un widget de la pantalla de inicio. Al tocar "Al carrito" en el widget, la misma confirmación llega como notificación, así que para usar el widget hay que permitir las notificaciones.
+
+3. Se abre la página de pago
+Tras confirmar, se abre la página de pago de la tienda con el producto en el carrito. Revísalo y confirma el pago tú mismo.
+
+4. Recibe un aviso cuando toque comprar
+Elige cuántos días esperar para cada favorito y recibirás una notificación cuando hayan pasado. Tócala para abrir la página de pago. La cuenta vuelve a empezar cuando abres la página de pago.
+
+PENSADO PARA QUIENES
+- No quieren una suscripción y prefieren volver a comprar cuando de verdad lo necesitan
+- Quieren decidir cada compra. Quick Buy nunca compra nada por su cuenta
+- Quieren ahorrarse buscar en la tienda y añadir el producto al carrito cada vez
+
+TRANQUILIDAD
+- La app nunca completa una compra. Solo abre la página de pago
+- Nunca te pide el inicio de sesión de la tienda
+- Los favoritos se guardan solo en tu dispositivo y no hace falta una cuenta
+- Las notificaciones nunca compran nada y no se envían notificaciones promocionales
+
+TIENDAS COMPATIBLES
+- Tiendas Shopify que hacen pública la información de sus productos
+La búsqueda encuentra productos de tiendas Shopify de Japón que hacen envíos dentro de Japón. Los productos que solo se venden por suscripción abren la página de inicio de la tienda en lugar de la página de pago.
+
+Quick Buy es gratis. Si tienes preguntas, escríbenos por correo desde Configuración en la app.
