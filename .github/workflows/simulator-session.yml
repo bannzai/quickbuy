@@ -21,6 +21,15 @@ on:
         description: "セッション維持時間（分）"
         required: true
         default: "60"
+      language_preset:
+        # ウィジェット・ホーム画面のようにアプリの起動引数 (-AppleLanguages) が届かない画面を英語以外で確かめるため、
+        # Simulator の端末の言語をセッションの起動前に決める (セッション中に設定アプリで変えると WDA に接続できなくなった。bannzai/simtunnel PROJECT.md「端末の言語を caller から渡す」)。
+        # 選択肢はアプリが対応する 9 言語 (QuickBuy.xcodeproj の knownRegions)。none は既定の英語のまま
+        description: "Simulator の端末の言語"
+        type: choice
+        required: false
+        default: none
+        options: [none, ja, de, es, fr, pt-BR, ko, zh-Hans, zh-Hant]
 
 jobs:
   # Simulator 用 .app をビルドして artifact に上げる。
@@ -72,13 +81,16 @@ jobs:
       id-token: write # Tailscale の OIDC (workload identity federation) 認証に必要
       contents: read
     # タグ運用はしないため main の commit SHA で固定する（更新時は SHA を書き換える）
-    uses: bannzai/simtunnel/.github/workflows/session.yml@28808c1b66945af76484792e420ebdb9c84652d8 # main 2026-11-13
+    uses: bannzai/simtunnel/.github/workflows/session.yml@a94a78bcc3e7fa2e859ae770da348c76c3e111c7 # main 2026-11-28 (device_language / device_locale を足した commit)
     with:
       session: ${{ inputs.session }}
       device: ${{ inputs.device }}
       duration_minutes: ${{ inputs.duration_minutes }}
       app_artifact: simulator-app
       bundle_id: com.bannzai.QuickBuy
+      device_language: ${{ inputs.language_preset != 'none' && inputs.language_preset || '' }}
+      # 地域は言語ごとに 1 つに決める (simtunnel は言語と地域を両方渡すか両方空にすることを求める)
+      device_locale: ${{ inputs.language_preset == 'ja' && 'ja_JP' || inputs.language_preset == 'de' && 'de_DE' || inputs.language_preset == 'es' && 'es_ES' || inputs.language_preset == 'fr' && 'fr_FR' || inputs.language_preset == 'pt-BR' && 'pt_BR' || inputs.language_preset == 'ko' && 'ko_KR' || inputs.language_preset == 'zh-Hans' && 'zh_CN' || inputs.language_preset == 'zh-Hant' && 'zh_TW' || '' }}
     secrets:
       TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
       TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
